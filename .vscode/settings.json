@@ -1,0 +1,6 @@
+{
+    "editor.codeActionsOnSave": {
+        "source.fixAll.biome": "always"
+    },
+    "typescript.tsdk": "node_modules/typescript/lib"
+}
