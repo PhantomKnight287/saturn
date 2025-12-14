@@ -2,7 +2,6 @@ import { HttpApi } from "@effect/platform";
 import { Rpc, RpcGroup } from "@effect/rpc";
 import { Schema } from "effect";
 import { AuthGroup } from "./apis/auth/api.js";
-import { DatabasesGroup } from "./apis/database/api.js";
 
 export class CreateDatabaseResponse extends Schema.Class<CreateDatabaseResponse>(
   "CreateDatabaseResponse",

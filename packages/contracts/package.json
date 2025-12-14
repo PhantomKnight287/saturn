@@ -13,9 +13,10 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@effect/language-service": "^0.62.1",
     "@effect/rpc": "^0.72.2",
-    "effect": "^3.19.11",
-    "@saturn/auth": "workspace:*"
+    "@saturn/auth": "workspace:*",
+    "effect": "^3.19.11"
   },
   "scripts": {
     "build": "bun run src/build.ts && tsc",

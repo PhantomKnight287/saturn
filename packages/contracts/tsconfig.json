@@ -24,7 +24,13 @@
     // custom config
     "declaration": true,
     "emitDeclarationOnly": true,
-    "outDir": "./dist"
+    "outDir": "./dist",
+
+    "plugins": [
+      {
+        "name": "@effect/language-service"
+      }
+    ]
   },
   "include": ["./src/**/*.ts"],
   "exclude": ["node_modules", "dist"]

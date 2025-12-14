@@ -9,7 +9,11 @@ export const ProjectsLive = ProjectsRPCContract.toLayer(
     return {
       CreateProject: (input, { headers }) =>
         projectsService.CreateProject(input, headers)(),
+      ListProjects: (input, { headers }) =>
+        projectsService.ListProjects(input, headers)(),
     };
-  })
-)
-.pipe(Layer.provide(ProjectsService.Default), Layer.provide(BetterAuth.Default));
+  }),
+).pipe(
+  Layer.provide(ProjectsService.Default),
+  Layer.provide(BetterAuth.Default),
+);

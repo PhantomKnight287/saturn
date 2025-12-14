@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 
 import {
   DropdownMenu,
@@ -15,10 +14,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
 import { authClient } from "@/lib/auth-client";
 import { NavUser } from "./nav-user";
 import { Separator } from "./ui/separator";
+import { Button } from "./ui/button";
 
 export type OrgHeaderProps = {
   organizationName: string;
@@ -49,63 +48,63 @@ export function OrgHeader({
 
   return (
     <div className="flex w-full items-center">
+      {/* Organization Switcher */}
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            aria-label="Open organization switcher"
-            className="flex h-8 items-center gap-2 px-2 text-sm"
-            size="sm"
-            variant="ghost"
-          >
-            <Avatar className="h-5 w-5">
-              <AvatarFallback className="text-xs">
-                {organizationName.charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <span className="max-w-[120px] truncate font-medium text-sm">
-              {organizationName}
-            </span>
-            <ChevronsUpDown className="ml-1 h-4 w-4 opacity-70" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-56" sideOffset={4}>
-          <DropdownMenuLabel className="text-muted-foreground text-xs">
-            Organizations
-          </DropdownMenuLabel>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              variant="ghost"
+              className="flex h-8 items-center gap-2 px-2 text-sm rounded-md hover:bg-accent hover:text-accent-foreground"
+              aria-label="Open organization switcher"
+            >
+              <Avatar className="h-5 w-5">
+                <AvatarFallback className="text-xs">
+                  {organizationName.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <span className="max-w-[120px] truncate font-medium text-sm">
+                {organizationName}
+              </span>
+              <ChevronsUpDown className="ml-1 h-4 w-4 opacity-70" />
+            </Button>
+          }
+        />
+
+        <DropdownMenuContent className="w-56">
+          <DropdownMenuLabel>Organizations</DropdownMenuLabel>
           <DropdownMenuSeparator />
+
           {allOrganizations?.map((organization) => (
             <DropdownMenuItem
-              asChild
-              className="w-full gap-2 p-2"
               key={organization.id}
+              onClick={async () => {
+                await authClient.organization.setActive({
+                  organizationSlug: organization.slug,
+                });
+                router.replace(`/dashboard/${organization.slug}`);
+              }}
             >
-              <Button
-                className="flex w-full items-center justify-start gap-2 outline-none ring-0"
-                onClick={async () => {
-                  await authClient.organization.setActive({
-                    organizationSlug: organization.slug,
-                  });
-                  router.replace(`/dashboard/${organization.slug}`);
-                }}
-                variant={"ghost"}
-              >
+              <div className="flex w-full items-center gap-2">
                 <Avatar className="h-5 w-5">
                   <AvatarFallback className="text-xs">
                     {organization.name.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 {organization.name}
-              </Button>
+              </div>
             </DropdownMenuItem>
           ))}
-          <DropdownMenuItem asChild>
-            <Link className="gap-2 p-2" href="/onboarding">
+
+          <DropdownMenuItem>
+            <Link href="/onboarding" className="flex items-center gap-2">
               <Plus className="h-4 w-4" />
               Add Organization
             </Link>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {/* Project Switcher */}
       {projectName && (
         <>
           <Separator
@@ -113,39 +112,38 @@ export function OrgHeader({
             orientation="vertical"
           />
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                aria-label="Open team switcher"
-                className="flex h-8 items-center gap-2 px-2 text-sm"
-                size="sm"
-                variant="ghost"
-              >
-                <div className="h-2 w-2 rounded-full bg-blue-500" />
-                <span className="max-w-[120px] truncate font-medium text-sm">
-                  {projectName}
-                </span>
-                <ChevronsUpDown className="ml-1 h-4 w-4 opacity-70" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-56" sideOffset={4}>
-              <DropdownMenuLabel className="text-muted-foreground text-xs">
-                Projects
-              </DropdownMenuLabel>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  className="flex h-8 items-center gap-2 px-2 text-sm rounded-md hover:bg-accent hover:text-accent-foreground"
+                  aria-label="Open team switcher"
+                >
+                  <div className="h-2 w-2 rounded-full bg-blue-500" />
+                  <span className="max-w-[120px] truncate font-medium text-sm">
+                    {projectName}
+                  </span>
+                  <ChevronsUpDown className="ml-1 h-4 w-4 opacity-70" />
+                </Button>
+              }
+            />
+
+            <DropdownMenuContent className="w-56">
+              <DropdownMenuLabel>Projects</DropdownMenuLabel>
               <DropdownMenuSeparator />
+
               {allProjects?.map((project) => (
-                <DropdownMenuItem className="w-full gap-2 p-2" key={project.id}>
-                  <Link
-                    className="w-full"
-                    href={`/dashboard/${organizationSlug}/${project.id}`}
-                  >
+                <DropdownMenuItem key={project.id}>
+                  <Link href={`/dashboard/${organizationSlug}/${project.id}`}>
                     {project.name}
                   </Link>
                 </DropdownMenuItem>
               ))}
-              <DropdownMenuItem asChild>
+
+              <DropdownMenuItem>
                 <Link
-                  className="cursor-pointer gap-2 p-2"
                   href={`/dashboard/${organizationSlug}/projects`}
+                  className="flex items-center gap-2"
                 >
                   <Plus className="h-4 w-4" />
                   Add Project
