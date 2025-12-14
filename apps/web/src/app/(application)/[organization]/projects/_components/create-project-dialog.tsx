@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { createProject } from "../action";
+import { useRouter } from "next/navigation";
 
 const projectSchema = z.object({
   name: z.string().min(1, "Project name is required"),
@@ -50,6 +51,8 @@ export function CreateProjectDialog({
 }: CreateProjectDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const formId = useId();
+
+  const router = useRouter();
 
   const form = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
@@ -76,6 +79,7 @@ export function CreateProjectDialog({
       toast.success("Project created successfully!");
       form.reset();
       onOpenChange(false);
+      router.refresh();
       onSuccess?.();
     } catch (error) {
       console.error("Error creating project:", error);

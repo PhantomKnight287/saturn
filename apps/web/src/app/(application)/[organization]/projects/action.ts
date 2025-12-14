@@ -6,7 +6,7 @@ import {
   type CreateProjectInput,
   ProjectsRPCContract,
 } from "@saturn/contracts";
-import { Console, Effect, pipe } from "effect";
+import { Effect, pipe } from "effect";
 import { BaseAction } from "@/lib/runtime";
 
 const _createProjectAction = Effect.fn("CreateProjectAction")(
@@ -18,7 +18,6 @@ const _createProjectAction = Effect.fn("CreateProjectAction")(
         const project = yield* client.CreateProject(input, {
           headers: yield* Headers,
         });
-        yield* Console.log(project);
         return yield* Effect.succeed({
           success: true as const,
           project: { ...project }, // this spread is needed here because, without it, it fails with "Only plain objects, and a few built-ins can be passed to Client components"
@@ -52,8 +51,8 @@ const _createProjectAction = Effect.fn("CreateProjectAction")(
             message: "RPC Client Error",
           }),
       }),
-      Effect.scoped
-    )
+      Effect.scoped,
+    ),
 );
 
 export const createProject = BaseAction.build(_createProjectAction);

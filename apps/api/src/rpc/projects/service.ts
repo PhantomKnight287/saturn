@@ -9,6 +9,7 @@ import {
 import { ProjectEntity } from "@saturn/contracts/dist/contracts/projects/output.js";
 import { db } from "@saturn/db";
 import { organizations, projects } from "@saturn/db/schema";
+import { desc } from "drizzle-orm";
 import { and, eq } from "drizzle-orm";
 import { Console, Effect } from "effect";
 import { BetterAuth } from "src/services/better-auth.js";
@@ -127,7 +128,8 @@ export class ProjectsService extends Effect.Service<ProjectsService>()(
                 db
                   .select()
                   .from(projects)
-                  .where(eq(projects.organizationId, input.organizationId)),
+                  .where(eq(projects.organizationId, input.organizationId))
+                  .orderBy(desc(projects.createdAt)),
               catch: () => new InternalServerError(),
             });
             return yield* Effect.succeed(
