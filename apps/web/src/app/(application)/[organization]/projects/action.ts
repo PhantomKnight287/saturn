@@ -1,9 +1,12 @@
 "use server";
 
 import { RpcClient } from "@effect/rpc";
-import { CreateProjectInput, ProjectsRPCContract } from "@saturn/contracts";
-import { Console, Effect, Layer, pipe, Schema } from "effect";
 import { Headers } from "@mcrovero/effect-nextjs/Headers";
+import {
+  type CreateProjectInput,
+  ProjectsRPCContract,
+} from "@saturn/contracts";
+import { Console, Effect, pipe } from "effect";
 import { BaseAction } from "@/lib/runtime";
 
 const _createProjectAction = Effect.fn("CreateProjectAction")(
@@ -49,8 +52,8 @@ const _createProjectAction = Effect.fn("CreateProjectAction")(
             message: "RPC Client Error",
           }),
       }),
-      Effect.scoped,
-    ),
+      Effect.scoped
+    )
 );
 
 export const createProject = BaseAction.build(_createProjectAction);
