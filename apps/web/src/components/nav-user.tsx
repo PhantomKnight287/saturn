@@ -26,24 +26,27 @@ export function NavUser() {
     <SidebarMenu>
       <SidebarMenuItem>
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <SidebarMenuButton
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-              size="lg"
-            >
-              <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage
-                  alt={session.data?.user.name}
-                  src={session.data?.user.image ?? ""}
-                />
-                <AvatarFallback className="rounded-lg">
-                  {session.data?.user.name
-                    ? session.data?.user.name?.charAt(0)
-                    : "U"}
-                </AvatarFallback>
-              </Avatar>
-            </SidebarMenuButton>
-          </DropdownMenuTrigger>
+          <DropdownMenuTrigger
+            render={
+              <SidebarMenuButton
+                className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                size="lg"
+              >
+                <Avatar className="h-8 w-8 rounded-lg">
+                  <AvatarImage
+                    alt={session.data?.user.name}
+                    src={session.data?.user.image ?? ""}
+                  />
+                  <AvatarFallback className="rounded-lg">
+                    {session.data?.user.name
+                      ? session.data?.user.name?.charAt(0)
+                      : "U"}
+                  </AvatarFallback>
+                </Avatar>
+              </SidebarMenuButton>
+            }
+          />
+
           <DropdownMenuContent
             align="end"
             className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"

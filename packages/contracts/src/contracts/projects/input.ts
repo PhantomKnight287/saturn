@@ -7,3 +7,9 @@ export class CreateProjectInput extends Schema.Class<CreateProjectInput>(
   description: Schema.String.pipe(Schema.optional),
   organizationId: Schema.String,
 }) {}
+
+export class ListProjectsInput extends Schema.Class<ListProjectsInput>(
+  "ListProjectInput",
+)({
+  organizationId: Schema.String,
+}) {}

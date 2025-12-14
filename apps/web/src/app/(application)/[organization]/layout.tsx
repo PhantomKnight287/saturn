@@ -17,12 +17,12 @@ export default async function OrganizationLayout({
   const session = await getCachedUserSession(await headers());
   if (!session) {
     return redirect(
-      `/auth/sign-in?callback=${encodeURIComponent(`/${organization}`)}`
+      `/auth/sign-in?callback=${encodeURIComponent(`/${organization}`)}`,
     );
   }
   const organizationData = await getCachedOrganization(
     organization,
-    await headers()
+    await headers(),
   );
 
   if (!organizationData) {
@@ -31,7 +31,7 @@ export default async function OrganizationLayout({
 
   const allOrganizations = await authClient.organization.list(
     {},
-    { headers: await headers() }
+    { headers: await headers() },
   );
 
   return (
@@ -46,7 +46,7 @@ export default async function OrganizationLayout({
             projectName={null}
           />
         </div>
-        <Separator className="w-full bg-accent" />
+        <Separator className="w-full" />
 
         <OrgNavServer slug={organization} />
       </header>

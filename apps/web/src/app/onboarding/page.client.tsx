@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import type z from "zod";
 import { Button } from "@/components/ui/button";
@@ -14,18 +14,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
 import { onboardingSchema } from "./common";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
 
 type OnboardingFormData = z.infer<typeof onboardingSchema>;
 
@@ -48,7 +46,7 @@ const generateSlug = (orgName: string): string => {
 
 export default function OnboardingClient() {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const orgNameId = useId();
+  const formId = useId();
   const router = useRouter();
 
   const form = useForm<OnboardingFormData>({
@@ -58,8 +56,6 @@ export default function OnboardingClient() {
       orgName: "",
     },
   });
-
-  const { control } = form;
 
   const onSubmit = async (data: OnboardingFormData) => {
     try {
@@ -75,9 +71,7 @@ export default function OnboardingClient() {
       });
 
       if (orgResult.error) {
-        toast.error(
-          orgResult.error.message || "Failed to create organization"
-        );
+        toast.error(orgResult.error.message || "Failed to create organization");
         return;
       }
 
@@ -102,56 +96,45 @@ export default function OnboardingClient() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)}>
-                <FormField
-                  control={control}
+            <form id={formId} onSubmit={form.handleSubmit(onSubmit)}>
+              <FieldGroup>
+                <Controller
+                  control={form.control}
                   name="orgName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel
-                        className="font-medium text-base"
-                        htmlFor={orgNameId}
-                      >
-                        Organization Name *
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          id={orgNameId}
-                          placeholder="Enter your organization name"
-                          {...field}
-                          className="h-11"
-                          required
-                        />
-                      </FormControl>
-                      <FormMessage />
-                      <FormDescription>
-                        This will be the name of your organization that appears
-                        to your team and customers. A unique slug will be
-                        automatically generated.
-                      </FormDescription>
-                    </FormItem>
+                  render={({ field, fieldState }) => (
+                    <Field data-invalid={fieldState.invalid}>
+                      <FieldLabel>Organization Name</FieldLabel>
+                      <Input
+                        {...field}
+                        aria-invalid={fieldState.invalid}
+                        placeholder="Acme Inc."
+                        autoComplete="off"
+                      />
+                      {fieldState.invalid && (
+                        <FieldError errors={[fieldState.error]} />
+                      )}
+                    </Field>
                   )}
                 />
-
-                <div className="flex items-center justify-end pt-6">
-                  <Button
-                    className="px-8"
-                    disabled={isSubmitting}
-                    type="submit"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                        Creating...
-                      </>
-                    ) : (
-                      "Create"
-                    )}
-                  </Button>
-                </div>
-              </form>
-            </Form>
+              </FieldGroup>
+            </form>
+            <div className="flex items-center justify-end pt-6">
+              <Button
+                className="px-8"
+                disabled={isSubmitting}
+                type="submit"
+                form={formId}
+              >
+                {isSubmitting ? (
+                  <>
+                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    Creating...
+                  </>
+                ) : (
+                  "Create"
+                )}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>

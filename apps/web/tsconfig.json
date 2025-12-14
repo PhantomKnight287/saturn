@@ -20,6 +20,9 @@
     "plugins": [
       {
         "name": "next"
+      },
+      {
+        "name": "@effect/language-service"
       }
     ],
     "paths": {
@@ -27,7 +30,7 @@
         "./src/*"
       ]
     },
-    "strictNullChecks": true
+    "strictNullChecks": true,
   },
   "include": [
     "next-env.d.ts",

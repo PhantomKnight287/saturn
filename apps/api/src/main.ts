@@ -1,9 +1,7 @@
 import {
   HttpApiBuilder,
   HttpApiSwagger,
-  HttpLayerRouter,
   HttpMiddleware,
-  HttpRouter,
   HttpServer,
 } from "@effect/platform";
 import { BunHttpServer, BunRuntime } from "@effect/platform-bun";
@@ -11,16 +9,10 @@ import { RpcSerialization, RpcServer } from "@effect/rpc";
 import { ProjectsRPCContract } from "@saturn/contracts";
 import { Layer } from "effect";
 import { APILive } from "./apis/index.js";
-import { DatabaseContract } from "./contract.js";
 import { NodeSdkLive } from "./observability.js";
-import { DatabasesLive } from "./rpc/index.js";
 import { ProjectsLive } from "./rpc/projects/live.js";
 import { BetterAuth } from "./services/better-auth.js";
 import { Drizzle } from "./services/drizzle.js";
-
-const RPCLayer = RpcServer.layer(DatabaseContract).pipe(
-  Layer.provide(DatabasesLive),
-);
 
 const ProjectLayer = RpcServer.layer(ProjectsRPCContract).pipe(
   Layer.provide(ProjectsLive),

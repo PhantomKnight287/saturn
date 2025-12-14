@@ -2,12 +2,14 @@ import type { Headers as EffectHeaders } from "@effect/platform";
 import {
   type CreateProjectInput,
   InternalServerError,
+  type ListProjectsInput,
   ProjectWithSameNameAlreadyExistsError,
   Unauthorized,
 } from "@saturn/contracts";
 import { ProjectEntity } from "@saturn/contracts/dist/contracts/projects/output.js";
 import { db } from "@saturn/db";
-import { projects } from "@saturn/db/schema";
+import { organizations, projects } from "@saturn/db/schema";
+import { desc } from "drizzle-orm";
 import { and, eq } from "drizzle-orm";
 import { Console, Effect } from "effect";
 import { BetterAuth } from "src/services/better-auth.js";
@@ -23,7 +25,6 @@ export class ProjectsService extends Effect.Service<ProjectsService>()(
         ) =>
           Effect.fn("CreateProject")(function* () {
             const auth = yield* BetterAuth;
-            yield* Console.log(headers);
             const hasPermissionToCreateProject = yield* auth.hasPermission({
               body: {
                 organizationId: input.organizationId,
@@ -60,7 +61,7 @@ export class ProjectsService extends Effect.Service<ProjectsService>()(
                       eq(projects.organizationId, input.organizationId),
                     ),
                   ),
-              catch: (error) => new InternalServerError(),
+              catch: () => new InternalServerError(),
             });
             if (projectWithSameName) {
               return yield* Effect.fail(
@@ -77,7 +78,7 @@ export class ProjectsService extends Effect.Service<ProjectsService>()(
                     organizationId: input.organizationId,
                   })
                   .returning(),
-              catch: (error) => new InternalServerError(),
+              catch: () => new InternalServerError(),
             });
             return yield* Effect.succeed(
               ProjectEntity.make({
@@ -88,6 +89,51 @@ export class ProjectsService extends Effect.Service<ProjectsService>()(
                 updatedAt: newProject.updatedAt,
                 organizationId: newProject.organizationId,
               }),
+            );
+          }),
+        ListProjects: (
+          input: ListProjectsInput,
+          headers: EffectHeaders.Headers,
+        ) =>
+          Effect.fn("ListProjects")(function* () {
+            const auth = yield* BetterAuth;
+
+            const hasPermissionToViewProject = yield* auth.hasPermission({
+              body: {
+                organizationId: input.organizationId,
+                permissions: {
+                  //@ts-expect-error god damn broken types
+                  projects: ["read"],
+                },
+              },
+              headers,
+            });
+            if (hasPermissionToViewProject.success === false) {
+              return yield* Effect.fail(
+                new Unauthorized({
+                  message:
+                    "You do not permission to view projects in this organization",
+                }),
+              );
+            }
+            if (hasPermissionToViewProject.error !== null) {
+              return yield* Effect.fail(
+                new InternalServerError({
+                  message: hasPermissionToViewProject.error,
+                }),
+              );
+            }
+            const orgProjects = yield* Effect.tryPromise({
+              try: () =>
+                db
+                  .select()
+                  .from(projects)
+                  .where(eq(projects.organizationId, input.organizationId))
+                  .orderBy(desc(projects.createdAt)),
+              catch: () => new InternalServerError(),
+            });
+            return yield* Effect.succeed(
+              orgProjects.map((e) => new ProjectEntity(e)),
             );
           }),
       };
