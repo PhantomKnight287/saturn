@@ -1,5 +1,0 @@
-logLevel = "debug" # "debug" | "warn" | "error"
-
-
-[install]
-linker = "hoisted"
