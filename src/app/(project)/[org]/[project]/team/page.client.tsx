@@ -1,0 +1,146 @@
+'use client'
+
+import { Plus, Shield, UserPlus, Users, UsersRound } from 'lucide-react'
+import { useState } from 'react'
+
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import MembersSection from './_components/members-section'
+import StakeholdersSection from './_components/stakeholders-section'
+import TeamsSection from './_components/teams-section'
+import type { TeamPageClientProps } from './types'
+
+type Tab = 'members' | 'teams' | 'stakeholders'
+
+export function TeamPageClient({
+  projectId,
+  orgSlug,
+  projectSlug,
+  organizationId,
+  projectMembers,
+  projectClients,
+  projectTeams,
+  orgTeams,
+  pendingInvitations,
+  canManage,
+}: TeamPageClientProps) {
+  const [activeTab, setActiveTab] = useState<Tab>('members')
+  const [showInviteDialog, setShowInviteDialog] = useState(false)
+  const [showAssignTeamDialog, setShowAssignTeamDialog] = useState(false)
+
+  const memberInvitations = pendingInvitations.filter(
+    (i) => i.role !== 'client'
+  )
+  const clientInvitations = pendingInvitations.filter(
+    (i) => i.role === 'client'
+  )
+
+  const assignedTeamIds = new Set(projectTeams.map((t) => t.teamId))
+  const hasAvailableTeams = orgTeams.some((t) => !assignedTeamIds.has(t.teamId))
+
+  return (
+    <div className='w-full'>
+      <div className='mb-6 flex items-center justify-between'>
+        <h1 className='font-semibold text-2xl'>Team</h1>
+        {canManage && (
+          <>
+            {activeTab === 'members' && (
+              <Button onClick={() => setShowInviteDialog(true)} size='sm'>
+                <UserPlus className='size-4' />
+                Invite Member
+              </Button>
+            )}
+            {activeTab === 'teams' && (
+              <Button
+                disabled={!hasAvailableTeams}
+                onClick={() => setShowAssignTeamDialog(true)}
+                size='sm'
+              >
+                <Plus className='size-4' />
+                Assign Team
+              </Button>
+            )}
+            {activeTab === 'stakeholders' && (
+              <Button onClick={() => setShowInviteDialog(true)} size='sm'>
+                <UserPlus className='size-4' />
+                Invite Stakeholder
+              </Button>
+            )}
+          </>
+        )}
+      </div>
+
+      <Tabs
+        onValueChange={(v) => {
+          setActiveTab(v as Tab)
+          setShowInviteDialog(false)
+        }}
+        value={activeTab}
+      >
+        <TabsList>
+          <TabsTrigger className='gap-2' value='members'>
+            <Users className='size-4' />
+            Members
+            <Badge className='px-1.5 py-0 text-xs' variant='secondary'>
+              {projectMembers.length}
+            </Badge>
+          </TabsTrigger>
+          <TabsTrigger className='gap-2' value='teams'>
+            <UsersRound className='size-4' />
+            Teams
+            <Badge className='px-1.5 py-0 text-xs' variant='secondary'>
+              {projectTeams.length}
+            </Badge>
+          </TabsTrigger>
+          <TabsTrigger className='gap-2' value='stakeholders'>
+            <Shield className='size-4' />
+            Stakeholders
+            <Badge className='px-1.5 py-0 text-xs' variant='secondary'>
+              {projectClients.length}
+            </Badge>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value='members'>
+          <MembersSection
+            canManage={canManage}
+            onShowInviteDialogChange={setShowInviteDialog}
+            organizationId={organizationId}
+            orgSlug={orgSlug}
+            pendingInvitations={memberInvitations}
+            projectId={projectId}
+            projectMembers={projectMembers}
+            projectSlug={projectSlug}
+            showInviteDialog={showInviteDialog}
+          />
+        </TabsContent>
+        <TabsContent value='teams'>
+          <TeamsSection
+            canManage={canManage}
+            onShowAddDialogChange={setShowAssignTeamDialog}
+            orgSlug={orgSlug}
+            orgTeams={orgTeams}
+            projectId={projectId}
+            projectSlug={projectSlug}
+            projectTeams={projectTeams}
+            showAddDialog={showAssignTeamDialog}
+          />
+        </TabsContent>
+        <TabsContent value='stakeholders'>
+          <StakeholdersSection
+            canManage={canManage}
+            onShowInviteDialogChange={setShowInviteDialog}
+            organizationId={organizationId}
+            orgSlug={orgSlug}
+            pendingInvitations={clientInvitations}
+            projectClients={projectClients}
+            projectId={projectId}
+            projectSlug={projectSlug}
+            showInviteDialog={showInviteDialog}
+          />
+        </TabsContent>
+      </Tabs>
+    </div>
+  )
+}

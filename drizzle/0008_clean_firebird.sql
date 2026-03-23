@@ -1,0 +1,1 @@
+ALTER TABLE "milestones" ADD COLUMN "currency" text DEFAULT 'USD';
