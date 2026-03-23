@@ -1,10 +1,12 @@
+<img src="./public/logo/light.svg" align="center" width="50">
+
+
 <h1 align="center">
     Saturn
-</div>
+</h1>
 
 <p align="center">
-    A platform for freelancers/freelance agencies to manage their freelance business.
-    
+    A platform for freelancers/freelance agencies to manage their freelance business.    
 </p>
 
 
