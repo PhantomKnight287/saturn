@@ -1,0 +1,155 @@
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import type { ReadonlyHeaders } from "next/dist/server/web/spec-extension/adapters/headers";
+import { getCachedActiveOrgMember } from "@/app/(organization)/[org]/cache";
+import { db } from "@/server/db";
+import {
+  invoiceItems,
+  invoiceRecipients,
+  invoiceRequirements,
+  invoices,
+  media,
+  members,
+  projects,
+  requirements,
+  users,
+} from "@/server/db/schema";
+
+export type InvoiceWithMedia = typeof invoices.$inferSelect & {
+  senderLogoObject?: typeof media.$inferSelect | null;
+  senderSignatureObject?: typeof media.$inferSelect | null;
+};
+
+const listByProject = async (projectId: string, headers: ReadonlyHeaders) => {
+  const activeMember = await getCachedActiveOrgMember(headers);
+  let invoicesList: (typeof invoices.$inferSelect)[];
+  if (activeMember?.role === "client") {
+    invoicesList = await db
+      .select()
+      .from(invoices)
+      .where(
+        and(
+          eq(invoices.projectId, projectId),
+          inArray(invoices.status, ["disputed", "paid", "sent", "cancelled"]),
+        ),
+      )
+      .orderBy(desc(invoices.createdAt));
+  } else {
+    invoicesList = await db
+      .select()
+      .from(invoices)
+      .where(eq(invoices.projectId, projectId))
+      .orderBy(desc(invoices.createdAt));
+  }
+
+  const withRecipients = await Promise.all(
+    invoicesList.map(async (invoice) => {
+      const recipients = await db
+        .select({
+          memberId: invoiceRecipients.clientMemberId,
+          userName: users.name,
+          userEmail: users.email,
+          assignedAt: members.createdAt,
+          userId: members.userId,
+          userImage: users.image,
+        })
+        .from(invoiceRecipients)
+        .innerJoin(members, eq(invoiceRecipients.clientMemberId, members.id))
+        .innerJoin(users, eq(members.userId, users.id))
+        .where(eq(invoiceRecipients.invoiceId, invoice.id));
+
+      return {
+        ...invoice,
+        recipients,
+      };
+    }),
+  );
+
+  return withRecipients;
+};
+
+const getById = async ({
+  invoiceId,
+  organizationId,
+  projectId,
+}: {
+  invoiceId: string;
+  projectId: string;
+  organizationId: string;
+}) => {
+  const [project] = await db
+    .select()
+    .from(projects)
+    .where(
+      and(
+        eq(projects.id, projectId),
+        eq(projects.organizationId, organizationId),
+      ),
+    );
+  if (!project) {
+    return null;
+  }
+  const invoice = (await db.query.invoices.findFirst({
+    where: and(eq(invoices.id, invoiceId), eq(invoices.projectId, project.id)),
+  })) as unknown as InvoiceWithMedia | null;
+  if (invoice) {
+    if (invoice.senderLogo) {
+      invoice.senderLogoObject = await db.query.media.findFirst({
+        where: eq(media.id, invoice.senderLogo),
+      });
+    }
+    if (invoice.senderSignature) {
+      invoice.senderSignatureObject = await db.query.media.findFirst({
+        where: eq(media.id, invoice.senderSignature),
+      });
+    }
+  }
+
+  return invoice ?? null;
+};
+
+const getRecipients = async (invoiceId: string) => {
+  return await db
+    .select({
+      id: invoiceRecipients.id,
+      memberId: invoiceRecipients.clientMemberId,
+      userName: users.name,
+      userEmail: users.email,
+    })
+    .from(invoiceRecipients)
+    .innerJoin(members, eq(invoiceRecipients.clientMemberId, members.id))
+    .innerJoin(users, eq(members.userId, users.id))
+    .where(eq(invoiceRecipients.invoiceId, invoiceId));
+};
+
+const getItems = async (invoiceId: string) => {
+  return await db
+    .select()
+    .from(invoiceItems)
+    .where(eq(invoiceItems.invoiceId, invoiceId))
+    .orderBy(asc(invoiceItems.sortOrder));
+};
+
+const getLinkedRequirements = async (invoiceId: string) => {
+  return await db
+    .select({
+      id: invoiceRequirements.id,
+      requirementId: requirements.id,
+      title: requirements.title,
+      slug: requirements.slug,
+      status: requirements.status,
+    })
+    .from(invoiceRequirements)
+    .innerJoin(
+      requirements,
+      eq(invoiceRequirements.requirementId, requirements.id),
+    )
+    .where(eq(invoiceRequirements.invoiceId, invoiceId));
+};
+
+export const invoicesService = {
+  listByProject,
+  getById,
+  getRecipients,
+  getItems,
+  getLinkedRequirements,
+};

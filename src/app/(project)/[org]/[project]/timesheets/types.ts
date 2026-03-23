@@ -1,0 +1,130 @@
+import type { z } from 'zod'
+import type { timeEntries } from '@/server/db/schema'
+import type { ProjectClient } from '../team/types'
+import type { timeEntryFormSchema } from './common'
+
+export type TimeEntryFormValues = z.infer<typeof timeEntryFormSchema>
+
+export type TimeEntry = typeof timeEntries.$inferSelect & {
+  requirementSlug: string | null
+  requirementTitle: string | null
+  memberEmail: string
+  memberName: string | null
+}
+
+export interface WeeklyTimesheetEntry {
+  billable: boolean
+  date: Date
+  description: string
+  durationMinutes: number
+  id: string
+  requirementId: string | null
+  requirementTitle: string | null
+  status: 'draft' | 'submitted_to_admin' | 'admin_accepted' | 'admin_rejected'
+}
+
+export interface BudgetStatus {
+  budget: {
+    id: string
+    projectId: string
+    budgetMinutes: number
+    alertThreshold: number
+  }
+  percentageUsed: number
+  totalApprovedMinutes: number
+}
+
+export interface MemberRate {
+  createdAt: Date
+  currency: string
+  effectiveFrom: Date
+  hourlyRate: number
+  id: string
+  memberEmail: string
+  memberId: string
+  memberName: string | null
+  projectId: string | null
+}
+
+export interface Requirement {
+  id: string
+  slug: string
+  title: string
+}
+
+export interface ProjectMember {
+  email: string
+  id: string
+  name: string | null
+}
+
+export interface TimesheetReport {
+  clientEmail: string
+  clientMemberId: string
+  clientName: string | null
+  createdAt: Date
+  currency: string
+  disputeReason: string | null
+  id: string
+  projectId: string
+  respondedAt: Date | null
+  sentAt: Date | null
+  sentByMemberId: string | null
+  status: 'draft' | 'sent' | 'approved' | 'disputed'
+  title: string
+  totalAmount: number
+  totalMinutes: number
+}
+
+export interface ReportEntryDetail {
+  billable: boolean
+  date: Date
+  description: string
+  durationMinutes: number
+  id: string
+  memberId: string
+  memberName: string | null
+  requirementTitle: string | null
+}
+
+export interface ClientReportWithEntries {
+  entries: ReportEntryDetail[]
+  report: TimesheetReport
+}
+
+export interface TimesheetReportDetail {
+  entries: ReportEntryDetail[]
+  report: {
+    id: string
+    projectId: string
+    title: string
+    status: 'draft' | 'sent' | 'approved' | 'disputed'
+    totalMinutes: number
+    totalAmount: number
+    currency: string
+    clientMemberId: string
+    sentByMemberId: string | null
+    disputeReason: string | null
+    sentAt: Date | null
+    respondedAt: Date | null
+  }
+}
+
+export interface TimeTrackingPageProps {
+  budgetStatus: BudgetStatus | null
+  clientReports: ClientReportWithEntries[]
+  clients: ProjectClient[]
+  currentMemberId: string
+  entries: TimeEntry[]
+  isAdmin: boolean
+  isClient: boolean
+  memberRates: MemberRate[]
+  orgSlug: string
+  projectId: string
+  projectMembers: ProjectMember[]
+  projectName: string
+  projectSlug: string
+  reportEntriesMap: Record<string, ReportEntryDetail[]>
+  requirements: Requirement[]
+  timesheetReports: TimesheetReport[]
+}

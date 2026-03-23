@@ -1,0 +1,113 @@
+'use server'
+
+import { eq } from 'drizzle-orm'
+import { headers } from 'next/headers'
+import { authedActionClient } from '@/lib/safe-action'
+import { auth } from '@/server/auth'
+import { db } from '@/server/db'
+import { organizations } from '@/server/db/schema/auth'
+import {
+  deleteOrganizationSchema,
+  renameOrganizationSchema,
+  updateTimesheetDefaultsSchema,
+} from './common'
+
+export const renameOrganizationAction = authedActionClient
+  .inputSchema(renameOrganizationSchema)
+  .action(
+    async ({
+      parsedInput: { organizationId, name, slug },
+      ctx: { role, orgMember },
+    }) => {
+      if (!role.authorize({ organization: ['update'] }).success) {
+        throw new Error('You do not have permission to update workspace settings')
+      }
+
+      if (orgMember.organizationId !== organizationId) {
+        throw new Error('Organization mismatch')
+      }
+
+      await auth.api.updateOrganization({
+        headers: await headers(),
+        body: {
+          data: { name, slug },
+          organizationId,
+        },
+      })
+
+      return { success: true, slug }
+    }
+  )
+
+export const updateTimesheetDefaultsAction = authedActionClient
+  .inputSchema(updateTimesheetDefaultsSchema)
+  .action(
+    async ({
+      parsedInput: { organizationId, defaultMemberRate, defaultCurrency },
+      ctx: { role, orgMember },
+    }) => {
+      if (!role.authorize({ organization: ['update'] }).success) {
+        throw new Error('You do not have permission to update workspace settings')
+      }
+
+      if (orgMember.organizationId !== organizationId) {
+        throw new Error('Organization mismatch')
+      }
+
+      const [org] = await db
+        .select({ metadata: organizations.metadata })
+        .from(organizations)
+        .where(eq(organizations.id, organizationId))
+
+      if (!org) {
+        throw new Error('Workspace not found')
+      }
+
+      const existing = org.metadata ? JSON.parse(org.metadata) : {}
+      const updated = { ...existing, defaultMemberRate, defaultCurrency }
+
+      await db
+        .update(organizations)
+        .set({ metadata: JSON.stringify(updated) })
+        .where(eq(organizations.id, organizationId))
+
+      return { success: true }
+    }
+  )
+
+export const deleteOrganizationAction = authedActionClient
+  .inputSchema(deleteOrganizationSchema)
+  .action(
+    async ({
+      parsedInput: { organizationId, confirmName },
+      ctx: { role, orgMember },
+    }) => {
+      if (!role.authorize({ organization: ['delete'] }).success) {
+        throw new Error('You do not have permission to delete this workspace')
+      }
+
+      if (orgMember.organizationId !== organizationId) {
+        throw new Error('Organization mismatch')
+      }
+
+      const [org] = await db
+        .select({ name: organizations.name })
+        .from(organizations)
+        .where(eq(organizations.id, organizationId))
+
+      if (!org) {
+        throw new Error('Workspace not found')
+      }
+
+      if (org.name !== confirmName) {
+        throw new Error('Workspace name does not match')
+      }
+
+      await auth.api.deleteOrganization({
+        headers: await headers(),
+        body: { organizationId },
+      })
+
+      return { success: true }
+    }
+  )
