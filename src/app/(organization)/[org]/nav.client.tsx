@@ -16,6 +16,7 @@ import {
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import type { RouteImpl } from '@/types'
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Overview: LayoutDashboard,
@@ -29,7 +30,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Settings,
   Projects: Folder,
   Teams: Users,
-  Clients: Shield
+  Clients: Shield,
 }
 
 export default function OrgNavClient({
@@ -54,7 +55,7 @@ export default function OrgNavClient({
           ? 'border-primary text-primary'
           : 'border-transparent text-muted-foreground hover:border-muted-foreground hover:text-foreground'
       )}
-      href={tab.href}
+      href={tab.href as RouteImpl}
       key={tab.name}
     >
       {Icon && <Icon className='size-4' />}

@@ -5,7 +5,7 @@ import { headers } from 'next/headers'
 import { authedActionClient } from '@/lib/safe-action'
 import { auth } from '@/server/auth'
 import { db } from '@/server/db'
-import { members, teamMembers, teams, users } from '@/server/db/schema/auth'
+import { members, teamMembers, teams } from '@/server/db/schema/auth'
 import {
   addTeamMemberSchema,
   changeOrgMemberRoleSchema,
@@ -43,7 +43,10 @@ export const removeOrgMemberAction = authedActionClient
 export const changeOrgMemberRoleAction = authedActionClient
   .inputSchema(changeOrgMemberRoleSchema)
   .action(
-    async ({ parsedInput: { memberId, role: newRole }, ctx: { role, orgMember } }) => {
+    async ({
+      parsedInput: { memberId, role: newRole },
+      ctx: { role, orgMember },
+    }) => {
       if (!role.authorize({ member: ['update'] }).success) {
         throw new Error('You do not have permission to change roles')
       }
@@ -63,7 +66,11 @@ export const changeOrgMemberRoleAction = authedActionClient
 
       await auth.api.updateMemberRole({
         headers: await headers(),
-        body: { memberId, role: newRole, organizationId: orgMember.organizationId },
+        body: {
+          memberId,
+          role: newRole,
+          organizationId: orgMember.organizationId,
+        },
       })
 
       return { success: true }
@@ -110,10 +117,7 @@ export const renameTeamAction = authedActionClient
         throw new Error('Team not found')
       }
 
-      await db
-        .update(teams)
-        .set({ name })
-        .where(eq(teams.id, teamId))
+      await db.update(teams).set({ name }).where(eq(teams.id, teamId))
 
       return { success: true }
     }
@@ -135,12 +139,12 @@ export const deleteTeamAction = authedActionClient
       throw new Error('Team not found')
     }
 
-    const [{ teamCount }] = await db
+    const [record] = await db
       .select({ teamCount: count() })
       .from(teams)
       .where(eq(teams.organizationId, orgMember.organizationId))
 
-    if (teamCount <= 1) {
+    if (!record || record.teamCount <= 1) {
       throw new Error('Cannot delete the last team in the workspace')
     }
 
@@ -183,7 +187,7 @@ export const addTeamMemberAction = authedActionClient
 
       await auth.api.addTeamMember({
         headers: await headers(),
-        body: { teamId, userId,  },
+        body: { teamId, userId },
       })
 
       return { success: true }
@@ -219,9 +223,7 @@ export const removeTeamMemberAction = authedActionClient
         throw new Error('Team member not found')
       }
 
-      await db
-        .delete(teamMembers)
-        .where(eq(teamMembers.id, teamMemberId))
+      await db.delete(teamMembers).where(eq(teamMembers.id, teamMemberId))
 
       return { success: true }
     }

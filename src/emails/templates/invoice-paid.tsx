@@ -23,7 +23,6 @@ interface InvoicePaidEmailProps {
 }
 
 export default function InvoicePaidEmail({
-  recipientName = 'John Doe',
   invoiceNumber = 'INV-2026-001',
   projectName = 'Website Redesign',
   paidByName = 'Jane Smith',

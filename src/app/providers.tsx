@@ -27,11 +27,17 @@ export function Providers({ children }: { children: ReactNode }) {
           <AuthUIProvider
             authClient={authClient}
             Link={Link}
-            navigate={router.push}
+            navigate={(href) =>
+              router.push(href as unknown as Parameters<typeof router.push>[0])
+            }
             onSessionChange={() => {
               router.refresh()
             }}
-            replace={router.replace}
+            replace={(href) =>
+              router.replace(
+                href as unknown as Parameters<typeof router.replace>[0]
+              )
+            }
             social={{
               providers: ['github'],
             }}

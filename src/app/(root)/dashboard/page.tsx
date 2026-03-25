@@ -14,6 +14,6 @@ export default async function Dashboard() {
   if (!organizations.data || organizations.data.length === 0) {
     redirect('/onboarding')
   }
-  redirect(`/${organizations.data[0].slug}`)
+  redirect(`/${organizations.data[0]!.slug}`)
   return null
 }

@@ -47,14 +47,14 @@ import { invoiceFormSchema } from '../../common'
 import type { CustomField, InvoiceEditorProps } from '../../types'
 import DisputeInvoiceDialog from '../dispute-invoice-dialog'
 import { ImportTimeEntriesDialog } from '../import-time-entries-dialog'
+import InvoiceStatusBadge from '../status-badge'
 import { CustomFieldsEditor } from './custom-fields-editor'
 import { InvoiceItemRow } from './invoice-item'
 import { ItemsTotal } from './items-total'
 import { PdfPreviewPane } from './pdf-preview-pane'
-import InvoiceStatusBadge from '../status-badge'
 
 function formatDateForInput(date: Date): string {
-  return new Date(date).toISOString().split('T')[0]
+  return new Date(date).toISOString().split('T')[0]!
 }
 
 export default function InvoiceEditor({
@@ -74,7 +74,6 @@ export default function InvoiceEditor({
   canSend = false,
   canDelete = false,
   canMarkPaid = false,
-  canCreateThread = false,
   canResolveThread = false,
   extendData,
   mediaItems = [],
@@ -323,10 +322,6 @@ export default function InvoiceEditor({
 
   const canChangeStatus = canEdit && invoice && invoice.status !== 'draft'
 
-  const canDispute =
-    canCreateThread &&
-    (invoice?.status === 'sent' || invoice?.status === 'disputed')
-
   const cleanCustomFields = useCallback(
     (fields: CustomField[]) =>
       fields.filter((f) => f.label.trim() && f.value.trim()),
@@ -417,7 +412,7 @@ export default function InvoiceEditor({
         </Button>
         <div className='flex items-center gap-2'>
           {mode === 'edit' && invoice && (
-            <InvoiceStatusBadge status={invoice.status} role={role} />
+            <InvoiceStatusBadge role={role} status={invoice.status} />
           )}
           {canChangeStatus && invoice?.status === 'paid' && (
             <Button

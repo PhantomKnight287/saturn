@@ -20,7 +20,6 @@ interface RequirementChangeRequestedEmailProps {
 }
 
 export default function RequirementChangeRequestedEmail({
-  recipientName = 'John Doe',
   requirementTitle = 'Homepage Specifications v2',
   projectName = 'Website Redesign',
   requesterName = 'Jane Smith',

@@ -1,7 +1,7 @@
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
-import type { ReadonlyHeaders } from "next/dist/server/web/spec-extension/adapters/headers";
-import { getCachedActiveOrgMember } from "@/app/(organization)/[org]/cache";
-import { db } from "@/server/db";
+import { and, asc, desc, eq, inArray } from 'drizzle-orm'
+import type { ReadonlyHeaders } from 'next/dist/server/web/spec-extension/adapters/headers'
+import { getCachedActiveOrgMember } from '@/app/(organization)/[org]/cache'
+import { db } from '@/server/db'
 import {
   invoiceItems,
   invoiceRecipients,
@@ -9,42 +9,44 @@ import {
   invoices,
   media,
   members,
+  projectClientAssignments,
   projects,
   requirements,
   users,
-} from "@/server/db/schema";
+} from '@/server/db/schema'
 
 export type InvoiceWithMedia = typeof invoices.$inferSelect & {
-  senderLogoObject?: typeof media.$inferSelect | null;
-  senderSignatureObject?: typeof media.$inferSelect | null;
-};
+  senderLogoObject?: typeof media.$inferSelect | null
+  senderSignatureObject?: typeof media.$inferSelect | null
+}
 
 const listByProject = async (projectId: string, headers: ReadonlyHeaders) => {
-  const activeMember = await getCachedActiveOrgMember(headers);
-  let invoicesList: (typeof invoices.$inferSelect)[];
-  if (activeMember?.role === "client") {
+  const activeMember = await getCachedActiveOrgMember(headers)
+  let invoicesList: (typeof invoices.$inferSelect)[]
+  if (activeMember?.role === 'client') {
     invoicesList = await db
       .select()
       .from(invoices)
       .where(
         and(
           eq(invoices.projectId, projectId),
-          inArray(invoices.status, ["disputed", "paid", "sent", "cancelled"]),
-        ),
+          inArray(invoices.status, ['disputed', 'paid', 'sent', 'cancelled'])
+        )
       )
-      .orderBy(desc(invoices.createdAt));
+      .orderBy(desc(invoices.createdAt))
   } else {
     invoicesList = await db
       .select()
       .from(invoices)
       .where(eq(invoices.projectId, projectId))
-      .orderBy(desc(invoices.createdAt));
+      .orderBy(desc(invoices.createdAt))
   }
 
   const withRecipients = await Promise.all(
     invoicesList.map(async (invoice) => {
       const recipients = await db
         .select({
+          assignmentId: projectClientAssignments.id,
           memberId: invoiceRecipients.clientMemberId,
           userName: users.name,
           userEmail: users.email,
@@ -55,26 +57,33 @@ const listByProject = async (projectId: string, headers: ReadonlyHeaders) => {
         .from(invoiceRecipients)
         .innerJoin(members, eq(invoiceRecipients.clientMemberId, members.id))
         .innerJoin(users, eq(members.userId, users.id))
-        .where(eq(invoiceRecipients.invoiceId, invoice.id));
+        .innerJoin(
+          projectClientAssignments,
+          and(
+            eq(projectClientAssignments.memberId, members.id),
+            eq(projectClientAssignments.projectId, projectId)
+          )
+        )
+        .where(eq(invoiceRecipients.invoiceId, invoice.id))
 
       return {
         ...invoice,
         recipients,
-      };
-    }),
-  );
+      }
+    })
+  )
 
-  return withRecipients;
-};
+  return withRecipients
+}
 
 const getById = async ({
   invoiceId,
   organizationId,
   projectId,
 }: {
-  invoiceId: string;
-  projectId: string;
-  organizationId: string;
+  invoiceId: string
+  projectId: string
+  organizationId: string
 }) => {
   const [project] = await db
     .select()
@@ -82,30 +91,30 @@ const getById = async ({
     .where(
       and(
         eq(projects.id, projectId),
-        eq(projects.organizationId, organizationId),
-      ),
-    );
+        eq(projects.organizationId, organizationId)
+      )
+    )
   if (!project) {
-    return null;
+    return null
   }
   const invoice = (await db.query.invoices.findFirst({
     where: and(eq(invoices.id, invoiceId), eq(invoices.projectId, project.id)),
-  })) as unknown as InvoiceWithMedia | null;
+  })) as unknown as InvoiceWithMedia | null
   if (invoice) {
     if (invoice.senderLogo) {
       invoice.senderLogoObject = await db.query.media.findFirst({
         where: eq(media.id, invoice.senderLogo),
-      });
+      })
     }
     if (invoice.senderSignature) {
       invoice.senderSignatureObject = await db.query.media.findFirst({
         where: eq(media.id, invoice.senderSignature),
-      });
+      })
     }
   }
 
-  return invoice ?? null;
-};
+  return invoice ?? null
+}
 
 const getRecipients = async (invoiceId: string) => {
   return await db
@@ -118,16 +127,16 @@ const getRecipients = async (invoiceId: string) => {
     .from(invoiceRecipients)
     .innerJoin(members, eq(invoiceRecipients.clientMemberId, members.id))
     .innerJoin(users, eq(members.userId, users.id))
-    .where(eq(invoiceRecipients.invoiceId, invoiceId));
-};
+    .where(eq(invoiceRecipients.invoiceId, invoiceId))
+}
 
 const getItems = async (invoiceId: string) => {
   return await db
     .select()
     .from(invoiceItems)
     .where(eq(invoiceItems.invoiceId, invoiceId))
-    .orderBy(asc(invoiceItems.sortOrder));
-};
+    .orderBy(asc(invoiceItems.sortOrder))
+}
 
 const getLinkedRequirements = async (invoiceId: string) => {
   return await db
@@ -141,10 +150,10 @@ const getLinkedRequirements = async (invoiceId: string) => {
     .from(invoiceRequirements)
     .innerJoin(
       requirements,
-      eq(invoiceRequirements.requirementId, requirements.id),
+      eq(invoiceRequirements.requirementId, requirements.id)
     )
-    .where(eq(invoiceRequirements.invoiceId, invoiceId));
-};
+    .where(eq(invoiceRequirements.invoiceId, invoiceId))
+}
 
 export const invoicesService = {
   listByProject,
@@ -152,4 +161,4 @@ export const invoicesService = {
   getRecipients,
   getItems,
   getLinkedRequirements,
-};
+}

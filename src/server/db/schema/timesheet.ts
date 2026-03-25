@@ -102,9 +102,6 @@ export const timesheetReports = pgTable('timesheet_reports', {
   sentByMemberId: text('sent_by_member_id').references(() => members.id, {
     onDelete: 'set null',
   }),
-  clientMemberId: text('client_member_id').references(() => members.id, {
-    onDelete: 'cascade',
-  }),
   disputeReason: text('dispute_reason'),
   sentAt: timestamp('sent_at'),
   respondedAt: timestamp('responded_at'),

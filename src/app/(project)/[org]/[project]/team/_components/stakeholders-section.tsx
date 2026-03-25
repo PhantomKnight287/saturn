@@ -111,7 +111,7 @@ export default function StakeholdersSection({
           </TableHeader>
           <TableBody>
             {projectClients.map((c) => (
-              <TableRow key={c.assignmentId}>
+              <TableRow key={c.userId}>
                 <TableCell>
                   <div className='flex items-center gap-3'>
                     <Avatar className='size-8'>

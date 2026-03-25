@@ -22,15 +22,12 @@ interface ThreadNewMessageEmailProps {
 }
 
 export default function ThreadNewMessageEmail({
-  recipientName = 'John Doe',
   senderName = 'Jane Smith',
   threadTitle = 'Hero section copy needs revision',
   messagePreview = "I think we should use a more action-oriented headline here. The current one doesn't convey enough urgency for the launch.",
   contextType = 'requirement',
   contextName = 'Homepage Specifications',
   projectName = 'Website Redesign',
-  orgSlug = 'acme',
-  projectSlug = 'website-redesign',
   threadLink = `${baseUrl}/acme/website-redesign/requirements/req_abc123#thread_123`,
 }: ThreadNewMessageEmailProps) {
   return (

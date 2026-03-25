@@ -59,30 +59,19 @@ export default async function TimeTracking({
       : Promise.resolve([]),
   ])
 
-  // Fetch report entries for admin view
-  const reportEntriesMap =
-    isAdmin && reports.length > 0
-      ? await timesheetService.getReportEntriesBatch(reports.map((r) => r.id))
-      : {}
+  const reportIds = reports.map((r) => r.id)
 
-  const clientReports: {
-    report: {
-      id: string
-      title: string
-      status: 'draft' | 'sent' | 'approved' | 'disputed'
-      totalMinutes: number
-      totalAmount: number
-      currency: string
-      clientMemberId: string
-      sentByMemberId: string | null
-      disputeReason: string | null
-      sentAt: Date | null
-      respondedAt: Date | null
-      createdAt: Date
-      projectId: string
-      clientName: string | null
-      clientEmail: string
-    }
+  const [reportEntriesMap, reportRecipientsMap] = await Promise.all([
+    isAdmin && reportIds.length > 0
+      ? timesheetService.getReportEntriesBatch(reportIds)
+      : Promise.resolve({}),
+    isAdmin && reportIds.length > 0
+      ? timesheetService.getReportRecipientsBatch(reportIds)
+      : Promise.resolve({}),
+  ])
+
+  let clientReports: {
+    report: (typeof reports)[number]
     entries: {
       id: string
       memberId: string
@@ -97,29 +86,19 @@ export default async function TimeTracking({
 
   if (isClient) {
     const rawReports = await timesheetService.listReportsForClient(orgMember.id)
-    const reportIds = rawReports.map((r) => r.id)
-    const entriesMap = await timesheetService.getReportEntriesBatch(reportIds)
-    for (const report of rawReports) {
-      clientReports.push({
-        report: {
-          ...report,
-          clientName: null,
-          clientEmail: '',
-        },
-        entries: entriesMap[report.id] ?? [],
-      })
-    }
+    const clientReportIds = rawReports.map((r) => r.id)
+    const entriesMap =
+      await timesheetService.getReportEntriesBatch(clientReportIds)
+    clientReports = rawReports.map((report) => ({
+      report,
+      entries: entriesMap[report.id] ?? [],
+    }))
   }
-
   return (
     <TimeTrackingClient
       budgetStatus={budgetStatus}
       clientReports={clientReports}
-      clients={clients.map((c) => ({
-        memberId: c.memberId,
-        userName: c.userName,
-        userEmail: c.userEmail,
-      }))}
+      clients={clients}
       currentMemberId={orgMember.id}
       entries={entries}
       isAdmin={isAdmin}
@@ -135,11 +114,8 @@ export default async function TimeTracking({
       projectName={currentProject.name}
       projectSlug={projectSlug}
       reportEntriesMap={reportEntriesMap}
-      requirements={requirementsList.map((r) => ({
-        id: r.id,
-        title: r.title,
-        slug: r.slug,
-      }))}
+      reportRecipientsMap={reportRecipientsMap}
+      requirements={requirementsList}
       timesheetReports={reports}
     />
   )

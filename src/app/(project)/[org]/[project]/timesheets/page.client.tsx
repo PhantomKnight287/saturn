@@ -45,6 +45,7 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
     memberRates,
     timesheetReports,
     reportEntriesMap,
+    reportRecipientsMap,
     clientReports,
   } = props
   const [formOpen, setFormOpen] = useState(false)
@@ -61,7 +62,7 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
 
   const myEntries = entries.filter((e) => e.memberId === currentMemberId)
   const submittedEntries = entries.filter(
-    (e) => e.status === 'submitted_to_client'
+    (e) => e.status === 'submitted_to_admin'
   )
   const disputedReports = timesheetReports.filter(
     (r) => r.status === 'disputed'
@@ -200,6 +201,7 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
                 projectName={projectName}
                 projectSlug={projectSlug}
                 reportEntriesMap={reportEntriesMap}
+                reportRecipientsMap={reportRecipientsMap}
                 reports={timesheetReports}
               />
             </TabsContent>
@@ -252,9 +254,8 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
             title='Send Timesheet to Client'
           >
             <div className='space-y-1.5'>
-              <Label htmlFor='report-title'>Report Title</Label>
+              <Label>Report Title</Label>
               <Input
-                id='report-title'
                 onChange={(e) => setReportTitle(e.target.value)}
                 placeholder='e.g. Week of Mar 3 – Mar 9'
                 value={reportTitle}

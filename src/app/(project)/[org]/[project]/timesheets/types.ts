@@ -58,10 +58,17 @@ export interface ProjectMember {
   name: string | null
 }
 
-export interface TimesheetReport {
+export interface TimesheetReportRecipient {
   clientEmail: string
   clientMemberId: string
   clientName: string | null
+  disputeReason: string | null
+  id: string
+  respondedAt: Date | null
+  status: 'pending' | 'approved' | 'disputed'
+}
+
+export interface TimesheetReport {
   createdAt: Date
   currency: string
   disputeReason: string | null
@@ -102,7 +109,6 @@ export interface TimesheetReportDetail {
     totalMinutes: number
     totalAmount: number
     currency: string
-    clientMemberId: string
     sentByMemberId: string | null
     disputeReason: string | null
     sentAt: Date | null
@@ -125,6 +131,7 @@ export interface TimeTrackingPageProps {
   projectName: string
   projectSlug: string
   reportEntriesMap: Record<string, ReportEntryDetail[]>
+  reportRecipientsMap: Record<string, TimesheetReportRecipient[]>
   requirements: Requirement[]
   timesheetReports: TimesheetReport[]
 }

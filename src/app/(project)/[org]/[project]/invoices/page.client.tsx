@@ -28,7 +28,8 @@ export function InvoicesClient({
   invoices,
   orgSlug,
   projectSlug,
-  canCreate,role,
+  canCreate,
+  role,
 }: InvoicesClientProps) {
   const newUrl = `/${orgSlug}/${projectSlug}/invoices/new` as RouteImpl
   const [pickerOpen, setPickerOpen] = useState(false)

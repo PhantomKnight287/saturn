@@ -22,7 +22,6 @@ interface InvoiceDisputedEmailProps {
 }
 
 export default function InvoiceDisputedEmail({
-  recipientName = 'John Doe',
   invoiceNumber = 'INV-2026-001',
   projectName = 'Website Redesign',
   disputedByName = 'Jane Smith',

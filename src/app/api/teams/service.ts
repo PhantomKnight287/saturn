@@ -250,7 +250,10 @@ export const getAdminAndOwners = async (organizationId: string) => {
     )
 }
 
-const getOrgMembers = async (organizationId: string, excludeClients = false) => {
+const getOrgMembers = async (
+  organizationId: string,
+  excludeClients = false
+) => {
   return await db
     .select({
       memberId: members.id,
@@ -263,7 +266,12 @@ const getOrgMembers = async (organizationId: string, excludeClients = false) => 
     })
     .from(members)
     .innerJoin(users, eq(members.userId, users.id))
-    .where(and(eq(members.organizationId, organizationId),notInArray(members.role, excludeClients ? ["client"] : [])))
+    .where(
+      and(
+        eq(members.organizationId, organizationId),
+        notInArray(members.role, excludeClients ? ['client'] : [])
+      )
+    )
 }
 
 const getOrgTeamsWithMembers = async (organizationId: string) => {
@@ -310,7 +318,10 @@ const getOrgClients = async (organizationId: string) => {
     .from(members)
     .innerJoin(users, eq(members.userId, users.id))
     .where(
-      and(eq(members.organizationId, organizationId), eq(members.role, 'client'))
+      and(
+        eq(members.organizationId, organizationId),
+        eq(members.role, 'client')
+      )
     )
 
   const clientsWithProjects = await Promise.all(

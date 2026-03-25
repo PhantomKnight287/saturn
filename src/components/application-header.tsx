@@ -3,18 +3,8 @@
 import { ChevronsUpDown, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState, useTransition } from 'react'
-import { toast } from 'sonner'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,7 +13,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Input } from '@/components/ui/input'
 import { authClient } from '@/lib/auth-client'
 import { logo } from '@/lib/constants'
 import type { projects } from '@/server/db/schema'
@@ -54,7 +43,6 @@ export function ApplicationHeader({
   allOrganizations,
   allProjects,
   organizationSlug,
-  organizationId,
 }: ApplicationHeaderProps) {
   const router = useRouter()
   const handleAddProject = () => {
@@ -171,8 +159,6 @@ export function ApplicationHeader({
       <div className='ml-auto'>
         <NavUser />
       </div>
-
-
     </div>
   )
 }

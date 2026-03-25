@@ -54,15 +54,6 @@ const getDeliverables = async (proposalId: string) => {
     .orderBy(asc(proposalDeliverables.sortOrder))
 }
 
-const getExpenseItems = async (proposalId: string) => {
-  return []
-  //   return db
-  //     .select()
-  //     .from(proposalExpenseItems)
-  //     .where(eq(proposalExpenseItems.proposalId, proposalId))
-  //     .orderBy(asc(proposalExpenseItems.sortOrder))
-}
-
 const getThreads = async (projectId: string, entityId: string) => {
   const rows = await db
     .select()
@@ -190,7 +181,6 @@ const getSignatureMediaForMember = async (
 export const proposalsService = {
   listByProject,
   getBySlug,
-  getExpenseItems,
   getThreads,
   getRecipients,
   getSignatures,

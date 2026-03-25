@@ -34,7 +34,7 @@ export interface TeamsPageClientProps {
   currentMemberId: string
   invitations: PendingInvitation[]
   members: OrgMember[]
-  orgSlug: string
   organizationId: string
+  orgSlug: string
   teams: OrgTeamWithMembers[]
 }

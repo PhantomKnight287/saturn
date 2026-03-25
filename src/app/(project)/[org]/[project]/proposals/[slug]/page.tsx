@@ -41,7 +41,6 @@ export default async function ProposalDetail({
     recipients,
     signatures,
     lineItems,
-    expenseItems,
     signatureMedia,
   ] = await Promise.all([
     threadService.getThreads(currentProject.id, proposal.id),
@@ -49,7 +48,6 @@ export default async function ProposalDetail({
     proposalsService.getRecipients(proposal.id),
     proposalsService.getSignatures(proposal.id),
     proposalsService.getDeliverables(proposal.id),
-    proposalsService.getExpenseItems(proposal.id),
     signaturesService.getSignatureMediaForMember(
       currentProject.organizationId,
       orgMember.id

@@ -1,9 +1,9 @@
 import type z from 'zod'
 import type { expenses } from '@/server/db/schema'
+import type { Role } from '@/types'
 import type { Thread } from '../requirements/types'
 import type { ProjectClient } from '../team/types'
 import type { invoiceFormSchema } from './common'
-import type { Role } from '@/types'
 
 export type InvoiceFormValues = z.infer<typeof invoiceFormSchema>
 
@@ -23,7 +23,7 @@ export interface InvoicesClientProps {
   invoices: Invoice[]
   orgSlug: string
   projectSlug: string
-  role:Role
+  role: Role
 }
 
 export interface InvoiceCardProps {
@@ -39,7 +39,7 @@ export interface InvoiceCardProps {
   }
   orgSlug: string
   projectSlug: string
-  role:Role
+  role: Role
 }
 
 export interface MediaItem {
@@ -137,11 +137,11 @@ export interface InvoiceEditorProps {
   projectName: string
   projectSlug: string
   requirements: { id: string; title: string; slug: string }[]
+  role: Role
   threads?: Thread[]
   timesheetWarning?: string | null
   unbilledTimeEntries?: BillableTimeEntry[]
   unpaidExpenses?: (typeof expenses.$inferSelect)[]
-  role:Role
 }
 
 export interface CustomField {

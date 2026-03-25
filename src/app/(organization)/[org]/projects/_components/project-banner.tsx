@@ -3,6 +3,7 @@ import { useMemo } from 'react'
 function seededRandom(seed: string) {
   let h = 0
   for (let i = 0; i < seed.length; i++) {
+    // biome-ignore lint/suspicious/noBitwiseOperators: Needed for that cool effect
     h = seed.charCodeAt(i) + ((h << 5) - h)
   }
   let s = Math.abs(h)
@@ -84,7 +85,7 @@ export default function ProjectBanner({ seed }: { seed: string }) {
             fill={`hsl(${hue + (i % 2 === 0 ? 0 : 15)}, 16%, 52%)`}
             key={i}
             opacity={tri.opacity}
-            points={`${a.x},${a.y} ${b.x},${b.y} ${c.x},${c.y}`}
+            points={`${a!.x},${a!.y} ${b!.x},${b!.y} ${c!.x},${c!.y}`}
             stroke={`hsl(${hue}, 14%, 48%)`}
             strokeWidth={0.3}
           />

@@ -57,9 +57,7 @@ export function ClientsPageClient({
         </Empty>
       ) : (
         <>
-          {canManage && (
-            <PendingInvitationsBlock invitations={invitations} />
-          )}
+          {canManage && <PendingInvitationsBlock invitations={invitations} />}
           <ClientsTable
             canManage={canManage}
             clients={clients}

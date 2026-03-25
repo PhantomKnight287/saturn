@@ -14,7 +14,6 @@ import TeamCard from './team-card'
 
 export default function TeamsSection({
   organizationId,
-  orgSlug,
   teams,
   members,
   canManage,

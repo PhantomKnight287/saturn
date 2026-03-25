@@ -9,6 +9,7 @@ import {
   requirements,
   timeEntries,
   timesheetReportEntries,
+  timesheetReportRecipients,
   timesheetReports,
   users,
 } from '@/server/db/schema'
@@ -319,17 +320,11 @@ const listReportsByProject = async (projectId: string) => {
       sentAt: timesheetReports.sentAt,
       respondedAt: timesheetReports.respondedAt,
       createdAt: timesheetReports.createdAt,
-      clientMemberId: timesheetReports.clientMemberId,
-      clientName: users.name,
-      clientEmail: users.email,
       sentByMemberId: timesheetReports.sentByMemberId,
     })
     .from(timesheetReports)
-    .innerJoin(members, eq(timesheetReports.clientMemberId, members.id))
-    .innerJoin(users, eq(members.userId, users.id))
     .where(eq(timesheetReports.projectId, projectId))
     .orderBy(desc(timesheetReports.createdAt))
-
   return reports
 }
 
@@ -347,11 +342,14 @@ const listReportsForClient = async (clientMemberId: string) => {
       sentAt: timesheetReports.sentAt,
       respondedAt: timesheetReports.respondedAt,
       createdAt: timesheetReports.createdAt,
-      clientMemberId: timesheetReports.clientMemberId,
       sentByMemberId: timesheetReports.sentByMemberId,
     })
-    .from(timesheetReports)
-    .where(eq(timesheetReports.clientMemberId, clientMemberId))
+    .from(timesheetReportRecipients)
+    .innerJoin(
+      timesheetReports,
+      eq(timesheetReportRecipients.reportId, timesheetReports.id)
+    )
+    .where(eq(timesheetReportRecipients.clientMemberId, clientMemberId))
     .orderBy(desc(timesheetReports.createdAt))
 
   return reports
@@ -474,6 +472,51 @@ const getBillableEntriesForReport = async (reportId: string) => {
   return entries
 }
 
+const getReportRecipientsBatch = async (reportIds: string[]) => {
+  if (reportIds.length === 0) {
+    return {} as Record<
+      string,
+      {
+        id: string
+        clientMemberId: string
+        clientName: string | null
+        clientEmail: string
+        status: 'pending' | 'approved' | 'disputed'
+        disputeReason: string | null
+        respondedAt: Date | null
+      }[]
+    >
+  }
+
+  const rows = await db
+    .select({
+      reportId: timesheetReportRecipients.reportId,
+      id: timesheetReportRecipients.id,
+      clientMemberId: timesheetReportRecipients.clientMemberId,
+      clientName: users.name,
+      clientEmail: users.email,
+      status: timesheetReportRecipients.status,
+      disputeReason: timesheetReportRecipients.disputeReason,
+      respondedAt: timesheetReportRecipients.respondedAt,
+    })
+    .from(timesheetReportRecipients)
+    .innerJoin(
+      members,
+      eq(timesheetReportRecipients.clientMemberId, members.id)
+    )
+    .innerJoin(users, eq(members.userId, users.id))
+    .where(inArray(timesheetReportRecipients.reportId, reportIds))
+
+  const grouped = new Map<string, (typeof rows)[number][]>()
+  for (const row of rows) {
+    if (!grouped.has(row.reportId)) {
+      grouped.set(row.reportId, [])
+    }
+    grouped.get(row.reportId)!.push(row)
+  }
+  return Object.fromEntries(grouped) as Record<string, (typeof rows)[number][]>
+}
+
 export const timesheetService = {
   listByProject,
   getById,
@@ -488,4 +531,5 @@ export const timesheetService = {
   listReportsForClient,
   getReportById,
   getReportEntriesBatch,
+  getReportRecipientsBatch,
 }

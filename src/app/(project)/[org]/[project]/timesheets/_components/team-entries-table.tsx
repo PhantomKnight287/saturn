@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation'
 import { useAction } from 'next-safe-action/hooks'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Badge } from '@/components/ui/badge'
+import StatusBadge from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -50,19 +50,6 @@ interface TeamEntriesTableProps {
   projectMembers: ProjectMember[]
   requirements: Requirement[]
   selectedIds?: Set<string>
-}
-
-const statusConfig: Record<
-  string,
-  {
-    label: string
-    variant: 'secondary' | 'default' | 'destructive' | 'outline'
-  }
-> = {
-  draft: { label: 'Draft', variant: 'secondary' },
-  submitted_to_admin: { label: 'Submitted', variant: 'outline' },
-  admin_accepted: { label: 'Approved', variant: 'default' },
-  admin_rejected: { label: 'Rejected', variant: 'destructive' },
 }
 
 export function TeamEntriesTable({
@@ -152,7 +139,6 @@ export function TeamEntriesTable({
 
   return (
     <div className='space-y-4'>
-      {/* Filters */}
       <div className='flex flex-wrap items-center gap-2'>
         <Filter className='size-4 text-muted-foreground' />
         <Select onValueChange={setFilterMember} value={filterMember}>
@@ -264,8 +250,6 @@ export function TeamEntriesTable({
                 </TableHeader>
                 <TableBody>
                   {filtered.map((entry) => {
-                    const cfg = statusConfig[entry.status]
-
                     return (
                       <TableRow key={entry.id}>
                         {selectable && (
@@ -331,12 +315,7 @@ export function TeamEntriesTable({
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger>
-                                  <Badge
-                                    className='cursor-help text-xs'
-                                    variant={cfg?.variant ?? 'secondary'}
-                                  >
-                                    {cfg?.label ?? 'Draft'}
-                                  </Badge>
+                                  <StatusBadge status={entry.status} />
                                 </TooltipTrigger>
                                 <TooltipContent
                                   className='max-w-xs'
@@ -348,12 +327,7 @@ export function TeamEntriesTable({
                               </Tooltip>
                             </TooltipProvider>
                           ) : (
-                            <Badge
-                              className='text-xs'
-                              variant={cfg?.variant ?? 'secondary'}
-                            >
-                              {cfg?.label ?? 'Draft'}
-                            </Badge>
+                            <StatusBadge status={entry.status} />
                           )}
                         </TableCell>
                         <TableCell>

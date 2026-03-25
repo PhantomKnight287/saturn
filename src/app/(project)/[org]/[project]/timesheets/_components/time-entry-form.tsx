@@ -1,4 +1,4 @@
-/** biome-ignore-all lint/performance/useTopLevelRegex: <explanation> */
+/** biome-ignore-all lint/performance/useTopLevelRegex: I have no idea what this lint rule does tbh */
 'use client'
 
 import { useRouter } from '@bprogress/next/app'

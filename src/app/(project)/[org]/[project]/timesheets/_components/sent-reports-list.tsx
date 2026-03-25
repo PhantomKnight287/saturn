@@ -35,13 +35,18 @@ import {
 } from '@/components/ui/table'
 import { resendTimesheetReportAction } from '../actions'
 import { formatMinutes } from '../common'
-import type { ReportEntryDetail, TimesheetReport } from '../types'
+import type {
+  ReportEntryDetail,
+  TimesheetReport,
+  TimesheetReportRecipient,
+} from '../types'
 
 interface SentReportsListProps {
   orgSlug: string
   projectName: string
   projectSlug: string
   reportEntriesMap: Record<string, ReportEntryDetail[]>
+  reportRecipientsMap: Record<string, TimesheetReportRecipient[]>
   reports: TimesheetReport[]
 }
 
@@ -61,6 +66,7 @@ const statusConfig: Record<
 export function SentReportsList({
   reports,
   reportEntriesMap,
+  reportRecipientsMap,
   orgSlug,
   projectSlug,
 }: SentReportsListProps) {
@@ -129,6 +135,7 @@ export function SentReportsList({
                 })
               }
               onToggle={() => toggleExpand(report.id)}
+              recipients={reportRecipientsMap[report.id] ?? []}
               report={report}
             />
           ))}
@@ -146,6 +153,7 @@ export function SentReportsList({
               expanded={expandedIds.has(report.id)}
               key={report.id}
               onToggle={() => toggleExpand(report.id)}
+              recipients={reportRecipientsMap[report.id] ?? []}
               report={report}
             />
           ))}
@@ -168,6 +176,7 @@ export function SentReportsList({
               }
               key={report.id}
               onToggle={() => toggleExpand(report.id)}
+              recipients={reportRecipientsMap[report.id] ?? []}
               report={report}
             />
           ))}
@@ -180,6 +189,7 @@ export function SentReportsList({
 function ReportCard({
   report,
   entries,
+  recipients,
   expanded,
   onToggle,
   onResend,
@@ -188,6 +198,7 @@ function ReportCard({
 }: {
   report: TimesheetReport
   entries: ReportEntryDetail[]
+  recipients: TimesheetReportRecipient[]
   expanded: boolean
   onToggle: () => void
   onResend?: () => void
@@ -229,7 +240,14 @@ function ReportCard({
           <div>
             <span className='font-medium text-sm'>{report.title}</span>
             <div className='flex items-center gap-3 text-muted-foreground text-xs'>
-              <span>To {report.clientName ?? report.clientEmail}</span>
+              <span>
+                To{' '}
+                {recipients.length > 0
+                  ? recipients
+                      .map((r) => r.clientName ?? r.clientEmail)
+                      .join(', ')
+                  : 'No recipients'}
+              </span>
               <span className='flex items-center gap-1'>
                 <Clock className='size-3' />
                 {totalHours}
@@ -262,22 +280,28 @@ function ReportCard({
       </button>
 
       {/* Dispute banner */}
-      {report.status === 'disputed' && report.disputeReason && (
+      {report.status === 'disputed' && (
         <div className='border-destructive/30 border-t bg-destructive/5 px-4 py-3'>
-          <p className='mb-1 font-medium text-destructive text-sm'>
-            Client dispute reason:
-          </p>
-          <p className='text-sm'>{report.disputeReason}</p>
-          {report.respondedAt && (
-            <p className='mt-1 text-muted-foreground text-xs'>
-              Disputed on{' '}
-              {new Date(report.respondedAt).toLocaleDateString('en-US', {
-                month: 'long',
-                day: 'numeric',
-                year: 'numeric',
-              })}
-            </p>
-          )}
+          {recipients
+            .filter((r) => r.status === 'disputed' && r.disputeReason)
+            .map((r) => (
+              <div className='mb-2' key={r.id}>
+                <p className='mb-1 font-medium text-destructive text-sm'>
+                  {r.clientName ?? r.clientEmail} disputed:
+                </p>
+                <p className='text-sm'>{r.disputeReason}</p>
+                {r.respondedAt && (
+                  <p className='mt-1 text-muted-foreground text-xs'>
+                    Disputed on{' '}
+                    {new Date(r.respondedAt).toLocaleDateString('en-US', {
+                      month: 'long',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
+                  </p>
+                )}
+              </div>
+            ))}
           {onResend && (
             <div className='mt-3'>
               <p className='mb-2 text-muted-foreground text-xs'>

@@ -6,6 +6,7 @@ import { authedActionClient } from '@/lib/safe-action'
 import { auth } from '@/server/auth'
 import { db } from '@/server/db'
 import { organizations } from '@/server/db/schema/auth'
+import { settings as settingsTable } from '@/server/db/schema'
 import {
   deleteOrganizationSchema,
   renameOrganizationSchema,
@@ -20,7 +21,9 @@ export const renameOrganizationAction = authedActionClient
       ctx: { role, orgMember },
     }) => {
       if (!role.authorize({ organization: ['update'] }).success) {
-        throw new Error('You do not have permission to update workspace settings')
+        throw new Error(
+          'You do not have permission to update workspace settings'
+        )
       }
 
       if (orgMember.organizationId !== organizationId) {
@@ -43,33 +46,40 @@ export const updateTimesheetDefaultsAction = authedActionClient
   .inputSchema(updateTimesheetDefaultsSchema)
   .action(
     async ({
-      parsedInput: { organizationId, defaultMemberRate, defaultCurrency },
+      parsedInput: {
+        organizationId,
+        defaultMemberRate,
+        defaultCurrency,
+        defaultTimesheetDuration,
+      },
       ctx: { role, orgMember },
     }) => {
       if (!role.authorize({ organization: ['update'] }).success) {
-        throw new Error('You do not have permission to update workspace settings')
+        throw new Error(
+          'You do not have permission to update workspace settings'
+        )
       }
 
       if (orgMember.organizationId !== organizationId) {
         throw new Error('Organization mismatch')
       }
 
-      const [org] = await db
-        .select({ metadata: organizations.metadata })
-        .from(organizations)
-        .where(eq(organizations.id, organizationId))
-
-      if (!org) {
-        throw new Error('Workspace not found')
-      }
-
-      const existing = org.metadata ? JSON.parse(org.metadata) : {}
-      const updated = { ...existing, defaultMemberRate, defaultCurrency }
-
       await db
-        .update(organizations)
-        .set({ metadata: JSON.stringify(updated) })
-        .where(eq(organizations.id, organizationId))
+        .insert(settingsTable)
+        .values({
+          organizationId,
+          defaultMemberRate,
+          defaultCurrency,
+          defaultTimesheetDuration,
+        })
+        .onConflictDoUpdate({
+          target: [settingsTable.organizationId, settingsTable.projectId],
+          set: {
+            defaultMemberRate,
+            defaultCurrency,
+            defaultTimesheetDuration,
+          },
+        })
 
       return { success: true }
     }

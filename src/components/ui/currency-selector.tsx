@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { SelectProps } from "@radix-ui/react-select";
+import { type SelectProps } from "@radix-ui/react-select";
 import { allCurrencies } from "@/data/currencies";
 import { useVirtualizer } from "@tanstack/react-virtual";
 

@@ -1,7 +1,7 @@
 'use client'
 
-import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from '@bprogress/next/app'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { AlertTriangle, Save } from 'lucide-react'
 import { useAction } from 'next-safe-action/hooks'
 import { useState } from 'react'
@@ -36,6 +36,13 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   deleteOrganizationAction,
   renameOrganizationAction,
   updateTimesheetDefaultsAction,
@@ -43,6 +50,7 @@ import {
 import {
   deleteOrganizationSchema,
   renameOrganizationSchema,
+  type TimesheetDuration,
   updateTimesheetDefaultsSchema,
 } from './common'
 
@@ -55,6 +63,7 @@ export function SettingsPageClient({
   orgSlug,
   canDelete,
   defaultMemberRate,
+  defaultTimesheetDuration,
   defaultCurrency,
 }: {
   organization: { id: string; name: string; slug: string }
@@ -62,6 +71,7 @@ export function SettingsPageClient({
   canDelete: boolean
   defaultMemberRate: number
   defaultCurrency: string
+  defaultTimesheetDuration: TimesheetDuration
 }) {
   const router = useRouter()
 
@@ -82,6 +92,7 @@ export function SettingsPageClient({
       organizationId: organization.id,
       defaultMemberRate,
       defaultCurrency,
+      defaultTimesheetDuration,
     },
   })
 
@@ -250,13 +261,13 @@ export function SettingsPageClient({
             </CardContent>
             <CardFooter>
               <Button
+                className='mt-4'
                 disabled={
                   !renameForm.formState.isDirty ||
                   (slugChanged && !slugAcknowledged)
                 }
                 loading={isRenaming}
                 type='submit'
-                className='mt-4'
               >
                 <Save className='size-4' />
                 Save Changes
@@ -278,6 +289,23 @@ export function SettingsPageClient({
               <div className='grid grid-cols-2 gap-4'>
                 <Controller
                   control={timesheetForm.control}
+                  name='defaultCurrency'
+                  render={({ field, fieldState }) => (
+                    <Field className='gap-1' data-invalid={fieldState.invalid}>
+                      <FieldLabel>Default Currency</FieldLabel>
+                      <CurrencySelect
+                        name='currency'
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      />
+                      {fieldState.invalid && (
+                        <FieldError errors={[fieldState.error]} />
+                      )}
+                    </Field>
+                  )}
+                />
+                <Controller
+                  control={timesheetForm.control}
                   name='defaultMemberRate'
                   render={({ field, fieldState }) => (
                     <Field className='gap-1' data-invalid={fieldState.invalid}>
@@ -294,27 +322,6 @@ export function SettingsPageClient({
                         type='number'
                         value={field.value ? field.value / 100 : ''}
                       />
-                      <FieldDescription>
-                        Rate in {timesheetForm.watch('defaultCurrency')} per
-                        hour
-                      </FieldDescription>
-                      {fieldState.invalid && (
-                        <FieldError errors={[fieldState.error]} />
-                      )}
-                    </Field>
-                  )}
-                />
-                <Controller
-                  control={timesheetForm.control}
-                  name='defaultCurrency'
-                  render={({ field, fieldState }) => (
-                    <Field className='gap-1' data-invalid={fieldState.invalid}>
-                      <FieldLabel>Default Currency</FieldLabel>
-                      <CurrencySelect
-                        name='currency'
-                        onValueChange={field.onChange}
-                        value={field.value}
-                      />
                       {fieldState.invalid && (
                         <FieldError errors={[fieldState.error]} />
                       )}
@@ -322,13 +329,41 @@ export function SettingsPageClient({
                   )}
                 />
               </div>
+              <Controller
+                control={timesheetForm.control}
+                name='defaultTimesheetDuration'
+                render={({ field, fieldState }) => (
+                  <Field
+                    className='mt-4 gap-1'
+                    data-invalid={fieldState.invalid}
+                  >
+                    <FieldLabel>Default Duration</FieldLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <SelectTrigger className='w-full'>
+                        <SelectValue placeholder='Select duration' />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value='weekly'>Weekly</SelectItem>
+                        <SelectItem value='biweekly'>Bi-Weekly</SelectItem>
+                        <SelectItem value='monthly'>Monthly</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FieldDescription>
+                      The default time period for new timesheets
+                    </FieldDescription>
+                    {fieldState.invalid && (
+                      <FieldError errors={[fieldState.error]} />
+                    )}
+                  </Field>
+                )}
+              />
             </CardContent>
             <CardFooter>
               <Button
+                className='mt-4'
                 disabled={!timesheetForm.formState.isDirty}
                 loading={isSavingDefaults}
                 type='submit'
-                className='mt-4'
               >
                 <Save className='size-4' />
                 Save Defaults
@@ -383,8 +418,8 @@ export function SettingsPageClient({
                     </Label>
                     <Input
                       {...field}
-                      autoFocus
                       aria-invalid={fieldState.invalid}
+                      autoFocus
                       placeholder={organization.name}
                     />
                     {fieldState.invalid && (

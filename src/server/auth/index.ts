@@ -12,6 +12,8 @@ import { db } from '@/server/db'
 import * as schema from '@/server/db/schema'
 import { emailService } from '@/services/email.service'
 import { ac, adminRole, clientRole, memberRole, ownerRole } from './permissions'
+import { and, eq, isNull } from 'drizzle-orm'
+import { memberRates, settings } from '@/server/db/schema'
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -49,6 +51,30 @@ export const auth = betterAuth({
         })
       },
       organizationHooks: {
+        async afterAcceptInvitation({
+          invitation,
+          member,
+          organization,
+          user,
+        }) {
+          /// We can set the member hourly rate here. Per project override could be done when a member is added to a project
+          const [setting] = await db
+            .select()
+            .from(settings)
+            .where(
+              and(
+                eq(settings.organizationId, organization.id),
+                isNull(settings.projectId)
+              )
+            )
+          if (!setting) return
+          await db.insert(memberRates).values({
+            effectiveFrom: new Date(),
+            hourlyRate: setting.defaultMemberRate,
+            memberId: member.id,
+            currency: setting.defaultCurrency,
+          })
+        },
         async afterCreateOrganization({ organization }) {
           const defaultCategories = [
             { name: 'Software & Tools', color: '#6366f1' },

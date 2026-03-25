@@ -1,6 +1,6 @@
-/** biome-ignore-all lint/performance/noImgElement: <explanation> */
-/** biome-ignore-all lint/a11y/useValidAriaRole: <explanation> */
-/** biome-ignore-all lint/correctness/useImageSize: <explanation> */
+/** biome-ignore-all lint/performance/noImgElement: Don't wanna use Next's Image tag here */
+/** biome-ignore-all lint/a11y/useValidAriaRole: The role prop is for user role not aria */
+/** biome-ignore-all lint/correctness/useImageSize: Hard to handle proper scaling  */
 'use client'
 
 import { pdf } from '@react-pdf/renderer'
@@ -182,7 +182,8 @@ export function InvoiceClientView({
         orgSlug,
         projectSlug,
         senderLogo: invoice.senderLogoObject?.url ?? invoice.senderLogo,
-        senderSignature: invoice.senderSignatureObject?.url ?? invoice.senderSignature,
+        senderSignature:
+          invoice.senderSignatureObject?.url ?? invoice.senderSignature,
         senderName: invoice.senderName,
         senderAddress: invoice.senderAddress,
         senderCustomFields: invoice.senderCustomFields ?? [],
@@ -431,7 +432,7 @@ export function InvoiceClientView({
                   >
                     <FileText className='size-3.5 text-muted-foreground' />
                     <span>{req.title}</span>
-                    {/** biome-ignore lint/a11y/useValidAriaRole: Its not an Aria prop. It's a role for the client.*/}
+
                     <RequirementStatusBadge
                       role='client'
                       status={

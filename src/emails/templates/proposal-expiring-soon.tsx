@@ -23,7 +23,6 @@ interface ProposalExpiringSoonEmailProps {
 export default function ProposalExpiringSoonEmail({
   recipientName = 'John Doe',
   proposalTitle = 'E-Commerce Platform Rebuild',
-  organizationName = 'Acme Studio',
   validUntil = 'April 15, 2026',
   daysRemaining = 3,
   clientNames = 'Jane Smith, Bob Wilson',

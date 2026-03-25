@@ -1,4 +1,7 @@
+import { and, eq, isNull } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
+import { db } from '@/server/db'
+import { settings as settingsTable } from '@/server/db/schema'
 import { resolveOrgContext } from '../cache'
 import { SettingsPageClient } from './page.client'
 
@@ -15,15 +18,23 @@ export default async function SettingsPage({
   }
 
   const canDelete = role.authorize({ organization: ['delete'] }).success
-  const metadata = organization.metadata
-    ? JSON.parse(organization.metadata as string)
-    : {}
+
+  const [settings] = await db
+    .select()
+    .from(settingsTable)
+    .where(
+      and(
+        eq(settingsTable.organizationId, organization.id),
+        isNull(settingsTable.projectId)
+      )
+    )
 
   return (
     <SettingsPageClient
       canDelete={canDelete}
-      defaultCurrency={metadata.defaultCurrency ?? 'USD'}
-      defaultMemberRate={metadata.defaultMemberRate ?? 0}
+      defaultCurrency={settings?.defaultCurrency ?? 'USD'}
+      defaultMemberRate={settings?.defaultMemberRate ?? 0}
+      defaultTimesheetDuration={settings?.defaultTimesheetDuration ?? 'weekly'}
       organization={{
         id: organization.id,
         name: organization.name,
