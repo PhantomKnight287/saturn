@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNull } from 'drizzle-orm'
 import { db } from '@/server/db'
 import {
   organizations,
@@ -6,6 +6,7 @@ import {
   projectMemberAssignments,
   projects,
   projectTeamAssignments,
+  settings as settingsTable,
   teamMembers,
 } from '@/server/db/schema'
 
@@ -115,10 +116,53 @@ const getById = async (projectId: string) => {
 
   return project ?? null
 }
+const SETTINGS_DEFAULTS = {
+  defaultMemberRate: 0,
+  defaultCurrency: 'USD' as const,
+  defaultTimesheetDuration: 'weekly' as const,
+}
+
+/**
+ * Resolves settings with fallback chain:
+ *   1. Project-level settings (if projectId provided)
+ *   2. Organization-level settings
+ *   3. Hard-coded defaults
+ */
+const getSettings = async (organizationId: string, projectId?: string) => {
+  if (projectId) {
+    const [projectSettings] = await db
+      .select()
+      .from(settingsTable)
+      .where(
+        and(
+          eq(settingsTable.organizationId, organizationId),
+          eq(settingsTable.projectId, projectId)
+        )
+      )
+
+    if (projectSettings) {
+      return projectSettings
+    }
+  }
+
+  const [orgSettings] = await db
+    .select()
+    .from(settingsTable)
+    .where(
+      and(
+        eq(settingsTable.organizationId, organizationId),
+        isNull(settingsTable.projectId)
+      )
+    )
+
+  return orgSettings ?? SETTINGS_DEFAULTS
+}
+
 export const projectsService = {
   listByOrganization,
   getBySlug,
   listAccessible,
   getProjectDetails,
   getById,
+  getSettings,
 }

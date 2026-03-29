@@ -5,8 +5,8 @@ import { headers } from 'next/headers'
 import { authedActionClient } from '@/lib/safe-action'
 import { auth } from '@/server/auth'
 import { db } from '@/server/db'
-import { organizations } from '@/server/db/schema/auth'
 import { settings as settingsTable } from '@/server/db/schema'
+import { organizations } from '@/server/db/schema/auth'
 import {
   deleteOrganizationSchema,
   renameOrganizationSchema,

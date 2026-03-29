@@ -4,6 +4,7 @@
 import { useRouter } from '@bprogress/next/app'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useAction } from 'next-safe-action/hooks'
+import { useEffect } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -37,11 +38,19 @@ import { formatMinutes, timeEntryFormSchema } from '../common'
 import type { Requirement, TimeEntry, TimeEntryFormValues } from '../types'
 
 interface TimeEntryFormProps {
+  defaultDate?: Date
   editEntry?: TimeEntry
   onOpenChange: (open: boolean) => void
   open: boolean
   projectId: string
   requirements: Requirement[]
+}
+
+function toLocalDateString(date: Date): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
 }
 
 function parseDuration(input: string): number | null {
@@ -76,20 +85,28 @@ export function TimeEntryForm({
   projectId,
   requirements,
   editEntry,
+  defaultDate,
 }: TimeEntryFormProps) {
   const router = useRouter()
+  const initialDate = editEntry
+    ? new Date(editEntry.date)
+    : (defaultDate ?? new Date())
   const form = useForm<TimeEntryFormValues>({
     resolver: zodResolver(timeEntryFormSchema),
     defaultValues: {
       requirementId: editEntry?.requirementId ?? '',
       description: editEntry?.description ?? '',
-      date: editEntry
-        ? new Date(editEntry.date).toISOString().split('T').at(0)!
-        : new Date().toISOString().split('T').at(0)!,
+      date: toLocalDateString(initialDate),
       durationInput: editEntry ? formatMinutes(editEntry.durationMinutes) : '',
       billable: editEntry?.billable ?? true,
     },
   })
+
+  useEffect(() => {
+    if (defaultDate && !editEntry) {
+      form.setValue('date', toLocalDateString(defaultDate))
+    }
+  }, [defaultDate, editEntry, form])
 
   const createAction = useAction(createTimeEntryAction, {
     onSuccess: () => {
@@ -99,7 +116,7 @@ export function TimeEntryForm({
       form.reset({
         requirementId: '',
         description: '',
-        date: new Date().toISOString().split('T').at(0)!,
+        date: toLocalDateString(new Date()),
         durationInput: '',
         billable: true,
       })
@@ -227,9 +244,7 @@ export function TimeEntryForm({
                     <FieldLabel>Date</FieldLabel>
                     <DatePicker
                       onChange={(date) => {
-                        field.onChange(
-                          date ? date.toISOString().split('T').at(0)! : ''
-                        )
+                        field.onChange(date ? toLocalDateString(date) : '')
                       }}
                       value={field.value ? new Date(field.value) : undefined}
                     />

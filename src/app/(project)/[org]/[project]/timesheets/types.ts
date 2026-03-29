@@ -1,5 +1,11 @@
 import type { z } from 'zod'
-import type { timeEntries } from '@/server/db/schema'
+import type {
+  statusEnum,
+  timeEntries,
+  timesheetDurationEnum,
+  timesheetReportRecipientStatusEnum,
+  timesheetReportStatusEnum,
+} from '@/server/db/schema'
 import type { ProjectClient } from '../team/types'
 import type { timeEntryFormSchema } from './common'
 
@@ -20,7 +26,7 @@ export interface WeeklyTimesheetEntry {
   id: string
   requirementId: string | null
   requirementTitle: string | null
-  status: 'draft' | 'submitted_to_admin' | 'admin_accepted' | 'admin_rejected'
+  status: (typeof statusEnum.enumValues)[number]
 }
 
 export interface BudgetStatus {
@@ -65,7 +71,7 @@ export interface TimesheetReportRecipient {
   disputeReason: string | null
   id: string
   respondedAt: Date | null
-  status: 'pending' | 'approved' | 'disputed'
+  status: (typeof timesheetReportRecipientStatusEnum.enumValues)[number]
 }
 
 export interface TimesheetReport {
@@ -77,7 +83,7 @@ export interface TimesheetReport {
   respondedAt: Date | null
   sentAt: Date | null
   sentByMemberId: string | null
-  status: 'draft' | 'sent' | 'approved' | 'disputed'
+  status: (typeof timesheetReportStatusEnum.enumValues)[number]
   title: string
   totalAmount: number
   totalMinutes: number
@@ -105,7 +111,7 @@ export interface TimesheetReportDetail {
     id: string
     projectId: string
     title: string
-    status: 'draft' | 'sent' | 'approved' | 'disputed'
+    status: (typeof timesheetReportStatusEnum.enumValues)[number]
     totalMinutes: number
     totalAmount: number
     currency: string
@@ -115,6 +121,9 @@ export interface TimesheetReportDetail {
     respondedAt: Date | null
   }
 }
+
+export type TimesheetDuration =
+  (typeof timesheetDurationEnum.enumValues)[number]
 
 export interface TimeTrackingPageProps {
   budgetStatus: BudgetStatus | null
@@ -133,5 +142,6 @@ export interface TimeTrackingPageProps {
   reportEntriesMap: Record<string, ReportEntryDetail[]>
   reportRecipientsMap: Record<string, TimesheetReportRecipient[]>
   requirements: Requirement[]
+  timesheetDuration: TimesheetDuration
   timesheetReports: TimesheetReport[]
 }

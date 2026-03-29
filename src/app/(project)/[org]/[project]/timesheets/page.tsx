@@ -1,6 +1,7 @@
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
+import { projectsService } from '@/app/api/projects/service'
 import { requirementsService } from '@/app/api/requirements/service'
 import { teamService } from '@/app/api/teams/service'
 import { timesheetService } from '@/app/api/timesheets/service'
@@ -41,6 +42,7 @@ export default async function TimeTracking({
     rates,
     reports,
     clients,
+    settings,
   ] = await Promise.all([
     canReadTimeEntries
       ? timesheetService.listByProject(currentProject.id, h)
@@ -57,6 +59,7 @@ export default async function TimeTracking({
     isAdmin
       ? teamService.getProjectClients(currentProject.id)
       : Promise.resolve([]),
+    projectsService.getSettings(organization.id, currentProject.id),
   ])
 
   const reportIds = reports.map((r) => r.id)
@@ -116,6 +119,7 @@ export default async function TimeTracking({
       reportEntriesMap={reportEntriesMap}
       reportRecipientsMap={reportRecipientsMap}
       requirements={requirementsList}
+      timesheetDuration={settings.defaultTimesheetDuration}
       timesheetReports={reports}
     />
   )

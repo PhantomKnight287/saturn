@@ -16,6 +16,7 @@ export default async function OrganizationPage(props: PageProps<'/[org]'>) {
     },
     { headers: await headers() }
   )
+
   if (!organization.data) {
     return notFound()
   }
