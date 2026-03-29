@@ -40,6 +40,7 @@ import type {
   TimesheetReport,
   TimesheetReportRecipient,
 } from '../types'
+import { useRouter } from '@bprogress/next/app'
 
 interface SentReportsListProps {
   orgSlug: string
@@ -71,10 +72,11 @@ export function SentReportsList({
   projectSlug,
 }: SentReportsListProps) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
-
+  const router = useRouter()
   const resendAction = useAction(resendTimesheetReportAction, {
     onSuccess: () => {
       toast.success('Report resent to client')
+      router.refresh()
     },
     onError: ({ error }) => {
       toast.error(error.serverError ?? 'Failed to resend report')

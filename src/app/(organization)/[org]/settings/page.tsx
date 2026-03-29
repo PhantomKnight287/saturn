@@ -35,11 +35,7 @@ export default async function SettingsPage({
       defaultCurrency={settings?.defaultCurrency ?? 'USD'}
       defaultMemberRate={settings?.defaultMemberRate ?? 0}
       defaultTimesheetDuration={settings?.defaultTimesheetDuration ?? 'weekly'}
-      organization={{
-        id: organization.id,
-        name: organization.name,
-        slug: organization.slug ?? '',
-      }}
+      organization={organization}
       orgSlug={org}
     />
   )
