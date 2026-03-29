@@ -36,7 +36,6 @@ import PendingInvitationsBlock from './pending-invitations-block'
 
 export default function MembersSection({
   organizationId,
-  orgSlug,
   members,
   invitations,
   canManage,
@@ -113,10 +112,7 @@ export default function MembersSection({
                 <TableCell>
                   <div className='flex items-center gap-3'>
                     <Avatar className='size-8'>
-                      <AvatarImage
-                        alt={m.userName}
-                        src={m.userImage ?? ''}
-                      />
+                      <AvatarImage alt={m.userName} src={m.userImage ?? ''} />
                       <AvatarFallback>
                         {m.userName.substring(0, 1).toUpperCase()}
                       </AvatarFallback>
@@ -165,11 +161,9 @@ export default function MembersSection({
                 </TableCell>
                 {canManage && (
                   <TableCell>
-                    {!isSelf && !isOwner && (
+                    {!(isSelf || isOwner) && (
                       <Button
-                        onClick={() =>
-                          executeRemove({ memberId: m.memberId })
-                        }
+                        onClick={() => executeRemove({ memberId: m.memberId })}
                         size='sm'
                         variant='ghost'
                       >

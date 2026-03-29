@@ -1,5 +1,6 @@
 'use client'
 
+import { useRouter } from '@bprogress/next/app'
 import { CheckCircle2, FileText, MessageSquareWarning } from 'lucide-react'
 import { useAction } from 'next-safe-action/hooks'
 import { useId, useState } from 'react'
@@ -46,15 +47,21 @@ export function ClientReportsView({ reports }: ClientReportsViewProps) {
   const [activeReportId, setActiveReportId] = useState<string | null>(null)
   const [disputeReason, setDisputeReason] = useState('')
   const formId = useId()
+  const router = useRouter()
 
   const { execute: executeRespond, isPending } = useAction(
     respondTimesheetReportAction,
     {
-      onSuccess() {
-        toast.success('Response submitted')
+      onSuccess({ input }) {
+        toast.success(
+          input.action === 'approve'
+            ? 'Timesheet approved'
+            : 'Timesheet disputed'
+        )
         setDisputeOpen(false)
         setDisputeReason('')
         setActiveReportId(null)
+        router.refresh()
       },
       onError({ error }) {
         toast.error(error.serverError ?? 'Failed to submit response')

@@ -199,7 +199,6 @@ export function MilestoneDetailClient({
 
   return (
     <div className='w-full'>
-      {/* Header */}
       <div className='mb-6'>
         <Link
           className='mb-4 inline-flex items-center gap-1 text-muted-foreground text-sm hover:text-foreground'
@@ -224,7 +223,6 @@ export function MilestoneDetailClient({
           </Badge>
         </div>
 
-        {/* Meta info */}
         <div className='mt-3 flex flex-wrap items-center gap-4 text-muted-foreground text-sm'>
           {milestone.dueDate && (
             <span className='flex items-center gap-1'>
@@ -259,7 +257,6 @@ export function MilestoneDetailClient({
         )}
       </div>
 
-      {/* Action buttons */}
       {(canUpdate || canComplete || canDelete) && (
         <div className='mb-6 flex flex-wrap gap-2'>
           {canComplete && milestone.status !== 'completed' && (
@@ -324,7 +321,6 @@ export function MilestoneDetailClient({
         </div>
       )}
 
-      {/* Progress */}
       {progress.total > 0 && (
         <div className='mb-6 rounded-lg border p-4'>
           <div className='mb-2 flex items-center justify-between text-sm'>
@@ -351,7 +347,6 @@ export function MilestoneDetailClient({
         </div>
       )}
 
-      {/* Linked Requirements */}
       <div>
         <div className='mb-3 flex items-center justify-between'>
           <h2 className='font-medium text-muted-foreground text-sm uppercase tracking-wide'>
@@ -410,7 +405,6 @@ export function MilestoneDetailClient({
         )}
       </div>
 
-      {/* Delete Dialog */}
       <Dialog onOpenChange={setDeleteDialogOpen} open={deleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -438,7 +432,6 @@ export function MilestoneDetailClient({
         </DialogContent>
       </Dialog>
 
-      {/* Block Dialog */}
       <Dialog onOpenChange={setBlockDialogOpen} open={blockDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -448,9 +441,8 @@ export function MilestoneDetailClient({
             </DialogDescription>
           </DialogHeader>
           <div className='mt-4 grid gap-2'>
-            <Label htmlFor='blockReason'>Block Reason</Label>
+            <Label>Block Reason</Label>
             <Input
-              id='blockReason'
               onChange={(e) => setBlockReason(e.target.value)}
               placeholder='e.g. Waiting on client approval...'
               value={blockReason}
@@ -476,7 +468,6 @@ export function MilestoneDetailClient({
         </DialogContent>
       </Dialog>
 
-      {/* Link Requirement Dialog */}
       <Dialog onOpenChange={setLinkDialogOpen} open={linkDialogOpen}>
         <DialogContent>
           <DialogHeader>

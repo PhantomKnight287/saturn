@@ -556,7 +556,7 @@ export const setMemberRateAction = authedActionClient
         )
         .then((r) => r.at(0))
 
-      let rate: typeof memberRates.$inferSelect
+      let rate: typeof memberRates.$inferSelect | undefined
       if (existing) {
         const [newRate] = await db
           .update(memberRates)
@@ -763,6 +763,10 @@ export const sendTimesheetToClientAction = authedActionClient
             timeEntryId: teId,
           }))
         )
+        await tx
+          .update(timeEntries)
+          .set({ status: 'submitted_to_client' })
+          .where(inArray(timeEntries.id, timeEntryIds))
 
         return r
       })

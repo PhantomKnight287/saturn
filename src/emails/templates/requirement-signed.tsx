@@ -21,7 +21,6 @@ interface RequirementSignedEmailProps {
 }
 
 export default function RequirementSignedEmail({
-  recipientName = 'John Doe',
   requirementTitle = 'Homepage Specifications v2',
   projectName = 'Website Redesign',
   signerName = 'Jane Smith',

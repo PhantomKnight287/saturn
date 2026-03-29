@@ -4,9 +4,9 @@ export type ProjectMember = Awaited<
   ReturnType<typeof teamService.getProjectMembers>
 >[number]
 
-export type ProjectClient = Omit<Awaited<
+export type ProjectClient = Awaited<
   ReturnType<typeof teamService.getProjectClients>
->[number],"assignmentId">
+>[number]
 
 export type ProjectTeam = Awaited<
   ReturnType<typeof teamService.getProjectTeams>

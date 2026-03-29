@@ -13,7 +13,7 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty'
 import type { requirements } from '@/server/db/schema'
-import type { Role } from '@/types'
+import type { Role, RouteImpl } from '@/types'
 import RequirementCard from './_components/requirement-card'
 
 type Requirement = typeof requirements.$inferSelect
@@ -33,7 +33,7 @@ export function RequirementsClient({
   canCreate,
   role,
 }: RequirementsClientProps) {
-  const newUrl = `/${orgSlug}/${projectSlug}/requirements/new`
+  const newUrl = `/${orgSlug}/${projectSlug}/requirements/new` as RouteImpl
 
   return (
     <div className='w-full'>

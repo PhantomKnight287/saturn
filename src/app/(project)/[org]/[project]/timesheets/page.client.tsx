@@ -1,24 +1,18 @@
 'use client'
 
-import { Clock, Plus, Send, Settings2 } from 'lucide-react'
+import { Plus, Send, Settings2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import SendToClientDialog from '@/components/send-to-client-dialog'
 import { Button } from '@/components/ui/button'
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { BiweeklyTimesheet } from './_components/biweekly-timesheet'
 import { BudgetIndicator } from './_components/budget-indicator'
 import { ClientReportsView } from './_components/client-reports-view'
 import { MemberRatesDialog } from './_components/member-rates-dialog'
+import { MonthlyTimesheet } from './_components/monthly-timesheet'
 import { SentReportsList } from './_components/sent-reports-list'
 import { TeamEntriesTable } from './_components/team-entries-table'
 import { TimeEntryForm } from './_components/time-entry-form'
@@ -43,11 +37,14 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
     clients,
     budgetStatus,
     memberRates,
+    timesheetDuration,
     timesheetReports,
     reportEntriesMap,
+    reportRecipientsMap,
     clientReports,
   } = props
   const [formOpen, setFormOpen] = useState(false)
+  const [formDefaultDate, setFormDefaultDate] = useState<Date | undefined>()
   const [ratesOpen, setRatesOpen] = useState(false)
   const [sendOpen, setSendOpen] = useState(false)
   const [selectedEntryIds, setSelectedEntryIds] = useState<Set<string>>(
@@ -61,7 +58,7 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
 
   const myEntries = entries.filter((e) => e.memberId === currentMemberId)
   const submittedEntries = entries.filter(
-    (e) => e.status === 'submitted_to_client'
+    (e) => e.status === 'submitted_to_admin'
   )
   const disputedReports = timesheetReports.filter(
     (r) => r.status === 'disputed'
@@ -144,21 +141,27 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
         </TabsList>
 
         <TabsContent value='timesheet'>
-          {myEntries.length === 0 && !formOpen ? (
-            <Empty>
-              <EmptyHeader>
-                <EmptyMedia variant='icon'>
-                  <Clock />
-                </EmptyMedia>
-                <EmptyTitle>No time entries yet</EmptyTitle>
-                <EmptyDescription>
-                  Log time spent on project requirements.
-                </EmptyDescription>
-              </EmptyHeader>
-              <EmptyContent>
-                <Button onClick={() => setFormOpen(true)}>Log Time</Button>
-              </EmptyContent>
-            </Empty>
+          {timesheetDuration === 'monthly' ? (
+            <MonthlyTimesheet
+              currentMemberId={currentMemberId}
+              entries={myEntries}
+              isAdmin={false}
+              onAddEntry={(date) => {
+                setFormDefaultDate(date)
+                setFormOpen(true)
+              }}
+              projectId={projectId}
+              requirements={requirements}
+            />
+          ) : timesheetDuration === 'biweekly' ? (
+            <BiweeklyTimesheet
+              currentMemberId={currentMemberId}
+              entries={myEntries}
+              isAdmin={false}
+              onAddEntry={() => setFormOpen(true)}
+              projectId={projectId}
+              requirements={requirements}
+            />
           ) : (
             <WeeklyTimesheet
               currentMemberId={currentMemberId}
@@ -200,6 +203,7 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
                 projectName={projectName}
                 projectSlug={projectSlug}
                 reportEntriesMap={reportEntriesMap}
+                reportRecipientsMap={reportRecipientsMap}
                 reports={timesheetReports}
               />
             </TabsContent>
@@ -208,7 +212,13 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
       </Tabs>
 
       <TimeEntryForm
-        onOpenChange={setFormOpen}
+        defaultDate={formDefaultDate}
+        onOpenChange={(open) => {
+          setFormOpen(open)
+          if (!open) {
+            setFormDefaultDate(undefined)
+          }
+        }}
         open={formOpen}
         projectId={projectId}
         requirements={requirements}
@@ -252,9 +262,8 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
             title='Send Timesheet to Client'
           >
             <div className='space-y-1.5'>
-              <Label htmlFor='report-title'>Report Title</Label>
+              <Label>Report Title</Label>
               <Input
-                id='report-title'
                 onChange={(e) => setReportTitle(e.target.value)}
                 placeholder='e.g. Week of Mar 3 – Mar 9'
                 value={reportTitle}

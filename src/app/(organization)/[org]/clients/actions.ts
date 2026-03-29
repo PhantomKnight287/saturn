@@ -28,7 +28,11 @@ export const assignClientToProjectAction = authedActionClient
       }
 
       const [member] = await db
-        .select({ id: members.id, organizationId: members.organizationId, role: members.role })
+        .select({
+          id: members.id,
+          organizationId: members.organizationId,
+          role: members.role,
+        })
         .from(members)
         .where(eq(members.id, memberId))
 
@@ -57,10 +61,7 @@ export const assignClientToProjectAction = authedActionClient
 export const removeClientFromProjectAction = authedActionClient
   .inputSchema(removeClientFromProjectSchema)
   .action(
-    async ({
-      parsedInput: { assignmentId },
-      ctx: { role, orgMember },
-    }) => {
+    async ({ parsedInput: { assignmentId }, ctx: { role, orgMember } }) => {
       if (!role.authorize({ member: ['delete'] }).success) {
         throw new Error('You do not have permission to remove clients')
       }
@@ -93,43 +94,42 @@ export const removeClientFromProjectAction = authedActionClient
 
 export const removeClientFromOrgAction = authedActionClient
   .inputSchema(removeClientFromOrgSchema)
-  .action(
-    async ({
-      parsedInput: { memberId },
-      ctx: { role, orgMember },
-    }) => {
-      if (!role.authorize({ member: ['delete'] }).success) {
-        throw new Error('You do not have permission to remove clients')
-      }
-
-      const [member] = await db
-        .select({ id: members.id, organizationId: members.organizationId, role: members.role })
-        .from(members)
-        .where(eq(members.id, memberId))
-
-      if (!member || member.organizationId !== orgMember.organizationId) {
-        throw new Error('Client not found')
-      }
-
-      if (member.role !== 'client') {
-        throw new Error('Member is not a client')
-      }
-
-      // Remove all project assignments first
-      await db
-        .delete(projectClientAssignments)
-        .where(eq(projectClientAssignments.memberId, memberId))
-
-      await db
-        .delete(projectMemberAssignments)
-        .where(eq(projectMemberAssignments.memberId, memberId))
-
-      // Remove from org
-      await auth.api.removeMember({
-        headers: await headers(),
-        body: { memberIdOrEmail: memberId },
-      })
-
-      return { success: true }
+  .action(async ({ parsedInput: { memberId }, ctx: { role, orgMember } }) => {
+    if (!role.authorize({ member: ['delete'] }).success) {
+      throw new Error('You do not have permission to remove clients')
     }
-  )
+
+    const [member] = await db
+      .select({
+        id: members.id,
+        organizationId: members.organizationId,
+        role: members.role,
+      })
+      .from(members)
+      .where(eq(members.id, memberId))
+
+    if (!member || member.organizationId !== orgMember.organizationId) {
+      throw new Error('Client not found')
+    }
+
+    if (member.role !== 'client') {
+      throw new Error('Member is not a client')
+    }
+
+    // Remove all project assignments first
+    await db
+      .delete(projectClientAssignments)
+      .where(eq(projectClientAssignments.memberId, memberId))
+
+    await db
+      .delete(projectMemberAssignments)
+      .where(eq(projectMemberAssignments.memberId, memberId))
+
+    // Remove from org
+    await auth.api.removeMember({
+      headers: await headers(),
+      body: { memberIdOrEmail: memberId },
+    })
+
+    return { success: true }
+  })

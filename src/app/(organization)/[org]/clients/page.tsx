@@ -11,7 +11,7 @@ export default async function ClientsPage({
   params,
 }: PageProps<'/[org]/clients'>) {
   const { org } = await params
-  const { organization, orgMember, role } = await resolveOrgContext(org)
+  const { organization, role } = await resolveOrgContext(org)
 
   if (!role.authorize({ member: ['create'] }).success) {
     redirect(

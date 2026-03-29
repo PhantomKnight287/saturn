@@ -22,7 +22,6 @@ interface InvoiceUnpaidEmailProps {
 }
 
 export default function InvoiceUnpaidEmail({
-  recipientName = 'John Doe',
   invoiceNumber = 'INV-2026-001',
   projectName = 'Website Redesign',
   markedByName = 'Jane Smith',

@@ -6,13 +6,16 @@ import { resolveOrgContext } from '../cache'
 import { TeamsPageClient } from './page.client'
 import type { PendingInvitation } from './types'
 
-export default async function TeamsPage({
-  params,
-}: PageProps<'/[org]/teams'>) {
+export default async function TeamsPage({ params }: PageProps<'/[org]/teams'>) {
   const { org } = await params
   const { organization, orgMember, role } = await resolveOrgContext(org)
 
-  if (!role.authorize({ member: ['create'] }).success && !role.authorize({ team: ['create'] }).success) {
+  if (
+    !(
+      role.authorize({ member: ['create'] }).success ||
+      role.authorize({ team: ['create'] }).success
+    )
+  ) {
     redirect(
       `/error?message=${encodeURIComponent('You do not have permission to view teams')}`
     )
@@ -21,7 +24,7 @@ export default async function TeamsPage({
   const canManage = role.authorize({ member: ['create'] }).success
 
   const [orgMembers, orgTeams, invitationsResult] = await Promise.all([
-    teamService.getOrgMembers(organization.id,true),
+    teamService.getOrgMembers(organization.id, true),
     teamService.getOrgTeamsWithMembers(organization.id),
     canManage
       ? auth.api.listInvitations({

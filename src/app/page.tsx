@@ -20,7 +20,7 @@ export default function Home() {
   }
 
   return (
-    <main className='flex min-h-[calc(100dvh-3.5rem)] items-center justify-center px-6 py-10'>
+    <main className='flex min-h-[calc(100dvh-3.5rem)] w-full items-center justify-center px-6 py-10'>
       {isLoading && (
         <div className='flex items-center gap-3 text-muted-foreground text-sm'>
           <Loader2 className='size-4 animate-spin' />

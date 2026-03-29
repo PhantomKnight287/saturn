@@ -4,12 +4,14 @@ import { render } from '@react-email/render'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { lastLoginMethod, organization } from 'better-auth/plugins'
+import { and, eq, isNull } from 'drizzle-orm'
 import { headers } from 'next/headers'
 import type { NextRequest } from 'next/server'
 import InvitationEmail from '@/emails/templates/invitation'
 import { env } from '@/env'
 import { db } from '@/server/db'
 import * as schema from '@/server/db/schema'
+import { memberRates, settings } from '@/server/db/schema'
 import { emailService } from '@/services/email.service'
 import { ac, adminRole, clientRole, memberRole, ownerRole } from './permissions'
 
@@ -49,6 +51,27 @@ export const auth = betterAuth({
         })
       },
       organizationHooks: {
+        async afterAcceptInvitation({ member, organization }) {
+          /// We can set the member hourly rate here. Per project override could be done when a member is added to a project
+          const [setting] = await db
+            .select()
+            .from(settings)
+            .where(
+              and(
+                eq(settings.organizationId, organization.id),
+                isNull(settings.projectId)
+              )
+            )
+          if (!setting) {
+            return
+          }
+          await db.insert(memberRates).values({
+            effectiveFrom: new Date(),
+            hourlyRate: setting.defaultMemberRate,
+            memberId: member.id,
+            currency: setting.defaultCurrency,
+          })
+        },
         async afterCreateOrganization({ organization }) {
           const defaultCategories = [
             { name: 'Software & Tools', color: '#6366f1' },

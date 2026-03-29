@@ -43,30 +43,32 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import {
-  deleteOrganizationAction,
-  renameOrganizationAction,
-  updateTimesheetDefaultsAction,
+  deleteProjectAction,
+  renameProjectAction,
+  updateProjectTimesheetDefaultsAction,
 } from './actions'
 import {
-  deleteOrganizationSchema,
-  renameOrganizationSchema,
+  deleteProjectSchema,
+  renameProjectSchema,
   type TimesheetDuration,
-  updateTimesheetDefaultsSchema,
+  updateProjectTimesheetDefaultsSchema,
 } from './common'
 
-type RenameFormValues = z.infer<typeof renameOrganizationSchema>
-type TimesheetFormValues = z.infer<typeof updateTimesheetDefaultsSchema>
-type DeleteFormValues = z.infer<typeof deleteOrganizationSchema>
+type RenameFormValues = z.infer<typeof renameProjectSchema>
+type TimesheetFormValues = z.infer<typeof updateProjectTimesheetDefaultsSchema>
+type DeleteFormValues = z.infer<typeof deleteProjectSchema>
 
-export function SettingsPageClient({
-  organization,
+export function ProjectSettingsPageClient({
+  project,
+  organizationId,
   orgSlug,
   canDelete,
   defaultMemberRate,
   defaultTimesheetDuration,
   defaultCurrency,
 }: {
-  organization: { id: string; name: string; slug: string }
+  project: { id: string; name: string; slug: string }
+  organizationId: string
   orgSlug: string
   canDelete: boolean
   defaultMemberRate: number
@@ -76,18 +78,20 @@ export function SettingsPageClient({
   const router = useRouter()
 
   const renameForm = useForm<RenameFormValues>({
-    resolver: zodResolver(renameOrganizationSchema),
+    resolver: zodResolver(renameProjectSchema),
     defaultValues: {
-      organizationId: organization.id,
-      name: organization.name,
-      slug: organization.slug,
+      projectId: project.id,
+      organizationId,
+      name: project.name,
+      slug: project.slug,
     },
   })
 
   const timesheetForm = useForm<TimesheetFormValues>({
-    resolver: zodResolver(updateTimesheetDefaultsSchema),
+    resolver: zodResolver(updateProjectTimesheetDefaultsSchema),
     defaultValues: {
-      organizationId: organization.id,
+      organizationId,
+      projectId: project.id,
       defaultMemberRate,
       defaultCurrency,
       defaultTimesheetDuration,
@@ -95,38 +99,39 @@ export function SettingsPageClient({
   })
 
   const deleteForm = useForm<DeleteFormValues>({
-    resolver: zodResolver(deleteOrganizationSchema),
+    resolver: zodResolver(deleteProjectSchema),
     defaultValues: {
-      organizationId: organization.id,
+      projectId: project.id,
+      organizationId,
       confirmName: '',
     },
   })
 
   const [slugAcknowledged, setSlugAcknowledged] = useState(false)
   const watchedSlug = renameForm.watch('slug')
-  const slugChanged = watchedSlug !== organization.slug
+  const slugChanged = watchedSlug !== project.slug
 
   const [deleteOpen, setDeleteOpen] = useState(false)
 
   const { execute: executeRename, isPending: isRenaming } = useAction(
-    renameOrganizationAction,
+    renameProjectAction,
     {
       onSuccess({ data }) {
-        toast.success('Workspace updated')
-        if (data?.slug && data.slug !== orgSlug) {
-          router.push(`/${data.slug}/settings`)
+        toast.success('Project updated')
+        if (data?.slug && data.slug !== project.slug) {
+          router.push(`/${orgSlug}/${data.slug}/settings`)
         } else {
           router.refresh()
         }
       },
       onError({ error }) {
-        toast.error(error.serverError ?? 'Failed to update workspace')
+        toast.error(error.serverError ?? 'Failed to update project')
       },
     }
   )
 
   const { execute: executeTimesheetDefaults, isPending: isSavingDefaults } =
-    useAction(updateTimesheetDefaultsAction, {
+    useAction(updateProjectTimesheetDefaultsAction, {
       onSuccess() {
         toast.success('Timesheet defaults updated')
         router.refresh()
@@ -137,20 +142,21 @@ export function SettingsPageClient({
     })
 
   const { execute: executeDelete, isPending: isDeleting } = useAction(
-    deleteOrganizationAction,
+    deleteProjectAction,
     {
       onSuccess() {
-        toast.success('Workspace deleted')
-        router.push('/')
+        toast.success('Project deleted')
+        router.push(`/${orgSlug}`)
       },
       onError({ error }) {
-        toast.error(error.serverError ?? 'Failed to delete workspace')
+        toast.error(error.serverError ?? 'Failed to delete project')
       },
     }
   )
 
   function handleRenameSubmit(data: RenameFormValues) {
     executeRename({
+      projectId: data.projectId,
       organizationId: data.organizationId,
       name: data.name.trim(),
       slug: data.slug.trim(),
@@ -176,7 +182,7 @@ export function SettingsPageClient({
           <CardHeader>
             <CardTitle>General</CardTitle>
             <CardDescription>
-              Manage your workspace name and URL slug.
+              Manage your project name and URL slug.
             </CardDescription>
           </CardHeader>
           <form onSubmit={renameForm.handleSubmit(handleRenameSubmit)}>
@@ -187,11 +193,11 @@ export function SettingsPageClient({
                   name='name'
                   render={({ field, fieldState }) => (
                     <Field className='gap-1' data-invalid={fieldState.invalid}>
-                      <FieldLabel>Workspace Name</FieldLabel>
+                      <FieldLabel>Project Name</FieldLabel>
                       <Input
                         {...field}
                         aria-invalid={fieldState.invalid}
-                        placeholder='My Workspace'
+                        placeholder='My Project'
                       />
                       {fieldState.invalid && (
                         <FieldError errors={[fieldState.error]} />
@@ -213,14 +219,15 @@ export function SettingsPageClient({
                             .toLowerCase()
                             .replace(/[^a-z0-9-]/g, '')
                           field.onChange(newSlug)
-                          if (newSlug === organization.slug) {
+                          if (newSlug === project.slug) {
                             setSlugAcknowledged(false)
                           }
                         }}
-                        placeholder='my-workspace'
+                        placeholder='my-project'
                       />
                       <FieldDescription>
-                        Your workspace will be accessible at /{field.value}
+                        Your project will be accessible at /{orgSlug}/
+                        {field.value}
                       </FieldDescription>
                       {fieldState.invalid && (
                         <FieldError errors={[fieldState.error]} />
@@ -241,11 +248,11 @@ export function SettingsPageClient({
                         className='text-sm leading-snug'
                         htmlFor='slug-ack'
                       >
-                        I acknowledge that by changing the slug of workspace,
+                        I acknowledge that by changing the slug of this project,
                         links in previously sent emails and notifications will
                         stop working, as they still point to{' '}
                         <span className='font-medium'>
-                          /{organization.slug}
+                          /{orgSlug}/{project.slug}
                         </span>
                         .
                       </label>
@@ -275,8 +282,8 @@ export function SettingsPageClient({
           <CardHeader>
             <CardTitle>Timesheet Defaults</CardTitle>
             <CardDescription>
-              Set the default hourly rate and currency for new members. These
-              can be overridden per project.
+              Set the default hourly rate and currency for this project. These
+              override the workspace-level defaults.
             </CardDescription>
           </CardHeader>
           <form onSubmit={timesheetForm.handleSubmit(handleTimesheetSubmit)}>
@@ -344,7 +351,7 @@ export function SettingsPageClient({
                       </SelectContent>
                     </Select>
                     <FieldDescription>
-                      The default time period for new timesheets
+                      The default time period for new timesheets in this project
                     </FieldDescription>
                     {fieldState.invalid && (
                       <FieldError errors={[fieldState.error]} />
@@ -372,14 +379,14 @@ export function SettingsPageClient({
             <CardHeader>
               <CardTitle className='text-destructive'>Danger Zone</CardTitle>
               <CardDescription>
-                Permanently delete this workspace and all of its data. This
-                action cannot be undone.
+                Permanently delete this project and all of its data. This action
+                cannot be undone.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Button onClick={() => setDeleteOpen(true)} variant='destructive'>
                 <AlertTriangle className='size-4' />
-                Delete Workspace
+                Delete Project
               </Button>
             </CardContent>
           </Card>
@@ -389,14 +396,14 @@ export function SettingsPageClient({
       <Dialog onOpenChange={setDeleteOpen} open={deleteOpen}>
         <DialogContent className='sm:max-w-md'>
           <DialogHeader>
-            <DialogTitle>Delete Workspace</DialogTitle>
+            <DialogTitle>Delete Project</DialogTitle>
             <DialogDescription>
               This will permanently delete{' '}
               <span className='font-semibold text-foreground'>
-                {organization.name}
+                {project.name}
               </span>{' '}
-              and all associated data including projects, timesheets, and
-              invoices. This action cannot be undone.
+              and all associated data including timesheets, invoices, and
+              milestones. This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={deleteForm.handleSubmit(handleDeleteSubmit)}>
@@ -407,15 +414,14 @@ export function SettingsPageClient({
                 render={({ field, fieldState }) => (
                   <Field className='gap-1' data-invalid={fieldState.invalid}>
                     <Label>
-                      Type{' '}
-                      <span className='font-semibold'>{organization.name}</span>{' '}
+                      Type <span className='font-semibold'>{project.name}</span>{' '}
                       to confirm
                     </Label>
                     <Input
                       {...field}
                       aria-invalid={fieldState.invalid}
                       autoFocus
-                      placeholder={organization.name}
+                      placeholder={project.name}
                     />
                     {fieldState.invalid && (
                       <FieldError errors={[fieldState.error]} />
@@ -428,14 +434,12 @@ export function SettingsPageClient({
                   Cancel
                 </Button>
                 <Button
-                  disabled={
-                    deleteForm.watch('confirmName') !== organization.name
-                  }
+                  disabled={deleteForm.watch('confirmName') !== project.name}
                   loading={isDeleting}
                   type='submit'
                   variant='destructive'
                 >
-                  Delete Workspace
+                  Delete Project
                 </Button>
               </div>
             </div>

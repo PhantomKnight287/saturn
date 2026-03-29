@@ -1,5 +1,6 @@
 'use client'
 
+import { useRouter } from '@bprogress/next/app'
 import { CheckCircle2, Pencil, XCircle } from 'lucide-react'
 import { useAction } from 'next-safe-action/hooks'
 import { useId, useState } from 'react'
@@ -48,11 +49,12 @@ export function TimesheetApproval({
   const [rejectOpen, setRejectOpen] = useState(false)
   const [rejectReason, setRejectReason] = useState('')
   const [editEntry, setEditEntry] = useState<TimeEntry | null>(null)
-
+  const router = useRouter()
   const approveAction = useAction(approveTimeEntriesAction, {
     onSuccess: () => {
       toast.success('Time entries approved')
       setSelectedIds(new Set())
+      router.refresh()
     },
     onError: ({ error }) => {
       console.log(error)
@@ -66,6 +68,7 @@ export function TimesheetApproval({
       setSelectedIds(new Set())
       setRejectOpen(false)
       setRejectReason('')
+      router.refresh()
     },
     onError: ({ error }) => {
       toast.error(error.serverError ?? 'Failed to reject entries')

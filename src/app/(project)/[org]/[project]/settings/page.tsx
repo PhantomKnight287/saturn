@@ -1,13 +1,16 @@
 import { redirect } from 'next/navigation'
+import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
 import { projectsService } from '@/app/api/projects/service'
-import { resolveOrgContext } from '../cache'
-import { SettingsPageClient } from './page.client'
+import { ProjectSettingsPageClient } from './page.client'
 
-export default async function SettingsPage({
+export default async function ProjectSettingsPage({
   params,
-}: PageProps<'/[org]/settings'>) {
-  const { org } = await params
-  const { organization, role } = await resolveOrgContext(org)
+}: PageProps<'/[org]/[project]/settings'>) {
+  const { org, project: projectSlug } = await params
+  const { organization, role, project } = await resolveProjectContext(
+    org,
+    projectSlug
+  )
 
   if (!role.authorize({ organization: ['update'] }).success) {
     redirect(
@@ -17,16 +20,20 @@ export default async function SettingsPage({
 
   const canDelete = role.authorize({ organization: ['delete'] }).success
 
-  const settings = await projectsService.getSettings(organization.id)
+  const settings = await projectsService.getSettings(
+    organization.id,
+    project.id
+  )
 
   return (
-    <SettingsPageClient
+    <ProjectSettingsPageClient
       canDelete={canDelete}
       defaultCurrency={settings.defaultCurrency}
       defaultMemberRate={settings.defaultMemberRate}
       defaultTimesheetDuration={settings.defaultTimesheetDuration}
-      organization={organization}
+      organizationId={organization.id}
       orgSlug={org}
+      project={project}
     />
   )
 }

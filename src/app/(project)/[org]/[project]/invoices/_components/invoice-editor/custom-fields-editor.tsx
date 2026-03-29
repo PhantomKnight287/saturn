@@ -15,6 +15,7 @@ export const CustomFieldsEditor = memo(function CustomFieldsEditor({
 }) {
   const updateField = (index: number, key: 'label' | 'value', val: string) => {
     const updated = [...fields]
+    //@ts-expect-error
     updated[index] = { ...updated[index], [key]: val }
     onChange(updated)
   }

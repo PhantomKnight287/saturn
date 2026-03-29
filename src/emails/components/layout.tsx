@@ -110,7 +110,7 @@ export function EmailLayout({
 export function ActionButton({
   href,
   children,
-  // biome-ignore lint/correctness/noUnusedFunctionParameters: <explanation>
+  // biome-ignore lint/correctness/noUnusedFunctionParameters: To have a constant brand color
   color = '#7c3aed',
 }: {
   href: string

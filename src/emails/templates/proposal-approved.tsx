@@ -20,7 +20,6 @@ interface ProposalApprovedEmailProps {
 }
 
 export default function ProposalApprovedEmail({
-  recipientName = 'John Doe',
   proposalTitle = 'E-Commerce Platform Rebuild',
   clientName = 'Jane Smith',
   totalAmount = '15,000.00',

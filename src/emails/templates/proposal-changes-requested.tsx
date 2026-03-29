@@ -18,7 +18,6 @@ interface ProposalChangesRequestedEmailProps {
 }
 
 export default function ProposalChangesRequestedEmail({
-  recipientName = 'John Doe',
   proposalTitle = 'E-Commerce Platform Rebuild',
   requesterName = 'Jane Smith',
   description = 'The milestone pricing for phase 2 seems higher than we discussed. Can we revisit the scope breakdown for the payment integration module?',

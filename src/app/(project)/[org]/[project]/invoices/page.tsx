@@ -2,17 +2,18 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
 import { invoicesService } from '@/app/api/invoices/service'
-import { InvoicesClient } from './page.client'
 import type { Role } from '@/types'
+import { InvoicesClient } from './page.client'
 
 export default async function Invoices({
   params,
 }: PageProps<'/[org]/[project]/invoices'>) {
   const { org, project: projectSlug } = await params
-  const { project: currentProject, role,orgMember } = await resolveProjectContext(
-    org,
-    projectSlug
-  )
+  const {
+    project: currentProject,
+    role,
+    orgMember,
+  } = await resolveProjectContext(org, projectSlug)
 
   if (!role.authorize({ invoice: ['read'] }).success) {
     redirect(

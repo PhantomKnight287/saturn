@@ -1,4 +1,3 @@
-/** biome-ignore-all lint/complexity/noUselessFragments: <explanation> */
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -588,6 +587,7 @@ export default function ProposalEditor({
                   </div>
                 </Field>
               ) : (
+                // biome-ignore lint/complexity/noUselessFragments: render does not accept null
                 <></>
               )
             }

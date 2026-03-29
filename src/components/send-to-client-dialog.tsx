@@ -3,7 +3,7 @@
 import { Send } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useState } from 'react'
-import type { teamService } from '@/app/api/teams/service'
+import type { ProjectClient } from '@/app/(project)/[org]/[project]/team/types'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -14,7 +14,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import type { ProjectClient } from '@/app/(project)/[org]/[project]/team/types'
 
 interface SendToClientDialogProps {
   /** Extra form fields rendered above the client list */

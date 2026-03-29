@@ -1,3 +1,4 @@
+/** biome-ignore-all lint/performance/useTopLevelRegex: No idea what this lint rule does */
 import {
   Document,
   Image,
@@ -631,7 +632,6 @@ export default function InvoicePDF({ data }: { data: InvoicePDFData }) {
             {data.invoiceNumber} {'\u00B7'} {data.projectName}
           </Text>
           <Link src={projectUrl} style={s.footerLink}>
-            {/** biome-ignore lint/performance/useTopLevelRegex: <explanation> */}
             {projectUrl.replace(/^https?:\/\//, '')}
           </Link>
         </View>

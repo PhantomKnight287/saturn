@@ -24,7 +24,6 @@ import type { OrgClient } from '../types'
 export default function ClientsTable({
   clients,
   canManage,
-  orgSlug,
   onAssignProject,
 }: {
   clients: OrgClient[]

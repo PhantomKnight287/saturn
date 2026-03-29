@@ -7,16 +7,21 @@ export const renameOrganizationSchema = z.object({
     .string()
     .min(1, 'Slug is required')
     .max(100)
-    .regex(
-      /^[a-z0-9-]+$/,
-      'Slug must be lowercase alphanumeric with hyphens'
-    ),
+    .regex(/^[a-z0-9-]+$/, 'Slug must be lowercase alphanumeric with hyphens'),
 })
+
+export const timesheetDurationOptions = [
+  'weekly',
+  'biweekly',
+  'monthly',
+] as const
+export type TimesheetDuration = (typeof timesheetDurationOptions)[number]
 
 export const updateTimesheetDefaultsSchema = z.object({
   organizationId: z.string().min(1),
   defaultMemberRate: z.number().int().min(0, 'Rate must be non-negative'),
   defaultCurrency: z.string().min(3).max(3),
+  defaultTimesheetDuration: z.enum(timesheetDurationOptions),
 })
 
 export const deleteOrganizationSchema = z.object({

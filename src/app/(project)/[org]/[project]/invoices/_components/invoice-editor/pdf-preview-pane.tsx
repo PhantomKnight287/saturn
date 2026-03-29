@@ -77,8 +77,7 @@ export const PdfPreviewPane = memo(function PdfPreviewPane({
         ? (mediaItems.find((m) => m.id === values.senderLogo)?.url ?? null)
         : null,
       senderSignature: values.senderSignature
-        ? (mediaItems.find((m) => m.id === values.senderSignature)?.url ??
-          null)
+        ? (mediaItems.find((m) => m.id === values.senderSignature)?.url ?? null)
         : null,
       senderName: values.senderName || null,
       senderAddress: values.senderAddress || null,
