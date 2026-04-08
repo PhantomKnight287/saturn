@@ -135,3 +135,7 @@ html.dark .shiki span {
   text-decoration: var(--shiki-dark-text-decoration) !important;
   background-color: var(--shiki-dark-bg) !important;
 }
+
+* {
+  scroll-behavior: smooth;
+}

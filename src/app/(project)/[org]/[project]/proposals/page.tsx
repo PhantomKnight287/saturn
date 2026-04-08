@@ -4,6 +4,17 @@ import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
 import { proposalsService } from '@/app/api/proposals/service'
 import type { Role } from '@/types'
 import { ProposalsClient } from './page.client'
+import { createMetadata } from '@/lib/metadata'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = createMetadata({
+  openGraph: {
+    images: ['/api/og?page=Proposals'],
+  },
+  twitter: {
+    images: ['/api/og?page=Proposals'],
+  },
+})
 
 export default async function Proposals({
   params,

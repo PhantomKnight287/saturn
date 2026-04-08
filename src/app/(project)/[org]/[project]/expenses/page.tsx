@@ -5,6 +5,18 @@ import { expensesServices } from '@/app/api/expenses/service'
 import { teamService } from '@/app/api/teams/service'
 import ExpensesClient from './page.client'
 
+import { createMetadata } from '@/lib/metadata'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = createMetadata({
+  openGraph: {
+    images: ['/api/og?page=Expenses'],
+  },
+  twitter: {
+    images: ['/api/og?page=Expenses'],
+  },
+})
+
 export default async function Expenses({
   params,
 }: PageProps<'/[org]/[project]/expenses'>) {

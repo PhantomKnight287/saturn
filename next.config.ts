@@ -21,6 +21,12 @@ async function createNextConfig(): Promise<NextConfig> {
       ignoreBuildErrors: true,
     },
     typedRoutes: true,
+    images: {
+      remotePatterns: [
+        new URL('https://github.com/**'),
+        new URL('https://avatars.githubusercontent.com/**'),
+      ],
+    },
     headers: async () => [
       {
         source: '/(.*)',

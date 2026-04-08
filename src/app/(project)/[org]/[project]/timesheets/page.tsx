@@ -7,6 +7,18 @@ import { teamService } from '@/app/api/teams/service'
 import { timesheetService } from '@/app/api/timesheets/service'
 import { TimeTrackingClient } from './page.client'
 
+import { createMetadata } from '@/lib/metadata'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = createMetadata({
+  openGraph: {
+    images: ['/api/og?page=Timesheets'],
+  },
+  twitter: {
+    images: ['/api/og?page=Timesheets'],
+  },
+})
+
 export default async function TimeTracking({
   params,
 }: PageProps<'/[org]/[project]/timesheets'>) {

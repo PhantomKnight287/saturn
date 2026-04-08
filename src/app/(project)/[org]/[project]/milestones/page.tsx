@@ -2,6 +2,17 @@ import { redirect } from 'next/navigation'
 import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
 import { milestonesService } from '@/app/api/milestones/service'
 import { MilestonesClient } from './page.client'
+import { createMetadata } from '@/lib/metadata'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = createMetadata({
+  openGraph: {
+    images: ['/api/og?page=Milestones'],
+  },
+  twitter: {
+    images: ['/api/og?page=Milestones'],
+  },
+})
 
 export default async function Milestones({
   params,

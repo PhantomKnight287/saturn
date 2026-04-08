@@ -1,9 +1,20 @@
+import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
 import { requirementsService } from '@/app/api/requirements/service'
 import type { Role } from '@/types'
 import { RequirementsClient } from './page.client'
+import { createMetadata } from '@/lib/metadata'
+
+export const metadata: Metadata = createMetadata({
+  openGraph: {
+    images: ['/api/og?page=Requirements'],
+  },
+  twitter: {
+    images: ['/api/og?page=Requirements'],
+  },
+})
 
 export default async function Requirements({
   params,

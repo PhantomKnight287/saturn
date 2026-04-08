@@ -5,6 +5,18 @@ import { teamService } from '@/app/api/teams/service'
 import { auth } from '@/server/auth'
 import { TeamPageClient } from './page.client'
 
+import { createMetadata } from '@/lib/metadata'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = createMetadata({
+  openGraph: {
+    images: ['/api/og?page=Team'],
+  },
+  twitter: {
+    images: ['/api/og?page=Team'],
+  },
+})
+
 export default async function TeamPage({
   params,
 }: PageProps<'/[org]/[project]/team'>) {

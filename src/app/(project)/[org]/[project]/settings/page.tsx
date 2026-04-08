@@ -3,6 +3,18 @@ import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
 import { projectsService } from '@/app/api/projects/service'
 import { ProjectSettingsPageClient } from './page.client'
 
+import { createMetadata } from '@/lib/metadata'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = createMetadata({
+  openGraph: {
+    images: ['/api/og?page=Settings'],
+  },
+  twitter: {
+    images: ['/api/og?page=Settings'],
+  },
+})
+
 export default async function ProjectSettingsPage({
   params,
 }: PageProps<'/[org]/[project]/settings'>) {
