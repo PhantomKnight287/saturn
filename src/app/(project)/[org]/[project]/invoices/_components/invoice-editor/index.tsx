@@ -16,7 +16,7 @@ import {
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAction } from 'next-safe-action/hooks'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Controller, useFieldArray, useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import type z from 'zod'
@@ -44,7 +44,7 @@ import {
   updateInvoiceAction,
 } from '../../actions'
 import { invoiceFormSchema } from '../../common'
-import type { CustomField, InvoiceEditorProps } from '../../types'
+import type { CustomField, InvoiceEditorProps, MediaItem } from '../../types'
 import DisputeInvoiceDialog from '../dispute-invoice-dialog'
 import { ImportTimeEntriesDialog } from '../import-time-entries-dialog'
 import InvoiceStatusBadge from '../status-badge'
@@ -92,6 +92,30 @@ export default function InvoiceEditor({
   const [sendOpen, setSendOpen] = useState(false)
   const [disputeOpen, setDisputeOpen] = useState(false)
   const [importedEntryIds, setImportedEntryIds] = useState<string[]>([])
+  const [uploadedMedia, setUploadedMedia] = useState<MediaItem[]>([])
+  const allMediaItems = useMemo(
+    () => [...mediaItems, ...uploadedMedia],
+    [mediaItems, uploadedMedia]
+  )
+  const handleUploadComplete = useCallback(
+    (item: { id: string; url: string }) => {
+      setUploadedMedia((prev) =>
+        prev.some((m) => m.id === item.id)
+          ? prev
+          : [
+              ...prev,
+              {
+                id: item.id,
+                url: item.url,
+                name: '',
+                contentType: '',
+                createdAt: new Date(),
+              },
+            ]
+      )
+    },
+    []
+  )
   const rateMap = new Map(Object.entries(memberRateMap))
   const isEditable =
     mode === 'create' || (canEdit && invoice?.status === 'draft')
@@ -563,8 +587,9 @@ export default function InvoiceEditor({
                     <ImageUpload
                       disabled={!isEditable}
                       label='Logo'
-                      mediaItems={mediaItems}
+                      mediaItems={allMediaItems}
                       onChange={field.onChange}
+                      onUploadComplete={handleUploadComplete}
                       previewSize={80}
                       projectId={projectId}
                       value={field.value}
@@ -583,8 +608,9 @@ export default function InvoiceEditor({
                     <ImageUpload
                       disabled={!isEditable}
                       label='Signature'
-                      mediaItems={mediaItems}
+                      mediaItems={allMediaItems}
                       onChange={field.onChange}
+                      onUploadComplete={handleUploadComplete}
                       previewSize={100}
                       projectId={projectId}
                       value={field.value}
@@ -965,7 +991,7 @@ export default function InvoiceEditor({
             <PdfPreviewPane
               clients={clients}
               control={control}
-              mediaItems={mediaItems}
+              mediaItems={allMediaItems}
               orgName={orgName}
               orgSlug={orgSlug}
               projectName={projectName}

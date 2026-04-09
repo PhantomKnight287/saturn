@@ -23,7 +23,7 @@ export function Providers({ children }: { children: ReactNode }) {
       enableSystem
     >
       <TooltipProvider>
-        <SidebarProvider>
+        <SidebarProvider className='w-full'>
           <AuthUIProvider
             authClient={authClient}
             Link={Link}

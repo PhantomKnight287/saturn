@@ -16,7 +16,13 @@ function seededRandom(seed: string) {
 const W = 300
 const H = 80
 
-export default function ProjectBanner({ seed }: { seed: string }) {
+export default function ProjectBanner({
+  seed,
+  className = 'h-40 w-full rounded-t-xl',
+}: {
+  seed: string
+  className?: string
+}) {
   const { points, triangles, hue } = useMemo(() => {
     const rand = seededRandom(seed)
     const hue = Math.floor(rand() * 360)
@@ -71,7 +77,7 @@ export default function ProjectBanner({ seed }: { seed: string }) {
 
   return (
     <svg
-      className='h-40 w-full rounded-t-xl'
+      className={className}
       preserveAspectRatio='xMidYMid slice'
       viewBox={`0 0 ${W} ${H}`}
     >

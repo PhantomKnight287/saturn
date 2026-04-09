@@ -10,6 +10,7 @@ async function createNextConfig(): Promise<NextConfig> {
   }
 
   const nextConfig: NextConfig = {
+    output: 'standalone',
     reactStrictMode: true,
     productionBrowserSourceMaps: process.env.SOURCE_MAPS === 'true',
     logging: {
@@ -21,6 +22,12 @@ async function createNextConfig(): Promise<NextConfig> {
       ignoreBuildErrors: true,
     },
     typedRoutes: true,
+    images: {
+      remotePatterns: [
+        new URL('https://github.com/**'),
+        new URL('https://avatars.githubusercontent.com/**'),
+      ],
+    },
     headers: async () => [
       {
         source: '/(.*)',

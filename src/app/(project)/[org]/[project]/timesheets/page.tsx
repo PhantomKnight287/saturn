@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
@@ -5,7 +6,18 @@ import { projectsService } from '@/app/api/projects/service'
 import { requirementsService } from '@/app/api/requirements/service'
 import { teamService } from '@/app/api/teams/service'
 import { timesheetService } from '@/app/api/timesheets/service'
+
+import { createMetadata } from '@/lib/metadata'
 import { TimeTrackingClient } from './page.client'
+
+export const metadata: Metadata = createMetadata({
+  openGraph: {
+    images: ['/api/og?page=Timesheets'],
+  },
+  twitter: {
+    images: ['/api/og?page=Timesheets'],
+  },
+})
 
 export default async function TimeTracking({
   params,

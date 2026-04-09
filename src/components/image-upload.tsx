@@ -15,6 +15,8 @@ export interface ImageUploadProps {
   mediaItems?: MediaItem[]
   /** Receives the media item ID (not a URL) */
   onChange: (id: string | null) => void
+  /** Called after a successful upload with the new media ID and URL */
+  onUploadComplete?: (item: { id: string; url: string }) => void
   /** Max width/height for the preview */
   previewSize?: number
   projectId: string
@@ -30,6 +32,7 @@ export default function ImageUpload({
   disabled,
   previewSize = 120,
   mediaItems = [],
+  onUploadComplete,
 }: ImageUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
@@ -69,6 +72,7 @@ export default function ImageUpload({
 
       const { url, id } = await res.json()
       setLocalUrlMap((prev) => ({ ...prev, [id]: url }))
+      onUploadComplete?.({ id, url })
       onChange(id)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Upload failed')
