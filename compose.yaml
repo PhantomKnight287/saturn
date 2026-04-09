@@ -17,11 +17,25 @@ services:
       S3_SECRET_ACCESS_KEY: minioadmin
       S3_BUCKET: saturn
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
       rustfs:
         condition: service_healthy
     restart: unless-stopped
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_BASE_URL: ${NEXT_PUBLIC_BASE_URL:-http://localhost:3000}
+    command: ["node", "migrate.mjs"]
+    environment:
+      DATABASE_URL: postgresql://saturn:saturn@postgres:5432/saturn
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
 
   postgres:
     image: postgres:17-alpine
