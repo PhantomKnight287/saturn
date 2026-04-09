@@ -10,6 +10,7 @@ async function createNextConfig(): Promise<NextConfig> {
   }
 
   const nextConfig: NextConfig = {
+    output: 'standalone',
     reactStrictMode: true,
     productionBrowserSourceMaps: process.env.SOURCE_MAPS === 'true',
     logging: {

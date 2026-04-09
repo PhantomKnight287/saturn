@@ -1,0 +1,76 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - GITHUB_ACTIONS=true # skip env validation during build
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://saturn:saturn@postgres:5432/saturn
+      S3_ENDPOINT: http://rustfs:9000
+      S3_REGION: us-east-1
+      S3_ACCESS_KEY_ID: minioadmin
+      S3_SECRET_ACCESS_KEY: minioadmin
+      S3_BUCKET: saturn
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rustfs:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: saturn
+      POSTGRES_PASSWORD: saturn
+      POSTGRES_DB: saturn
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U saturn"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  rustfs:
+    image: rustfs/rustfs:latest
+    command: server /data --console-address ":9001"
+    environment:
+      RUSTFS_ROOT_USER: minioadmin
+      RUSTFS_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - rustfs_data:/data
+    healthcheck:
+      test: ["CMD", "mc-health-check", "--url", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
+  createbucket:
+    image: rustfs/rustfs:latest
+    depends_on:
+      rustfs:
+        condition: service_healthy
+    entrypoint: /bin/sh
+    command: >
+      -c "
+      mc alias set local http://rustfs:9000 minioadmin minioadmin &&
+      mc mb --ignore-existing local/saturn
+      "
+
+volumes:
+  postgres_data:
+  rustfs_data:
