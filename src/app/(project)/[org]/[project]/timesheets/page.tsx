@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
@@ -5,10 +6,9 @@ import { projectsService } from '@/app/api/projects/service'
 import { requirementsService } from '@/app/api/requirements/service'
 import { teamService } from '@/app/api/teams/service'
 import { timesheetService } from '@/app/api/timesheets/service'
-import { TimeTrackingClient } from './page.client'
 
 import { createMetadata } from '@/lib/metadata'
-import type { Metadata } from 'next'
+import { TimeTrackingClient } from './page.client'
 
 export const metadata: Metadata = createMetadata({
   openGraph: {

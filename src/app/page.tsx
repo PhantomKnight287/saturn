@@ -1,3 +1,4 @@
+/** biome-ignore-all lint/correctness/useUniqueElementIds: Need em to score to the section in home page */
 import {
   ArrowRight,
   Check,

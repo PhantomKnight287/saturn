@@ -1,9 +1,9 @@
+import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
 import { milestonesService } from '@/app/api/milestones/service'
-import { MilestonesClient } from './page.client'
 import { createMetadata } from '@/lib/metadata'
-import type { Metadata } from 'next'
+import { MilestonesClient } from './page.client'
 
 export const metadata: Metadata = createMetadata({
   openGraph: {

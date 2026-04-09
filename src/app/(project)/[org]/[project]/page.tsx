@@ -163,18 +163,18 @@ export default async function ProjectOverview({
   )
 
   // Build action items based on role
-  type ActionItem = {
-    label: string
+  interface ActionItem {
     count: number
     href: string
-    variant: 'destructive' | 'default' | 'outline'
     icon: React.ComponentType<{ className?: string }>
+    label: string
+    variant: 'destructive' | 'default' | 'outline'
   }
 
   const actionItems: ActionItem[] = []
 
   if (isAdmin) {
-    if (timesheetsPendingApproval.length > 0)
+    if (timesheetsPendingApproval.length > 0) {
       actionItems.push({
         label: 'Timesheets pending approval',
         count: timesheetsPendingApproval.length,
@@ -182,7 +182,8 @@ export default async function ProjectOverview({
         variant: 'default',
         icon: Clock,
       })
-    if (expensesPendingAdminApproval.length > 0)
+    }
+    if (expensesPendingAdminApproval.length > 0) {
       actionItems.push({
         label: 'Expenses pending approval',
         count: expensesPendingAdminApproval.length,
@@ -190,7 +191,8 @@ export default async function ProjectOverview({
         variant: 'default',
         icon: Receipt,
       })
-    if (invoicesDisputed.length > 0)
+    }
+    if (invoicesDisputed.length > 0) {
       actionItems.push({
         label: 'Disputed invoices',
         count: invoicesDisputed.length,
@@ -198,7 +200,8 @@ export default async function ProjectOverview({
         variant: 'destructive',
         icon: FileSpreadsheet,
       })
-    if (invoicesOverdue.length > 0)
+    }
+    if (invoicesOverdue.length > 0) {
       actionItems.push({
         label: 'Overdue invoices',
         count: invoicesOverdue.length,
@@ -206,7 +209,8 @@ export default async function ProjectOverview({
         variant: 'destructive',
         icon: AlertTriangleIcon,
       })
-    if (reportsDisputed.length > 0)
+    }
+    if (reportsDisputed.length > 0) {
       actionItems.push({
         label: 'Disputed timesheet reports',
         count: reportsDisputed.length,
@@ -214,7 +218,8 @@ export default async function ProjectOverview({
         variant: 'destructive',
         icon: ShieldAlert,
       })
-    if (requirementsWithChanges.length > 0)
+    }
+    if (requirementsWithChanges.length > 0) {
       actionItems.push({
         label: 'Requirements with change requests',
         count: requirementsWithChanges.length,
@@ -222,10 +227,11 @@ export default async function ProjectOverview({
         variant: 'default',
         icon: ClipboardList,
       })
+    }
   }
 
   if (isClient) {
-    if (requirementsAwaitingSignature.length > 0)
+    if (requirementsAwaitingSignature.length > 0) {
       actionItems.push({
         label: 'Requirements awaiting your signature',
         count: requirementsAwaitingSignature.length,
@@ -233,7 +239,8 @@ export default async function ProjectOverview({
         variant: 'default',
         icon: ClipboardList,
       })
-    if (proposalsAwaitingSignature.length > 0)
+    }
+    if (proposalsAwaitingSignature.length > 0) {
       actionItems.push({
         label: 'Proposals awaiting your signature',
         count: proposalsAwaitingSignature.length,
@@ -241,7 +248,8 @@ export default async function ProjectOverview({
         variant: 'default',
         icon: FileText,
       })
-    if (reportsPendingApproval.length > 0)
+    }
+    if (reportsPendingApproval.length > 0) {
       actionItems.push({
         label: 'Timesheet reports to review',
         count: reportsPendingApproval.length,
@@ -249,7 +257,8 @@ export default async function ProjectOverview({
         variant: 'default',
         icon: Clock,
       })
-    if (expensesPendingClientApproval.length > 0)
+    }
+    if (expensesPendingClientApproval.length > 0) {
       actionItems.push({
         label: 'Expenses to review',
         count: expensesPendingClientApproval.length,
@@ -257,22 +266,22 @@ export default async function ProjectOverview({
         variant: 'default',
         icon: Receipt,
       })
+    }
   }
 
-  if (!isClient && !isAdmin) {
-    if (timesheetsRejected.length > 0)
-      actionItems.push({
-        label: 'Rejected timesheets to fix',
-        count: timesheetsRejected.length,
-        href: `${basePath}/timesheets`,
-        variant: 'destructive',
-        icon: Clock,
-      })
+  if (!(isClient || isAdmin) && timesheetsRejected.length > 0) {
+    actionItems.push({
+      label: 'Rejected timesheets to fix',
+      count: timesheetsRejected.length,
+      href: `${basePath}/timesheets`,
+      variant: 'destructive',
+      icon: Clock,
+    })
   }
 
   // Blocked/overdue milestones are relevant for everyone
   if (canReadMilestones) {
-    if (milestonesBlocked.length > 0)
+    if (milestonesBlocked.length > 0) {
       actionItems.push({
         label: 'Blocked milestones',
         count: milestonesBlocked.length,
@@ -280,7 +289,8 @@ export default async function ProjectOverview({
         variant: 'destructive',
         icon: ShieldAlert,
       })
-    if (milestonesOverdue.length > 0)
+    }
+    if (milestonesOverdue.length > 0) {
       actionItems.push({
         label: 'Overdue milestones',
         count: milestonesOverdue.length,
@@ -288,6 +298,7 @@ export default async function ProjectOverview({
         variant: 'destructive',
         icon: AlertTriangleIcon,
       })
+    }
   }
 
   return (

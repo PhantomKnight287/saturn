@@ -1,11 +1,11 @@
+import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
 import { proposalsService } from '@/app/api/proposals/service'
+import { createMetadata } from '@/lib/metadata'
 import type { Role } from '@/types'
 import { ProposalsClient } from './page.client'
-import { createMetadata } from '@/lib/metadata'
-import type { Metadata } from 'next'
 
 export const metadata: Metadata = createMetadata({
   openGraph: {
