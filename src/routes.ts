@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server'
 export const PUBLIC_ROUTES: string[] = ['/', '/about']
 export const AUTH_PREFIX: string = '/auth'
 export const API_AUTH_PREFIX: string = '/api/auth'
-export const DEFAULT_LOGIN_REDIRECT: string = '/'
+export const DEFAULT_LOGIN_REDIRECT: string = '/dashboard'
 
 export function isApiAuth(pathname: string): boolean {
   return startsWith(pathname, API_AUTH_PREFIX)
