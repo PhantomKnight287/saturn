@@ -94,7 +94,7 @@ function MockProjectCard({
 
 export function MockAppUI() {
   return (
-    <div className='overflow-hidden rounded-2xl border border-white/[0.08] bg-[#1a1a1f] shadow-2xl shadow-violet-500/10'>
+    <div className='hidden overflow-hidden rounded-2xl border border-white/[0.08] bg-[#1a1a1f] shadow-2xl shadow-violet-500/10 md:block'>
       <MockNav />
       <div className='p-6'>
         <div className='mb-5 flex items-center justify-between'>

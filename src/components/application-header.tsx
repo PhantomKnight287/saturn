@@ -60,11 +60,6 @@ export function ApplicationHeader({
             size='sm'
             variant='ghost'
           >
-            <Avatar className='h-5 w-5'>
-              <AvatarFallback className='text-xs'>
-                {organizationName.charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
             <span className='max-w-[120px] truncate font-medium text-sm'>
               {organizationName}
             </span>

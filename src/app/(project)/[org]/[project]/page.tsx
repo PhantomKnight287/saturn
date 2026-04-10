@@ -29,6 +29,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import type { RouteImpl } from '@/types'
+import TimesheetStatusBadge from './timesheets/_components/timesheet-status-badge'
 
 export default async function ProjectOverview({
   params,
@@ -644,17 +645,7 @@ export default async function ProjectOverview({
                       {Math.floor(r.totalMinutes / 60)}h {r.totalMinutes % 60}m
                     </p>
                   </div>
-                  <Badge
-                    variant={
-                      r.status === 'disputed'
-                        ? 'destructive'
-                        : r.status === 'approved'
-                          ? 'default'
-                          : 'outline'
-                    }
-                  >
-                    {r.status}
-                  </Badge>
+                  <TimesheetStatusBadge status={r.status} />
                 </div>
               ))}
             </CardContent>

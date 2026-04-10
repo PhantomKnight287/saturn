@@ -129,7 +129,7 @@ export const removeClientAction = authedActionClient
       ctx: { role, user, orgMember },
     }) => {
       if (!role.authorize({ member: ['delete'] }).success) {
-        throw new Error('You do not have permission to remove stakeholders')
+        throw new Error('You do not have permission to remove clients')
       }
 
       const [assignment] = await db

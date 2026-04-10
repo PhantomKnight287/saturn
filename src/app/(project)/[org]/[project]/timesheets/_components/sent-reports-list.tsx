@@ -41,6 +41,7 @@ import type {
   TimesheetReport,
   TimesheetReportRecipient,
 } from '../types'
+import TimesheetStatusBadge from './timesheet-status-badge'
 
 interface SentReportsListProps {
   orgSlug: string
@@ -49,19 +50,6 @@ interface SentReportsListProps {
   reportEntriesMap: Record<string, ReportEntryDetail[]>
   reportRecipientsMap: Record<string, TimesheetReportRecipient[]>
   reports: TimesheetReport[]
-}
-
-const statusConfig: Record<
-  string,
-  {
-    label: string
-    variant: 'secondary' | 'outline' | 'default' | 'destructive'
-  }
-> = {
-  draft: { label: 'Draft', variant: 'secondary' },
-  sent: { label: 'Awaiting Review', variant: 'outline' },
-  approved: { label: 'Client Approved', variant: 'default' },
-  disputed: { label: 'Disputed', variant: 'destructive' },
 }
 
 export function SentReportsList({
@@ -212,7 +200,6 @@ function ReportCard({
     style: 'currency',
     currency: report.currency,
   })
-  const config = statusConfig[report.status] ?? statusConfig.draft
 
   // Group entries by member
   const grouped = new Map<string, ReportEntryDetail[]>()
@@ -267,9 +254,7 @@ function ReportCard({
           </div>
         </div>
         <div className='flex items-center gap-2'>
-          <Badge variant={config?.variant ?? 'secondary'}>
-            {config?.label ?? 'Draft'}
-          </Badge>
+          <TimesheetStatusBadge status={report.status} />
           {invoiceUrl && (
             <a href={invoiceUrl} onClick={(e) => e.stopPropagation()}>
               <Button className='h-7 text-xs' size='sm' variant='outline'>

@@ -410,8 +410,8 @@ export default function RequirementEditor(props: RequirementEditorProps) {
       {canSend && props.requirement && (
         <SendToClientDialog
           clients={props.projectClients ?? []}
-          description='Select stakeholders to send this requirement to for review and sign-off. They will receive an email notification.'
-          emptyMessage='No stakeholders assigned to this project. Add stakeholders from the Team page first.'
+          description='Select clients to send this requirement to for review and sign-off. They will receive an email notification.'
+          emptyMessage='No clients assigned to this project. Add clients from the Team page first.'
           onOpenChange={setShowSendDialog}
           onSend={(clientMemberIds) => {
             sendForSign({
@@ -423,7 +423,7 @@ export default function RequirementEditor(props: RequirementEditorProps) {
             setShowSendDialog(false)
           }}
           open={showSendDialog}
-          recipientLabel='stakeholder'
+          recipientLabel='clients'
           sendDisabled={isSendingForSign}
           title='Send for Sign'
         />

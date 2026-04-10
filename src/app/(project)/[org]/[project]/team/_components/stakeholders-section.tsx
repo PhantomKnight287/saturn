@@ -69,9 +69,9 @@ export default function StakeholdersSection({
           <EmptyMedia variant='icon'>
             <Shield />
           </EmptyMedia>
-          <EmptyTitle>No stakeholders assigned</EmptyTitle>
+          <EmptyTitle>No clients assigned</EmptyTitle>
           <EmptyDescription>
-            No stakeholders have been added to this project yet.
+            No clients have been added to this project yet.
           </EmptyDescription>
         </EmptyHeader>
       </Empty>
@@ -93,10 +93,9 @@ export default function StakeholdersSection({
             <EmptyMedia variant='icon'>
               <Shield />
             </EmptyMedia>
-            <EmptyTitle>No stakeholders yet</EmptyTitle>
+            <EmptyTitle>No clients yet</EmptyTitle>
             <EmptyDescription>
-              Invite stakeholders by email to give them visibility into this
-              project.
+              Invite clients by email to give them visibility into this project.
             </EmptyDescription>
           </EmptyHeader>
         </Empty>

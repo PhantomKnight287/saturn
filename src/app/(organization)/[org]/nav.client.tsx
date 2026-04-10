@@ -1,6 +1,7 @@
 'use client'
 
 import {
+  Briefcase,
   ClipboardList,
   Clock,
   FileSpreadsheet,
@@ -10,7 +11,6 @@ import {
   Milestone,
   Receipt,
   Settings,
-  Shield,
   Users,
 } from 'lucide-react'
 import Link from 'next/link'
@@ -30,7 +30,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Settings,
   Projects: Folder,
   Teams: Users,
-  Clients: Shield,
+  Clients: Briefcase,
 }
 
 export default function OrgNavClient({

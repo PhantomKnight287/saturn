@@ -11,7 +11,7 @@ export function MockRequirementUI() {
             Homepage Redesign — Requirements
           </span>
         </div>
-        <span className='rounded-full bg-amber-500/15 px-2 py-0.5 font-medium text-[10px] text-amber-400'>
+        <span className='rounded-full bg-amber-500/15 px-2 py-0.5 text-center font-medium text-[10px] text-amber-400'>
           Awaiting signature
         </span>
       </div>

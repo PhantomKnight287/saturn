@@ -17,7 +17,6 @@ import Link from 'next/link'
 
 import { SaturnLogo } from '@/components/icons/saturn-logo'
 import { buttonVariants } from '@/components/ui/button'
-
 import {
   capabilities,
   clientFeatures,
@@ -28,6 +27,7 @@ import {
   workflowSteps,
 } from './_landing/data'
 import { DotPattern } from './_landing/dot-pattern'
+import { LandingNav } from './_landing/landing-nav'
 import { MockAppUI } from './_landing/mock-app-ui'
 import { MockInvoiceUI } from './_landing/mock-invoice-ui'
 import { MockRequirementUI } from './_landing/mock-requirement-ui'
@@ -39,49 +39,21 @@ const clientIcons = { Eye, PenTool, MessageSquare, Lock } as const
 export default function LandingPage() {
   return (
     <div className='min-h-svh w-full bg-background text-foreground'>
-      <nav className='sticky top-0 z-50 border-border/50 border-b bg-background/80 backdrop-blur-xl'>
-        <div className='mx-auto flex h-14 max-w-7xl items-center justify-between px-6'>
-          <Link className='flex items-center gap-2' href='/'>
-            <SaturnLogo className='size-6 text-foreground' />
-            <span className='font-semibold text-lg tracking-tight'>Saturn</span>
-          </Link>
-          <div className='flex items-center gap-2'>
-            <Link
-              className={buttonVariants({ variant: 'ghost', size: 'sm' })}
-              href='#pricing'
-            >
-              Pricing
-            </Link>
-            <Link
-              className={buttonVariants({ variant: 'ghost', size: 'sm' })}
-              href='/auth/sign-in'
-            >
-              Sign in
-            </Link>
-            <Link
-              className={buttonVariants({ size: 'sm' })}
-              href='/auth/sign-up'
-            >
-              Get started
-              <ArrowRight className='size-3.5' />
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <LandingNav />
 
       <section className='relative overflow-hidden'>
         <DotPattern className='pointer-events-none absolute inset-0 opacity-40' />
         <div className='relative mx-auto grid max-w-7xl gap-16 px-6 pt-20 pb-20 lg:grid-cols-2 lg:gap-12 lg:pt-28'>
           <div className='flex flex-col justify-center'>
-            <h1 className='font-bold text-4xl tracking-tight lg:text-5xl'>
+            <h1 className='text-center font-bold text-4xl tracking-tight md:text-left lg:text-5xl'>
               The operating system for your freelance business
             </h1>
-            <p className='mt-5 max-w-lg text-lg text-muted-foreground leading-relaxed'>
+            <p className='mt-5 max-w-lg text-center text-lg text-muted-foreground leading-relaxed md:text-left'>
               Saturn brings projects, timesheets, invoices, and client
               management into one place. No more spreadsheets. No more chasing
               emails. Just open Saturn and get to work.
             </p>
-            <div className='mt-8 flex items-center gap-3'>
+            <div className='mt-8 flex items-center justify-center gap-3 md:justify-start'>
               <Link
                 className={buttonVariants({ size: 'lg' })}
                 href='/auth/sign-up'

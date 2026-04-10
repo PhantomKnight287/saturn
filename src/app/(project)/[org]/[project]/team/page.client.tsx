@@ -1,6 +1,6 @@
 'use client'
 
-import { Plus, Shield, UserPlus, Users, UsersRound } from 'lucide-react'
+import { Briefcase, Plus, UserPlus, Users, UsersRound } from 'lucide-react'
 import { useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
@@ -11,7 +11,7 @@ import StakeholdersSection from './_components/stakeholders-section'
 import TeamsSection from './_components/teams-section'
 import type { TeamPageClientProps } from './types'
 
-type Tab = 'members' | 'teams' | 'stakeholders'
+type Tab = 'members' | 'teams' | 'clients'
 
 export function TeamPageClient({
   projectId,
@@ -61,7 +61,7 @@ export function TeamPageClient({
                 Assign Team
               </Button>
             )}
-            {activeTab === 'stakeholders' && (
+            {activeTab === 'clients' && (
               <Button onClick={() => setShowInviteDialog(true)} size='sm'>
                 <UserPlus className='size-4' />
                 Invite Stakeholder
@@ -93,9 +93,9 @@ export function TeamPageClient({
               {projectTeams.length}
             </Badge>
           </TabsTrigger>
-          <TabsTrigger className='gap-2' value='stakeholders'>
-            <Shield className='size-4' />
-            Stakeholders
+          <TabsTrigger className='gap-2' value='clients'>
+            <Briefcase className='size-4' />
+            Clients
             <Badge className='px-1.5 py-0 text-xs' variant='secondary'>
               {projectClients.length}
             </Badge>
@@ -127,7 +127,7 @@ export function TeamPageClient({
             showAddDialog={showAssignTeamDialog}
           />
         </TabsContent>
-        <TabsContent value='stakeholders'>
+        <TabsContent value='clients'>
           <StakeholdersSection
             canManage={canManage}
             onShowInviteDialogChange={setShowInviteDialog}
