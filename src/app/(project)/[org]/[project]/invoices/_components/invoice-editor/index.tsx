@@ -97,6 +97,7 @@ export default function InvoiceEditor({
   threads = [],
   unpaidExpenses = [],
   role,
+  defaultCurrency,
 }: InvoiceEditorProps) {
   const router = useRouter()
   const backUrl = `/${orgSlug}/${projectSlug}/invoices` as RouteImpl
@@ -138,7 +139,8 @@ export default function InvoiceEditor({
     resolver: zodResolver(invoiceFormSchema),
     defaultValues: {
       invoiceNumber: invoice?.invoiceNumber ?? '',
-      currency: extendData?.currency ?? invoice?.currency ?? 'USD',
+      currency:
+        extendData?.currency ?? invoice?.currency ?? defaultCurrency ?? 'USD',
       issueDate: invoice
         ? formatDateForInput(invoice.issueDate)
         : formatDateForInput(new Date()),

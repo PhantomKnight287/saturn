@@ -12,7 +12,7 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: '#fff',
     icons: [
       {
-        src: '/icon.png',
+        src: '/wordmark/logo_for_mark.png',
         sizes: 'any',
         type: 'image/png',
       },

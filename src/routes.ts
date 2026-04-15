@@ -1,6 +1,14 @@
 import type { NextRequest } from 'next/server'
 
-export const PUBLIC_ROUTES: string[] = ['/', '/api/og', '/polar/webhooks']
+export const PUBLIC_ROUTES: string[] = [
+  '/',
+  '/api/og',
+  '/polar/webhooks',
+  '/opengraph-image',
+  '/twitter-image',
+  '/sitemap.xml',
+  '/manifest.webmanifest',
+]
 export const AUTH_PREFIX: string = '/auth'
 export const API_AUTH_PREFIX: string = '/api/auth'
 export const DEFAULT_LOGIN_REDIRECT: string = '/dashboard'

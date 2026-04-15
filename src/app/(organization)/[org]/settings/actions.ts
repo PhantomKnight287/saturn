@@ -1,6 +1,6 @@
 'use server'
 
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { headers } from 'next/headers'
 import { authedActionClient } from '@/lib/safe-action'
 import { auth } from '@/server/auth'
@@ -63,25 +63,30 @@ export const updateTimesheetDefaultsAction = authedActionClient
       if (orgMember.organizationId !== organizationId) {
         throw new Error('Organization mismatch')
       }
-
-      await db
-        .insert(settingsTable)
-        .values({
-          organizationId,
-          defaultMemberRate,
-          defaultCurrency,
-          defaultTimesheetDuration,
-        })
-        .onConflictDoUpdate({
-          target: [settingsTable.organizationId, settingsTable.projectId],
-          set: {
+      try {
+        await db
+          .insert(settingsTable)
+          .values({
+            organizationId,
             defaultMemberRate,
             defaultCurrency,
             defaultTimesheetDuration,
-          },
-        })
+          })
+          .onConflictDoUpdate({
+            target: [settingsTable.organizationId],
+            targetWhere: sql`${settingsTable.projectId} IS NULL`,
+            set: {
+              defaultMemberRate,
+              defaultCurrency,
+              defaultTimesheetDuration,
+            },
+          })
 
-      return { success: true }
+        return { success: true }
+      } catch (e) {
+        console.error(e)
+        return { success: false }
+      }
     }
   )
 
