@@ -4,6 +4,7 @@ import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
 import { expensesServices } from '@/app/api/expenses/service'
 import { invoicesService } from '@/app/api/invoices/service'
 import { mediaService } from '@/app/api/media/service'
+import { projectsService } from '@/app/api/projects/service'
 import { requirementsService } from '@/app/api/requirements/service'
 import { teamService } from '@/app/api/teams/service'
 import { timesheetService } from '@/app/api/timesheets/service'
@@ -40,6 +41,7 @@ export default async function NewInvoice({
     orgMedia,
     allBillableEntries,
     unpaidExpenses,
+    projectOrOrgSettings,
   ] = await Promise.all([
     teamService.getProjectClients(currentProject.id),
     requirementsService.listByProject(currentProject.id, h),
@@ -50,6 +52,7 @@ export default async function NewInvoice({
       currentProject.id,
       orgMember.userId
     ),
+    projectsService.getSettings(organization.id, currentProject.id),
   ])
 
   // When coming from a specific timesheet report, use its entries instead
@@ -141,6 +144,7 @@ export default async function NewInvoice({
       autoImportTime={!!fromTimesheet}
       billableEntries={billableEntries}
       clients={clients}
+      defaultCurrency={projectOrOrgSettings?.defaultCurrency}
       extendData={extendData}
       mediaItems={orgMedia}
       memberRateMap={memberRateMap}

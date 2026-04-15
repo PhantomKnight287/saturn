@@ -43,7 +43,7 @@ export const capabilities = [
 export const roles = [
   {
     role: 'Owner',
-    desc: 'Full control. Manages the organization, billing, members, and all projects.',
+    desc: 'Full control. Manages the workspace, billing, members, and all projects.',
     permissions: [
       'Everything',
       'Org settings',
@@ -146,7 +146,7 @@ export const clientFeatures = [
 ]
 
 export const freePlanFeatures = [
-  '1 organization',
+  '1 workspace',
   '2 projects',
   'Unlimited team members',
   'Requirements & proposals',
@@ -155,7 +155,7 @@ export const freePlanFeatures = [
 ]
 
 export const proPlanFeatures = [
-  'Unlimited organizations',
+  'Unlimited workspaces',
   'Unlimited projects',
   'Everything in Free',
   'API access for automation',
@@ -168,8 +168,8 @@ export const proPlanFeatures = [
 export const workflowSteps = [
   {
     step: '01',
-    title: 'Set up your org',
-    desc: 'Create your organization, invite your team, and assign roles.',
+    title: 'Set up your workspace',
+    desc: 'Create your workspace, invite your team, and assign roles.',
   },
   {
     step: '02',

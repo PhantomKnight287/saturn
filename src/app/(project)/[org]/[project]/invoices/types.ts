@@ -123,6 +123,7 @@ export interface InvoiceEditorProps {
   canResolveThread?: boolean
   canSend?: boolean
   clients: ProjectClient[]
+  defaultCurrency?: string
   existingItems?: InvoiceItem[]
   existingRecipientIds?: string[]
   extendData?: ExtendInvoiceData
