@@ -265,7 +265,7 @@ const getBillableSummary = async (projectId: string) => {
     .where(
       and(
         eq(timeEntries.projectId, projectId),
-        eq(timeEntries.status, 'admin_accepted'),
+        eq(timeEntries.status, 'client_accepted'),
         eq(timeEntries.billable, true),
         isNull(timeEntries.invoiceId)
       )
@@ -517,8 +517,28 @@ const getReportRecipientsBatch = async (reportIds: string[]) => {
   return Object.fromEntries(grouped) as Record<string, (typeof rows)[number][]>
 }
 
+const listByProjectIdsSince = async (projectIds: string[], since: Date) => {
+  if (projectIds.length === 0) {
+    return []
+  }
+
+  return await db
+    .select({
+      projectId: timeEntries.projectId,
+      durationMinutes: timeEntries.durationMinutes,
+    })
+    .from(timeEntries)
+    .where(
+      and(
+        inArray(timeEntries.projectId, projectIds),
+        gte(timeEntries.date, since)
+      )
+    )
+}
+
 export const timesheetService = {
   listByProject,
+  listByProjectIdsSince,
   getById,
   getWeeklyTimesheet,
   getProjectBudgetStatus,

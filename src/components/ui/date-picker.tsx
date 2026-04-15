@@ -9,10 +9,12 @@ export default function DatePicker({
   onChange,
   value,
   disablePastDates = true,
+  disableFutureDates = false,
 }: {
   value: Date | undefined;
   onChange: (date: Date | undefined) => void;
   disablePastDates?: boolean;
+  disableFutureDates?: boolean;
 }) {
   return (
     <Popover>
@@ -32,7 +34,13 @@ export default function DatePicker({
       </PopoverTrigger>
       <PopoverContent align="start" className="w-auto p-0">
         <Calendar
-          disabled={(date) => disablePastDates && date < new Date()}
+          disabled={(date) => {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            if (disablePastDates && date < today) return true;
+            if (disableFutureDates && date > today) return true;
+            return false;
+          }}
           mode="single"
           onSelect={onChange}
           selected={value}

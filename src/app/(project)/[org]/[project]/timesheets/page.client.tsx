@@ -1,5 +1,6 @@
 'use client'
 
+import { useRouter } from '@bprogress/next/app'
 import { Plus, Send, Settings2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -50,6 +51,7 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
   const [selectedEntryIds, setSelectedEntryIds] = useState<Set<string>>(
     new Set()
   )
+  const router = useRouter()
   const [reportTitle, setReportTitle] = useState('')
 
   const selectedMinutes = entries
@@ -255,6 +257,7 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
               setSendOpen(false)
               setSelectedEntryIds(new Set())
               setReportTitle('')
+              router.refresh()
             }}
             open={sendOpen}
             recipientLabel='client'

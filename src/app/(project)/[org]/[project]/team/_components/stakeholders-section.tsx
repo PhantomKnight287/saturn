@@ -50,11 +50,11 @@ export default function StakeholdersSection({
 
   const { execute: executeRemove } = useAction(removeClientAction, {
     onSuccess() {
-      toast.success('Stakeholder removed from project')
+      toast.success('Client removed from project')
       router.refresh()
     },
     onError({ error }) {
-      toast.error(error.serverError ?? 'Failed to remove stakeholder')
+      toast.error(error.serverError ?? 'Failed to remove client')
     },
   })
 
@@ -103,7 +103,7 @@ export default function StakeholdersSection({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Stakeholder</TableHead>
+              <TableHead>Client</TableHead>
               <TableHead>Added</TableHead>
               {canManage && <TableHead className='w-16' />}
             </TableRow>
@@ -160,7 +160,7 @@ export default function StakeholdersSection({
       )}
 
       <InviteDialog
-        label='Stakeholder'
+        label='Client'
         onOpenChange={onShowInviteDialogChange}
         open={showInviteDialog}
         organizationId={organizationId}

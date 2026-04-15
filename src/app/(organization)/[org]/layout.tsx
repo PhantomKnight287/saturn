@@ -33,8 +33,8 @@ export default async function OrganizationLayout({
           <ApplicationHeader
             allOrganizations={allOrganizations.data}
             allProjects={[]}
-            organizationId={organization.id}
-            organizationName={organization.name}
+            organizationId={organization?.id}
+            organizationName={organization?.name}
             organizationSlug={org}
             projectName={null}
           />

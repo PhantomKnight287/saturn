@@ -6,6 +6,7 @@ import { useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
+import { uploadFile } from '@/lib/upload'
 import { type MediaItem, MediaLibraryDialog } from './media-library-dialog'
 
 export interface ImageUploadProps {
@@ -57,20 +58,7 @@ export default function ImageUpload({
 
     setUploading(true)
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('projectId', projectId)
-
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      })
-      if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || 'Upload failed')
-      }
-
-      const { url, id } = await res.json()
+      const { id, url } = await uploadFile(file, projectId)
       setLocalUrlMap((prev) => ({ ...prev, [id]: url }))
       onUploadComplete?.({ id, url })
       onChange(id)

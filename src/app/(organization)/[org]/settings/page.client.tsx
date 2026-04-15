@@ -2,12 +2,15 @@
 
 import { useRouter } from '@bprogress/next/app'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { AlertTriangle, Save } from 'lucide-react'
+import { AlertTriangle, CreditCard, Save, Sparkles } from 'lucide-react'
 import { useAction } from 'next-safe-action/hooks'
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import type { z } from 'zod'
+import { proPlanFeatures } from '@/app/_landing/data'
+import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -20,13 +23,6 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { CurrencySelect } from '@/components/ui/currency-selector'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
   Field,
   FieldDescription,
   FieldError,
@@ -34,7 +30,6 @@ import {
   FieldLabel,
 } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -42,13 +37,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { authClient } from '@/lib/auth-client'
+import { ApiKeysCard } from './_components/api-keys/card'
 import {
   deleteOrganizationAction,
   renameOrganizationAction,
   updateTimesheetDefaultsAction,
 } from './actions'
 import {
-  deleteOrganizationSchema,
   renameOrganizationSchema,
   type TimesheetDuration,
   updateTimesheetDefaultsSchema,
@@ -56,7 +52,6 @@ import {
 
 type RenameFormValues = z.infer<typeof renameOrganizationSchema>
 type TimesheetFormValues = z.infer<typeof updateTimesheetDefaultsSchema>
-type DeleteFormValues = z.infer<typeof deleteOrganizationSchema>
 
 export function SettingsPageClient({
   organization,
@@ -94,19 +89,60 @@ export function SettingsPageClient({
     },
   })
 
-  const deleteForm = useForm<DeleteFormValues>({
-    resolver: zodResolver(deleteOrganizationSchema),
-    defaultValues: {
-      organizationId: organization.id,
-      confirmName: '',
-    },
-  })
-
   const [slugAcknowledged, setSlugAcknowledged] = useState(false)
   const watchedSlug = renameForm.watch('slug')
   const slugChanged = watchedSlug !== organization.slug
 
   const [deleteOpen, setDeleteOpen] = useState(false)
+
+  const [subscription, setSubscription] = useState<{
+    status: 'loading' | 'free' | 'active'
+    currentPeriodEnd?: string
+    productName?: string
+  }>({ status: 'loading' })
+  const [checkoutLoading, setCheckoutLoading] = useState(false)
+
+  useEffect(() => {
+    authClient.customer.subscriptions
+      .list({ query: { limit: 1, active: true, referenceId: organization.id } })
+      // biome-ignore lint/suspicious/noExplicitAny: I have no idea why this section is not typed
+      .then(({ data }: { data: any }) => {
+        if (data && data?.result?.items.length > 0) {
+          const sub = data?.result?.items[0]
+          setSubscription({
+            status: 'active',
+            currentPeriodEnd: sub.currentPeriodEnd,
+            productName: sub.productName,
+          })
+        } else {
+          setSubscription({ status: 'free' })
+        }
+      })
+      .catch(() => {
+        setSubscription({ status: 'free' })
+      })
+  }, [organization.id])
+
+  const handleUpgrade = useCallback(async () => {
+    setCheckoutLoading(true)
+    try {
+      await authClient.checkout({
+        slug: 'pro-plan',
+        referenceId: organization.id,
+      })
+    } catch {
+      toast.error('Failed to start checkout')
+      setCheckoutLoading(false)
+    }
+  }, [organization.id])
+
+  const handleManageBilling = useCallback(async () => {
+    try {
+      await authClient.customer.portal()
+    } catch {
+      toast.error('Failed to open billing portal')
+    }
+  }, [])
 
   const { execute: executeRename, isPending: isRenaming } = useAction(
     renameOrganizationAction,
@@ -159,10 +195,6 @@ export function SettingsPageClient({
 
   function handleTimesheetSubmit(data: TimesheetFormValues) {
     executeTimesheetDefaults(data)
-  }
-
-  function handleDeleteSubmit(data: DeleteFormValues) {
-    executeDelete(data)
   }
 
   return (
@@ -367,6 +399,107 @@ export function SettingsPageClient({
           </form>
         </Card>
 
+        {subscription.status !== 'loading' && (
+          <Card
+            className={
+              subscription.status === 'free'
+                ? 'border-primary/30 bg-linear-to-br from-primary/5 to-transparent'
+                : ''
+            }
+          >
+            <CardHeader>
+              <div className='flex items-center justify-between'>
+                <div className='space-y-1'>
+                  <CardTitle className='flex items-center gap-2'>
+                    Plan & Billing
+                    {subscription.status === 'active' ? (
+                      <Badge
+                        className='border-teal-300 bg-teal-100 text-teal-800 dark:border-teal-700 dark:bg-teal-900/40 dark:text-teal-300'
+                        variant='outline'
+                      >
+                        Pro
+                      </Badge>
+                    ) : (
+                      <Badge variant='outline'>Free</Badge>
+                    )}
+                  </CardTitle>
+                  <CardDescription>
+                    {subscription.status === 'active'
+                      ? 'Your workspace is on the Pro plan.'
+                      : 'Upgrade to Pro to unlock premium features for your workspace.'}
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {subscription.status === 'active' ? (
+                <div className='space-y-4'>
+                  <div className='grid grid-cols-2 gap-4'>
+                    <div className='rounded-lg border p-3'>
+                      <p className='text-muted-foreground text-sm'>
+                        Current Plan
+                      </p>
+                      <p className='font-medium text-lg'>
+                        {subscription.productName ?? 'Pro'}
+                      </p>
+                    </div>
+                    {subscription.currentPeriodEnd && (
+                      <div className='rounded-lg border p-3'>
+                        <p className='text-muted-foreground text-sm'>
+                          Renews On
+                        </p>
+                        <p className='font-medium text-lg'>
+                          {new Date(
+                            subscription.currentPeriodEnd
+                          ).toLocaleDateString('en-US', {
+                            month: 'long',
+                            day: 'numeric',
+                            year: 'numeric',
+                          })}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  <Button
+                    onClick={handleManageBilling}
+                    type='button'
+                    variant='outline'
+                  >
+                    <CreditCard className='size-4' />
+                    Manage Billing
+                  </Button>
+                </div>
+              ) : (
+                <div className='space-y-4'>
+                  <ul className='space-y-2 text-muted-foreground text-sm'>
+                    {proPlanFeatures.map((e) => (
+                      <li className='flex items-center gap-2' key={e}>
+                        <Sparkles className='size-4 text-primary' />
+                        {e}
+                      </li>
+                    ))}
+                  </ul>
+                  <Button
+                    loading={checkoutLoading}
+                    onClick={handleUpgrade}
+                    type='button'
+                  >
+                    <Sparkles className='size-4' />
+                    Upgrade to Pro
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        <ApiKeysCard
+          onUpgrade={handleUpgrade}
+          organizationId={organization.id}
+          subscriptionStatus={subscription.status}
+          upgrading={checkoutLoading}
+        />
+
         {canDelete && (
           <Card className='border-destructive/50'>
             <CardHeader>
@@ -386,62 +519,30 @@ export function SettingsPageClient({
         )}
       </div>
 
-      <Dialog onOpenChange={setDeleteOpen} open={deleteOpen}>
-        <DialogContent className='sm:max-w-md'>
-          <DialogHeader>
-            <DialogTitle>Delete Workspace</DialogTitle>
-            <DialogDescription>
-              This will permanently delete{' '}
-              <span className='font-semibold text-foreground'>
-                {organization.name}
-              </span>{' '}
-              and all associated data including projects, timesheets, and
-              invoices. This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={deleteForm.handleSubmit(handleDeleteSubmit)}>
-            <div className='space-y-4'>
-              <Controller
-                control={deleteForm.control}
-                name='confirmName'
-                render={({ field, fieldState }) => (
-                  <Field className='gap-1' data-invalid={fieldState.invalid}>
-                    <Label>
-                      Type{' '}
-                      <span className='font-semibold'>{organization.name}</span>{' '}
-                      to confirm
-                    </Label>
-                    <Input
-                      {...field}
-                      aria-invalid={fieldState.invalid}
-                      autoFocus
-                      placeholder={organization.name}
-                    />
-                    {fieldState.invalid && (
-                      <FieldError errors={[fieldState.error]} />
-                    )}
-                  </Field>
-                )}
-              />
-              <div className='flex justify-end gap-2'>
-                <Button onClick={() => setDeleteOpen(false)} variant='outline'>
-                  Cancel
-                </Button>
-                <Button
-                  disabled={
-                    deleteForm.watch('confirmName') !== organization.name
-                  }
-                  loading={isDeleting}
-                  type='submit'
-                  variant='destructive'
-                >
-                  Delete Workspace
-                </Button>
-              </div>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDeleteDialog
+        actionLabel='Delete Workspace'
+        confirmationText={organization.name}
+        description={
+          <>
+            This will permanently delete{' '}
+            <span className='font-semibold text-foreground'>
+              {organization.name}
+            </span>{' '}
+            and all associated data including projects, timesheets, and
+            invoices. This action cannot be undone.
+          </>
+        }
+        loading={isDeleting}
+        onConfirm={() =>
+          executeDelete({
+            organizationId: organization.id,
+            confirmName: organization.name,
+          })
+        }
+        onOpenChange={setDeleteOpen}
+        open={deleteOpen}
+        title='Delete Workspace'
+      />
     </div>
   )
 }

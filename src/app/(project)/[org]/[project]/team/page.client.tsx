@@ -64,7 +64,7 @@ export function TeamPageClient({
             {activeTab === 'clients' && (
               <Button onClick={() => setShowInviteDialog(true)} size='sm'>
                 <UserPlus className='size-4' />
-                Invite Stakeholder
+                Invite Client
               </Button>
             )}
           </>

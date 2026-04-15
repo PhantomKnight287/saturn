@@ -1,7 +1,7 @@
 'use client'
 
 import { Clock, DollarSign } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -73,10 +73,12 @@ export function ImportTimeEntriesDialog({
   onImport,
 }: ImportTimeEntriesDialogProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-
+  const [importIndividually, setImportIndividually] = useState(false)
+  const id = useId()
   useEffect(() => {
     if (open) {
       setSelectedIds(new Set())
+      setImportIndividually(false)
     }
   }, [open])
 
@@ -116,50 +118,90 @@ export function ImportTimeEntriesDialog({
 
   function handleImport() {
     const selected = billableEntries.filter((e) => selectedIds.has(e.id))
-    const byMemberAndReq: Record<
-      string,
-      {
-        memberName: string
-        requirementTitle: string | null
-        totalMinutes: number
-        memberId: string
-      }
-    > = {}
 
-    for (const entry of selected) {
-      const key = `${entry.memberId}__${entry.requirementTitle ?? 'General'}`
-      if (!byMemberAndReq[key]) {
-        byMemberAndReq[key] = {
-          memberName: entry.memberName ?? 'Unknown',
-          requirementTitle: entry.requirementTitle,
-          totalMinutes: 0,
-          memberId: entry.memberId,
+    let items: {
+      description: string
+      quantity: string
+      unitPrice: string
+      amount: string
+    }[]
+
+    if (importIndividually) {
+      items = selected.map((entry) => {
+        const hours = (entry.durationMinutes / 60).toFixed(2)
+        const rate = rates.get(entry.memberId)
+        const unitPriceCents = rate?.hourlyRate ?? 0
+        const unitPrice = (unitPriceCents / 100).toFixed(2)
+        const amount = (
+          Number.parseFloat(hours) *
+          (unitPriceCents / 100)
+        ).toFixed(2)
+
+        const memberName = entry.memberName ?? 'Unknown'
+        const dateLabel = new Date(entry.date).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        })
+        const reqPart = entry.requirementTitle
+          ? ` — ${entry.requirementTitle}`
+          : ''
+        const desc = `${memberName}${reqPart} (${dateLabel}): ${entry.description}`
+
+        return {
+          description: desc,
+          quantity: hours,
+          unitPrice,
+          amount,
         }
+      })
+    } else {
+      const byMemberAndReq: Record<
+        string,
+        {
+          memberName: string
+          requirementTitle: string | null
+          totalMinutes: number
+          memberId: string
+        }
+      > = {}
+
+      for (const entry of selected) {
+        const key = `${entry.memberId}__${entry.requirementTitle ?? 'General'}`
+        if (!byMemberAndReq[key]) {
+          byMemberAndReq[key] = {
+            memberName: entry.memberName ?? 'Unknown',
+            requirementTitle: entry.requirementTitle,
+            totalMinutes: 0,
+            memberId: entry.memberId,
+          }
+        }
+        byMemberAndReq[key].totalMinutes += entry.durationMinutes
       }
-      byMemberAndReq[key].totalMinutes += entry.durationMinutes
+
+      items = Object.values(byMemberAndReq).map((group) => {
+        const hours = (group.totalMinutes / 60).toFixed(2)
+        const rate = rates.get(group.memberId)
+        const unitPriceCents = rate?.hourlyRate ?? 0
+        const unitPrice = (unitPriceCents / 100).toFixed(2)
+        const amount = (
+          Number.parseFloat(hours) *
+          (unitPriceCents / 100)
+        ).toFixed(2)
+
+        const desc = group.requirementTitle
+          ? `${group.memberName} — ${group.requirementTitle}`
+          : `${group.memberName} — General project work`
+
+        return {
+          description: desc,
+          quantity: hours,
+          unitPrice,
+          amount,
+        }
+      })
     }
 
-    const items = Object.values(byMemberAndReq).map((group) => {
-      const hours = (group.totalMinutes / 60).toFixed(2)
-      const rate = rates.get(group.memberId)
-      const unitPriceCents = rate?.hourlyRate ?? 0
-      const unitPrice = (unitPriceCents / 100).toFixed(2)
-      const amount = (
-        Number.parseFloat(hours) *
-        (unitPriceCents / 100)
-      ).toFixed(2)
-
-      const desc = group.requirementTitle
-        ? `${group.memberName} — ${group.requirementTitle}`
-        : `${group.memberName} — General project work`
-
-      return {
-        description: desc,
-        quantity: hours,
-        unitPrice,
-        amount,
-      }
-    })
     onImport(items, [...selectedIds])
     onOpenChange(false)
   }
@@ -260,6 +302,29 @@ export function ImportTimeEntriesDialog({
               })}
             </div>
           </>
+        )}
+
+        {billableEntries.length > 0 && (
+          <div className='flex items-start gap-2 border-t pt-3'>
+            <Checkbox
+              checked={importIndividually}
+              id={id}
+              onCheckedChange={(checked) =>
+                setImportIndividually(checked === true)
+              }
+            />
+            <div className='grid gap-1 leading-none'>
+              <label
+                className='cursor-pointer font-medium text-sm'
+                htmlFor={id}
+              >
+                Import each entry as a separate line item
+              </label>
+              <p className='text-muted-foreground text-xs'>
+                By default, entries are consolidated by member and requirement.
+              </p>
+            </div>
+          </div>
         )}
 
         <DialogFooter>

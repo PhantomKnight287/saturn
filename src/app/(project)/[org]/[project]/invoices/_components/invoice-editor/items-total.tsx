@@ -47,7 +47,7 @@ export const ItemsTotal = memo(function ItemsTotal({
   const grandTotal = (Number(subtotal) - discount).toFixed(4)
 
   return (
-    <div className='flex justify-end border-t pt-3'>
+    <div className='flex w-full justify-end'>
       <div className='space-y-1 text-right'>
         {hasDiscount && (
           <>

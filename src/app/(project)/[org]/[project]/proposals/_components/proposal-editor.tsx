@@ -44,6 +44,7 @@ import {
 } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { uploadDataUrl } from '@/lib/upload'
 import { formatDate } from '@/lib/utils'
 import type { proposalDeliverables, proposals } from '@/server/db/schema'
 import type { Role, RouteImpl } from '@/types'
@@ -299,22 +300,12 @@ export default function ProposalEditor({
         }
         mediaId = match.id
       } else {
-        const blob = await fetch(result.dataUrl).then((r) => r.blob())
-        const file = new File([blob], 'signature.png', { type: 'image/png' })
-        const formData = new FormData()
-        formData.append('file', file)
-        formData.append('projectId', projectId)
-
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData,
-        })
-        if (!res.ok) {
-          const data = await res.json()
-          throw new Error(data.error ?? 'Upload failed')
-        }
-        const { id } = await res.json()
-        mediaId = id as string
+        const uploaded = await uploadDataUrl(
+          result.dataUrl,
+          projectId,
+          'signature.png'
+        )
+        mediaId = uploaded.id
       }
 
       executeSign({

@@ -1,4 +1,5 @@
 import { apiKeyClient } from '@better-auth/api-key/client'
+import { polarClient } from '@polar-sh/better-auth/client'
 import {
   inferAdditionalFields,
   lastLoginMethodClient,
@@ -32,6 +33,7 @@ export const authClient = createAuthClient({
         client: clientRole,
       },
     }),
+    polarClient(),
   ],
   // baseURL: env.NEXT_PUBLIC_BASE_URL,
   fetchOptions: {

@@ -35,6 +35,7 @@ import CodeBlockShiki from 'tiptap-extension-code-block-shiki'
 import { Markdown, type MarkdownStorage } from 'tiptap-markdown'
 import { Separator } from '@/components/ui/separator'
 import { Toggle } from '@/components/ui/toggle'
+import { uploadFile } from '@/lib/upload'
 
 // Blob URL -> File mapping for deferred upload
 const blobFileMap = new Map<string, File>()
@@ -231,27 +232,12 @@ export default function TiptapEditor({
           return { blobUrl, finalUrl: blobUrl }
         }
 
-        const formData = new FormData()
-        formData.append('file', file)
-        formData.append('projectId', projectId)
+        const { url } = await uploadFile(file, projectId)
 
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData,
-        })
-
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}))
-          throw new Error(err.error ?? 'Upload failed')
-        }
-
-        const { url } = await res.json()
-
-        // Clean up
         URL.revokeObjectURL(blobUrl)
         blobFileMap.delete(blobUrl)
 
-        return { blobUrl, finalUrl: url as string }
+        return { blobUrl, finalUrl: url }
       })
     )
 

@@ -17,6 +17,7 @@ import { useAction } from 'next-safe-action/hooks'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 import type { InvoiceWithMedia } from '@/app/api/invoices/service'
+import StatusBadge from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
@@ -30,7 +31,6 @@ import {
 } from '@/components/ui/table'
 import type { statusEnum } from '@/server/db/schema'
 import type { RouteImpl } from '@/types'
-import RequirementStatusBadge from '../../requirements/_components/badge'
 import ThreadsPanel from '../../requirements/_components/threads-panel'
 import type { Thread } from '../../requirements/types'
 import {
@@ -433,7 +433,7 @@ export function InvoiceClientView({
                     <FileText className='size-3.5 text-muted-foreground' />
                     <span>{req.title}</span>
 
-                    <RequirementStatusBadge
+                    <StatusBadge
                       role='client'
                       status={
                         req.status as (typeof statusEnum.enumValues)[number]

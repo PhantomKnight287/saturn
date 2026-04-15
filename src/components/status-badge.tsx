@@ -38,7 +38,7 @@ const variants: Record<
     label: 'Client Signed',
     clientLabel: 'Signed',
     className:
-      'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-800',
+      'bg-teal-100 text-teal-800 border-teal-300 dark:bg-teal-900/40 dark:text-teal-300 dark:border-teal-700',
   },
   client_rejected: {
     label: 'Client Declined',

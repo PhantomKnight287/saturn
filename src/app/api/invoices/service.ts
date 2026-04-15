@@ -155,8 +155,31 @@ const getLinkedRequirements = async (invoiceId: string) => {
     .where(eq(invoiceRequirements.invoiceId, invoiceId))
 }
 
+const listByProjectIds = async (
+  projectIds: string[],
+  opts: { clientView?: boolean } = {}
+) => {
+  if (projectIds.length === 0) {
+    return []
+  }
+
+  const whereClause = opts.clientView
+    ? and(
+        inArray(invoices.projectId, projectIds),
+        inArray(invoices.status, ['disputed', 'paid', 'sent', 'cancelled'])
+      )
+    : inArray(invoices.projectId, projectIds)
+
+  return await db
+    .select()
+    .from(invoices)
+    .where(whereClause)
+    .orderBy(desc(invoices.createdAt))
+}
+
 export const invoicesService = {
   listByProject,
+  listByProjectIds,
   getById,
   getRecipients,
   getItems,

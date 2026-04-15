@@ -243,6 +243,8 @@ export function TimeEntryForm({
                   >
                     <FieldLabel>Date</FieldLabel>
                     <DatePicker
+                      disableFutureDates
+                      disablePastDates={false}
                       onChange={(date) => {
                         field.onChange(date ? toLocalDateString(date) : '')
                       }}

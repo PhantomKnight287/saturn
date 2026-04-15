@@ -20,6 +20,7 @@ import type z from 'zod'
 import SendToClientDialog from '@/components/send-to-client-dialog'
 import type { SignatureResult } from '@/components/signature-dialog'
 import { SignatureDialog } from '@/components/signature-dialog'
+import StatusBadge from '@/components/status-badge'
 import type { EditorRef } from '@/components/tiptap-editor'
 import TiptapEditor from '@/components/tiptap-editor'
 import { Button, buttonVariants } from '@/components/ui/button'
@@ -32,6 +33,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { uploadDataUrl } from '@/lib/upload'
 import { formatDate } from '@/lib/utils'
 import type { RouteImpl } from '@/types'
 import {
@@ -43,7 +45,6 @@ import {
 } from '../action'
 import { requirementFormSchema } from '../common'
 import type { RequirementEditorProps } from '../types'
-import RequirementStatusBadge from './badge'
 import ChangeRequestsPanel from './change-requests-panel'
 import RequestChangesDialog from './request-changes-dialog'
 import ThreadsPanel from './threads-panel'
@@ -238,22 +239,12 @@ export default function RequirementEditor(props: RequirementEditorProps) {
         }
         mediaId = match.id
       } else {
-        const blob = await fetch(result.dataUrl).then((r) => r.blob())
-        const file = new File([blob], 'signature.png', { type: 'image/png' })
-        const formData = new FormData()
-        formData.append('file', file)
-        formData.append('projectId', props.projectId)
-
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData,
-        })
-        if (!res.ok) {
-          const data = await res.json()
-          throw new Error(data.error ?? 'Upload failed')
-        }
-        const { id } = await res.json()
-        mediaId = id as string
+        const uploaded = await uploadDataUrl(
+          result.dataUrl,
+          props.projectId,
+          'signature.png'
+        )
+        mediaId = uploaded.id
       }
 
       signRequirement({
@@ -281,10 +272,7 @@ export default function RequirementEditor(props: RequirementEditorProps) {
         </Link>
         <div className='flex items-center gap-2'>
           {props.mode === 'edit' && props.requirement !== null ? (
-            <RequirementStatusBadge
-              role={props.role}
-              status={props.requirement!.status}
-            />
+            <StatusBadge role={props.role} status={props.requirement!.status} />
           ) : null}
           {showSign && (
             <Button

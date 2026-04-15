@@ -347,12 +347,31 @@ const getOrgClients = async (organizationId: string) => {
   return clientsWithProjects
 }
 
+const getOrgMemberCounts = async (organizationId: string) => {
+  const rows = await db
+    .select({ id: members.id, role: members.role })
+    .from(members)
+    .where(eq(members.organizationId, organizationId))
+
+  let team = 0
+  let client = 0
+  for (const row of rows) {
+    if (row.role === 'client') {
+      client++
+    } else {
+      team++
+    }
+  }
+  return { team, client }
+}
+
 export const teamService = {
   getProjectMembers,
   getProjectClients,
   getProjectTeams,
   getOrgTeams,
   getOrgMembers,
+  getOrgMemberCounts,
   getOrgTeamsWithMembers,
   getClientMemberById,
   getAdminAndOwners,

@@ -25,6 +25,9 @@ export function Providers({ children }: { children: ReactNode }) {
       <TooltipProvider>
         <SidebarProvider className='w-full'>
           <AuthUIProvider
+            apiKey={{
+              prefix: 'saturn_',
+            }}
             authClient={authClient}
             Link={Link}
             navigate={(href) =>

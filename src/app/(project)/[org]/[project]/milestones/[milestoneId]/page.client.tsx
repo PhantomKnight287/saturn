@@ -18,6 +18,7 @@ import Link from 'next/link'
 import { useAction } from 'next-safe-action/hooks'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import StatusBadge from '@/components/status-badge'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -39,7 +40,6 @@ import {
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import type { milestones, requirements } from '@/server/db/schema'
-import RequirementStatusBadge from '../../requirements/_components/badge'
 import {
   completeMilestoneAction,
   deleteMilestoneAction,
@@ -382,7 +382,7 @@ export function MilestoneDetailClient({
                   {lr.requirementTitle}
                 </Link>
                 <div className='flex shrink-0 items-center gap-2'>
-                  <RequirementStatusBadge status={lr.requirementStatus} />
+                  <StatusBadge status={lr.requirementStatus} />
                   {canUpdate && (
                     <Button
                       className='size-7 p-0 text-muted-foreground hover:text-destructive'

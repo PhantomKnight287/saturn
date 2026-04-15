@@ -102,8 +102,21 @@ const listUnpaidExpensesByProject = async (
   return unpaidExpenses
 }
 
+const listByProjectIds = async (projectIds: string[]) => {
+  if (projectIds.length === 0) {
+    return []
+  }
+
+  return await db
+    .select()
+    .from(expenses)
+    .where(inArray(expenses.projectId, projectIds))
+    .orderBy(desc(expenses.date))
+}
+
 export const expensesServices = {
   listByProject,
+  listByProjectIds,
   listCategoriesByOrg,
   listUnpaidExpensesByProject,
 }

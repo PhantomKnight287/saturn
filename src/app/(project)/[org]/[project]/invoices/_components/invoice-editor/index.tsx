@@ -4,15 +4,24 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import {
   AlertTriangle,
   ArrowLeft,
+  Building2,
   CheckCircle2,
+  ClipboardList,
   Clock,
+  FileText,
   Info,
+  ListChecks,
+  Pen,
   Plus,
   Receipt,
   Save,
   Send,
+  StickyNote,
   Trash2,
+  User,
+  X,
 } from 'lucide-react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAction } from 'next-safe-action/hooks'
@@ -22,6 +31,8 @@ import { toast } from 'sonner'
 import type z from 'zod'
 import ImageUpload from '@/components/image-upload'
 import SendToClientDialog from '@/components/send-to-client-dialog'
+import type { SignatureResult } from '@/components/signature-dialog'
+import { SignatureDialog } from '@/components/signature-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -30,6 +41,7 @@ import DatePicker from '@/components/ui/date-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { uploadDataUrl } from '@/lib/upload'
 import type { RouteImpl } from '@/types'
 import ThreadsPanel from '../../../requirements/_components/threads-panel'
 import { linkTimeEntriesToInvoiceAction } from '../../../timesheets/actions'
@@ -91,6 +103,8 @@ export default function InvoiceEditor({
   const [importOpen, setImportOpen] = useState(false)
   const [sendOpen, setSendOpen] = useState(false)
   const [disputeOpen, setDisputeOpen] = useState(false)
+  const [signatureDialogOpen, setSignatureDialogOpen] = useState(false)
+  const [isUploadingSignature, setIsUploadingSignature] = useState(false)
   const [importedEntryIds, setImportedEntryIds] = useState<string[]>([])
   const [uploadedMedia, setUploadedMedia] = useState<MediaItem[]>([])
   const allMediaItems = useMemo(
@@ -158,6 +172,41 @@ export default function InvoiceEditor({
   })
 
   const { control, setValue, getValues } = form
+
+  const handleSignatureConfirm = async (result: SignatureResult) => {
+    try {
+      setIsUploadingSignature(true)
+      let mediaId: string
+      let mediaUrl: string
+
+      if (result.source === 'library') {
+        const match = allMediaItems.find((m) => m.url === result.dataUrl)
+        if (!match) {
+          toast.error('Could not find the selected signature')
+          return
+        }
+        mediaId = match.id
+        mediaUrl = match.url
+      } else {
+        const uploaded = await uploadDataUrl(
+          result.dataUrl,
+          projectId,
+          'signature.png'
+        )
+        mediaId = uploaded.id
+        mediaUrl = uploaded.url
+        handleUploadComplete({ id: mediaId, url: mediaUrl })
+      }
+
+      setValue('senderSignature', mediaId)
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to add signature'
+      )
+    } finally {
+      setIsUploadingSignature(false)
+    }
+  }
 
   const {
     fields: itemFields,
@@ -512,208 +561,270 @@ export default function InvoiceEditor({
       )}
 
       <div className='grid gap-8 lg:grid-cols-[1fr_560px]'>
-        <div className='space-y-6'>
-          <div className='grid gap-4 sm:grid-cols-2'>
-            <div className='space-y-2'>
-              <Label>Invoice Number</Label>
-              <Controller
-                control={control}
-                name='invoiceNumber'
-                render={({ field }) => (
-                  <Input
-                    {...field}
-                    placeholder='INV-2026-001'
-                    readOnly={!isEditable}
-                  />
-                )}
-              />
+        <div className='space-y-5'>
+          <section className='overflow-hidden rounded-lg border bg-card'>
+            <header className='flex items-center gap-2 border-b bg-muted/30 px-4 py-3'>
+              <FileText className='size-4 text-muted-foreground' />
+              <h3 className='font-semibold text-sm'>Invoice Details</h3>
+            </header>
+            <div className='grid gap-4 p-4 sm:grid-cols-2'>
+              <div className='space-y-2'>
+                <Label>Invoice Number</Label>
+                <Controller
+                  control={control}
+                  name='invoiceNumber'
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      placeholder='INV-2026-001'
+                      readOnly={!isEditable}
+                    />
+                  )}
+                />
+              </div>
+              <div className='space-y-2'>
+                <Label>Currency</Label>
+                <Controller
+                  control={control}
+                  name='currency'
+                  render={({ field }) => (
+                    <CurrencySelect
+                      disabled={!isEditable}
+                      name='currency'
+                      onCurrencySelect={(c) => field.onChange(c.code)}
+                      value={field.value}
+                    />
+                  )}
+                />
+              </div>
+              <div className='space-y-2'>
+                <Label>Issue Date</Label>
+                <Controller
+                  control={control}
+                  name='issueDate'
+                  render={({ field }) => (
+                    <DatePicker
+                      disablePastDates={false}
+                      onChange={field.onChange}
+                      value={field.value ? new Date(field.value) : undefined}
+                    />
+                  )}
+                />
+              </div>
+              <div className='space-y-2'>
+                <Label>Due Date</Label>
+                <Controller
+                  control={control}
+                  name='dueDate'
+                  render={({ field }) => (
+                    <DatePicker
+                      disablePastDates={false}
+                      onChange={field.onChange}
+                      value={field.value ? new Date(field.value) : undefined}
+                    />
+                  )}
+                />
+              </div>
             </div>
-            <div className='space-y-2'>
-              <Label>Currency</Label>
+          </section>
+
+          <section className='overflow-hidden rounded-lg border bg-card'>
+            <header className='flex items-center justify-between gap-2 border-b bg-muted/30 px-4 py-3'>
+              <div className='flex items-center gap-2'>
+                <Building2 className='size-4 text-muted-foreground' />
+                <h3 className='font-semibold text-sm'>From</h3>
+              </div>
+              <span className='text-muted-foreground text-xs'>
+                Your business details
+              </span>
+            </header>
+            <div className='space-y-4 p-4'>
+              <div className='grid gap-4 sm:grid-cols-2'>
+                <div className='space-y-2'>
+                  <Label className='text-muted-foreground text-xs'>
+                    Company Logo
+                  </Label>
+                  <Controller
+                    control={control}
+                    name='senderLogo'
+                    render={({ field }) => (
+                      <ImageUpload
+                        disabled={!isEditable}
+                        label='Logo'
+                        mediaItems={allMediaItems}
+                        onChange={field.onChange}
+                        onUploadComplete={handleUploadComplete}
+                        previewSize={80}
+                        projectId={projectId}
+                        value={field.value}
+                      />
+                    )}
+                  />
+                </div>
+                <div className='space-y-2'>
+                  <Label className='text-muted-foreground text-xs'>
+                    Signature
+                  </Label>
+                  <Controller
+                    control={control}
+                    name='senderSignature'
+                    render={({ field }) => {
+                      const signatureUrl = field.value
+                        ? allMediaItems.find((m) => m.id === field.value)?.url
+                        : null
+                      return (
+                        <div className='flex items-center gap-3'>
+                          <button
+                            className='flex h-[60px] w-[140px] shrink-0 items-center justify-center overflow-hidden rounded-md border bg-white transition-colors hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50'
+                            disabled={!isEditable || isUploadingSignature}
+                            onClick={() => setSignatureDialogOpen(true)}
+                            type='button'
+                          >
+                            {signatureUrl ? (
+                              <Image
+                                alt='Signature'
+                                className='max-h-[54px] object-contain'
+                                height={54}
+                                src={signatureUrl}
+                                unoptimized
+                                width={130}
+                              />
+                            ) : (
+                              <span className='flex items-center gap-1.5 text-muted-foreground text-xs'>
+                                <Pen className='size-3.5' />
+                                Add signature
+                              </span>
+                            )}
+                          </button>
+                          {field.value && isEditable && (
+                            <Button
+                              onClick={() => field.onChange(null)}
+                              size='icon'
+                              type='button'
+                              variant='ghost'
+                            >
+                              <X className='size-4' />
+                            </Button>
+                          )}
+                        </div>
+                      )
+                    }}
+                  />
+                </div>
+              </div>
+              <div className='grid gap-3 sm:grid-cols-2'>
+                <div className='space-y-2'>
+                  <Label className='text-muted-foreground text-xs'>
+                    Company Name
+                  </Label>
+                  <Controller
+                    control={control}
+                    name='senderName'
+                    render={({ field }) => (
+                      <Input
+                        {...field}
+                        placeholder={orgName}
+                        readOnly={!isEditable}
+                      />
+                    )}
+                  />
+                </div>
+                <div className='space-y-2'>
+                  <Label className='text-muted-foreground text-xs'>
+                    Address
+                  </Label>
+                  <Controller
+                    control={control}
+                    name='senderAddress'
+                    render={({ field }) => (
+                      <Input
+                        {...field}
+                        placeholder='Company address'
+                        readOnly={!isEditable}
+                      />
+                    )}
+                  />
+                </div>
+              </div>
               <Controller
                 control={control}
-                name='currency'
+                name='senderCustomFields'
                 render={({ field }) => (
-                  <CurrencySelect
+                  <CustomFieldsEditor
                     disabled={!isEditable}
-                    name='currency'
-                    onCurrencySelect={(c) => field.onChange(c.code)}
-                    value={field.value}
+                    fields={field.value}
+                    onChange={field.onChange}
                   />
                 )}
               />
             </div>
-            <div className='space-y-2'>
-              <Label>Issue Date</Label>
+          </section>
+
+          <section className='overflow-hidden rounded-lg border bg-card'>
+            <header className='flex items-center justify-between gap-2 border-b bg-muted/30 px-4 py-3'>
+              <div className='flex items-center gap-2'>
+                <User className='size-4 text-muted-foreground' />
+                <h3 className='font-semibold text-sm'>Bill To</h3>
+              </div>
+              <span className='text-muted-foreground text-xs'>
+                Client details
+              </span>
+            </header>
+            <div className='space-y-4 p-4'>
+              <div className='grid gap-3 sm:grid-cols-2'>
+                <div className='space-y-2'>
+                  <Label className='text-muted-foreground text-xs'>
+                    Client Name
+                  </Label>
+                  <Controller
+                    control={control}
+                    name='clientName'
+                    render={({ field }) => (
+                      <Input
+                        {...field}
+                        placeholder='Client / company name'
+                        readOnly={!isEditable}
+                      />
+                    )}
+                  />
+                </div>
+                <div className='space-y-2'>
+                  <Label className='text-muted-foreground text-xs'>
+                    Address
+                  </Label>
+                  <Controller
+                    control={control}
+                    name='clientAddress'
+                    render={({ field }) => (
+                      <Input
+                        {...field}
+                        placeholder='Client address'
+                        readOnly={!isEditable}
+                      />
+                    )}
+                  />
+                </div>
+              </div>
               <Controller
                 control={control}
-                name='issueDate'
+                name='clientCustomFields'
                 render={({ field }) => (
-                  <DatePicker
-                    disablePastDates={false}
+                  <CustomFieldsEditor
+                    disabled={!isEditable}
+                    fields={field.value}
                     onChange={field.onChange}
-                    value={field.value ? new Date(field.value) : undefined}
                   />
                 )}
               />
             </div>
-            <div className='space-y-2'>
-              <Label>Due Date</Label>
-              <Controller
-                control={control}
-                name='dueDate'
-                render={({ field }) => (
-                  <DatePicker
-                    disablePastDates={false}
-                    onChange={field.onChange}
-                    value={field.value ? new Date(field.value) : undefined}
-                  />
-                )}
-              />
-            </div>
-          </div>
+          </section>
 
-          <div className='space-y-3 rounded-lg border p-4'>
-            <Label className='text-base'>From (Sender)</Label>
-            <div className='grid gap-4 sm:grid-cols-2'>
-              <div className='space-y-2'>
-                <Label className='text-muted-foreground text-xs'>
-                  Company Logo
-                </Label>
-                <Controller
-                  control={control}
-                  name='senderLogo'
-                  render={({ field }) => (
-                    <ImageUpload
-                      disabled={!isEditable}
-                      label='Logo'
-                      mediaItems={allMediaItems}
-                      onChange={field.onChange}
-                      onUploadComplete={handleUploadComplete}
-                      previewSize={80}
-                      projectId={projectId}
-                      value={field.value}
-                    />
-                  )}
-                />
+          <section className='overflow-hidden rounded-lg border bg-card'>
+            <header className='flex items-center justify-between gap-2 border-b bg-muted/30 px-4 py-3'>
+              <div className='flex items-center gap-2'>
+                <ListChecks className='size-4 text-muted-foreground' />
+                <h3 className='font-semibold text-sm'>Line Items</h3>
               </div>
-              <div className='space-y-2'>
-                <Label className='text-muted-foreground text-xs'>
-                  Signature
-                </Label>
-                <Controller
-                  control={control}
-                  name='senderSignature'
-                  render={({ field }) => (
-                    <ImageUpload
-                      disabled={!isEditable}
-                      label='Signature'
-                      mediaItems={allMediaItems}
-                      onChange={field.onChange}
-                      onUploadComplete={handleUploadComplete}
-                      previewSize={100}
-                      projectId={projectId}
-                      value={field.value}
-                    />
-                  )}
-                />
-              </div>
-            </div>
-            <div className='grid gap-3 sm:grid-cols-2'>
-              <div className='space-y-2'>
-                <Label className='text-muted-foreground text-xs'>
-                  Company Name
-                </Label>
-                <Controller
-                  control={control}
-                  name='senderName'
-                  render={({ field }) => (
-                    <Input
-                      {...field}
-                      placeholder={orgName}
-                      readOnly={!isEditable}
-                    />
-                  )}
-                />
-              </div>
-              <div className='space-y-2'>
-                <Label className='text-muted-foreground text-xs'>Address</Label>
-                <Controller
-                  control={control}
-                  name='senderAddress'
-                  render={({ field }) => (
-                    <Input
-                      {...field}
-                      placeholder='Company address'
-                      readOnly={!isEditable}
-                    />
-                  )}
-                />
-              </div>
-            </div>
-            <Controller
-              control={control}
-              name='senderCustomFields'
-              render={({ field }) => (
-                <CustomFieldsEditor
-                  disabled={!isEditable}
-                  fields={field.value}
-                  onChange={field.onChange}
-                />
-              )}
-            />
-          </div>
-
-          <div className='space-y-3 rounded-lg border p-4'>
-            <Label className='text-base'>Bill To (Client)</Label>
-            <div className='grid gap-3 sm:grid-cols-2'>
-              <div className='space-y-2'>
-                <Label className='text-muted-foreground text-xs'>
-                  Client Name
-                </Label>
-                <Controller
-                  control={control}
-                  name='clientName'
-                  render={({ field }) => (
-                    <Input
-                      {...field}
-                      placeholder='Client / company name'
-                      readOnly={!isEditable}
-                    />
-                  )}
-                />
-              </div>
-              <div className='space-y-2'>
-                <Label className='text-muted-foreground text-xs'>Address</Label>
-                <Controller
-                  control={control}
-                  name='clientAddress'
-                  render={({ field }) => (
-                    <Input
-                      {...field}
-                      placeholder='Client address'
-                      readOnly={!isEditable}
-                    />
-                  )}
-                />
-              </div>
-            </div>
-            <Controller
-              control={control}
-              name='clientCustomFields'
-              render={({ field }) => (
-                <CustomFieldsEditor
-                  disabled={!isEditable}
-                  fields={field.value}
-                  onChange={field.onChange}
-                />
-              )}
-            />
-          </div>
-
-          <div>
-            <div className='mb-3 flex items-center justify-between'>
-              <Label className='text-base'>Items</Label>
               {isEditable && (
                 <div className='flex items-center gap-2'>
                   <Button
@@ -722,9 +833,8 @@ export default function InvoiceEditor({
                     variant='outline'
                   >
                     <Clock className='size-4' />
-                    Import from Time
+                    Import Time
                   </Button>
-
                   <Button
                     onClick={() =>
                       appendItem({
@@ -742,9 +852,9 @@ export default function InvoiceEditor({
                   </Button>
                 </div>
               )}
-            </div>
-            <div className='space-y-3'>
-              <div className='hidden grid-cols-[1fr_80px_110px_110px_32px] gap-2 font-medium text-muted-foreground text-xs sm:grid'>
+            </header>
+            <div className='space-y-3 p-4'>
+              <div className='hidden grid-cols-[1fr_80px_110px_110px_32px] gap-2 px-1 font-medium text-muted-foreground text-xs uppercase tracking-wide sm:grid'>
                 <span>Description</span>
                 <span>Qty</span>
                 <span>Unit Price</span>
@@ -780,62 +890,67 @@ export default function InvoiceEditor({
                   setValue={setValue}
                 />
               ))}
-              <div className='flex items-end justify-end gap-2 border-t pt-3'>
-                <div className='flex w-[160px] flex-col gap-2'>
-                  <Label className='text-muted-foreground text-xs'>
-                    Discount Label
-                  </Label>
-                  <Controller
-                    control={control}
-                    name='discountLabel'
-                    render={({ field }) => (
-                      <Input
-                        {...field}
-                        className='h-8 text-sm'
-                        disabled={!isEditable}
-                        placeholder='e.g. 10% off'
-                      />
-                    )}
-                  />
+              <div className='mt-2 flex flex-col items-stretch gap-4 border-t pt-4 sm:flex-row sm:items-start sm:justify-between'>
+                <div className='grid flex-1 gap-3 sm:max-w-sm sm:grid-cols-[1fr_130px]'>
+                  <div className='space-y-2'>
+                    <Label className='text-muted-foreground text-xs'>
+                      Discount Label
+                    </Label>
+                    <Controller
+                      control={control}
+                      name='discountLabel'
+                      render={({ field }) => (
+                        <Input
+                          {...field}
+                          className='h-9 text-sm'
+                          disabled={!isEditable}
+                          placeholder='e.g. 10% off'
+                        />
+                      )}
+                    />
+                  </div>
+                  <div className='space-y-2'>
+                    <Label className='text-muted-foreground text-xs'>
+                      Discount Amount
+                    </Label>
+                    <Controller
+                      control={control}
+                      name='discountAmount'
+                      render={({ field }) => (
+                        <Input
+                          {...field}
+                          className='h-9 text-sm'
+                          disabled={!isEditable}
+                          min='0'
+                          placeholder='0.00'
+                          step='0.01'
+                          type='number'
+                        />
+                      )}
+                    />
+                  </div>
                 </div>
-                <div className='flex w-[130px] flex-col gap-2'>
-                  <Label className='text-muted-foreground text-xs'>
-                    Discount Amount
-                  </Label>
-                  <Controller
-                    control={control}
-                    name='discountAmount'
-                    render={({ field }) => (
-                      <Input
-                        {...field}
-                        className='h-8 text-sm'
-                        disabled={!isEditable}
-                        min='0'
-                        placeholder='0.00'
-                        step='0.01'
-                        type='number'
-                      />
-                    )}
-                  />
+                <div className='flex items-end sm:min-w-[200px]'>
+                  <ItemsTotal control={control} />
                 </div>
               </div>
-              <ItemsTotal control={control} />
             </div>
-          </div>
+          </section>
 
           {requirements.length > 0 && (
-            <div>
-              <Label className='mb-3 block text-base'>
-                Linked Requirements
-              </Label>
+            <section className='overflow-hidden rounded-lg border bg-card'>
+              <header className='flex items-center gap-2 border-b bg-muted/30 px-4 py-3'>
+                <ClipboardList className='size-4 text-muted-foreground' />
+                <h3 className='font-semibold text-sm'>Linked Requirements</h3>
+              </header>
               <Controller
                 control={control}
                 name='selectedRequirementIds'
                 render={({ field }) => (
-                  <div className='max-h-[200px] space-y-1 overflow-y-auto rounded-md border p-3'>
+                  <div className='max-h-[240px] space-y-1 overflow-y-auto p-3'>
                     {requirements.map((req) => (
                       <div
-                        className='flex items-center gap-2 rounded-md px-2 py-1.5'
+                        className='flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/50'
                         key={req.id}
                       >
                         <Checkbox
@@ -850,7 +965,7 @@ export default function InvoiceEditor({
                           }}
                         />
                         <label
-                          className='cursor-pointer text-sm'
+                          className='flex-1 cursor-pointer text-sm'
                           htmlFor={`req-${req.id}`}
                         >
                           {req.title}
@@ -860,22 +975,20 @@ export default function InvoiceEditor({
                   </div>
                 )}
               />
-            </div>
+            </section>
           )}
 
           {unpaidExpenses.length > 0 && (
-            <div>
-              <Label className='mb-3 block text-base'>
-                <span className='flex items-center gap-2'>
-                  <Receipt className='size-4' />
-                  Unpaid Expenses
-                </span>
-              </Label>
+            <section className='overflow-hidden rounded-lg border bg-card'>
+              <header className='flex items-center gap-2 border-b bg-muted/30 px-4 py-3'>
+                <Receipt className='size-4 text-muted-foreground' />
+                <h3 className='font-semibold text-sm'>Unpaid Expenses</h3>
+              </header>
               <Controller
                 control={control}
                 name='expenseIds'
                 render={({ field }) => (
-                  <div className='max-h-[280px] space-y-2 overflow-y-auto rounded-md border p-3'>
+                  <div className='max-h-[280px] space-y-2 overflow-y-auto p-3'>
                     {unpaidExpenses.map((exp) => {
                       const isSelected = field.value.includes(exp.id)
                       const formattedAmount = (exp.amountCents / 100).toFixed(2)
@@ -921,55 +1034,65 @@ export default function InvoiceEditor({
                   </div>
                 )}
               />
-            </div>
+            </section>
           )}
 
-          <div className='space-y-2'>
-            <Label>Payment Terms</Label>
-            <Controller
-              control={control}
-              name='paymentTerms'
-              render={({ field }) => (
-                <Input
-                  {...field}
-                  placeholder='e.g. Net 30, Due on receipt'
-                  readOnly={!isEditable}
+          <section className='overflow-hidden rounded-lg border bg-card'>
+            <header className='flex items-center gap-2 border-b bg-muted/30 px-4 py-3'>
+              <StickyNote className='size-4 text-muted-foreground' />
+              <h3 className='font-semibold text-sm'>Additional Information</h3>
+            </header>
+            <div className='space-y-4 p-4'>
+              <div className='space-y-2'>
+                <Label className='text-muted-foreground text-xs'>
+                  Payment Terms
+                </Label>
+                <Controller
+                  control={control}
+                  name='paymentTerms'
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      placeholder='e.g. Net 30, Due on receipt'
+                      readOnly={!isEditable}
+                    />
+                  )}
                 />
-              )}
-            />
-          </div>
-
-          <div className='space-y-2'>
-            <Label>Notes</Label>
-            <Controller
-              control={control}
-              name='notes'
-              render={({ field }) => (
-                <Textarea
-                  {...field}
-                  className='min-h-[80px]'
-                  placeholder='Additional notes (bank details, thank you message, etc.)'
-                  readOnly={!isEditable}
+              </div>
+              <div className='space-y-2'>
+                <Label className='text-muted-foreground text-xs'>Notes</Label>
+                <Controller
+                  control={control}
+                  name='notes'
+                  render={({ field }) => (
+                    <Textarea
+                      {...field}
+                      className='min-h-[80px]'
+                      placeholder='Additional notes (bank details, thank you message, etc.)'
+                      readOnly={!isEditable}
+                    />
+                  )}
                 />
-              )}
-            />
-          </div>
-
-          <div className='space-y-2'>
-            <Label>Terms & Conditions</Label>
-            <Controller
-              control={control}
-              name='terms'
-              render={({ field }) => (
-                <Textarea
-                  {...field}
-                  className='min-h-[80px]'
-                  placeholder='Terms and conditions for this invoice'
-                  readOnly={!isEditable}
+              </div>
+              <div className='space-y-2'>
+                <Label className='text-muted-foreground text-xs'>
+                  Terms & Conditions
+                </Label>
+                <Controller
+                  control={control}
+                  name='terms'
+                  render={({ field }) => (
+                    <Textarea
+                      {...field}
+                      className='min-h-[80px]'
+                      placeholder='Terms and conditions for this invoice'
+                      readOnly={!isEditable}
+                    />
+                  )}
                 />
-              )}
-            />
-          </div>
+              </div>
+            </div>
+          </section>
 
           {(invoice?.status === 'sent' ||
             invoice?.status === 'disputed' ||
@@ -1024,6 +1147,16 @@ export default function InvoiceEditor({
         open={sendOpen}
         recipientLabel='client'
         title='Send Invoice'
+      />
+
+      <SignatureDialog
+        description='Draw your signature or pick one from the library.'
+        disabled={isUploadingSignature}
+        mediaItems={allMediaItems}
+        onConfirm={handleSignatureConfirm}
+        onOpenChange={setSignatureDialogOpen}
+        open={signatureDialogOpen}
+        title='Add Signature'
       />
 
       {invoice && (

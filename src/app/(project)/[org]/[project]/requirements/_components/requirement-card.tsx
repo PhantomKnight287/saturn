@@ -1,9 +1,9 @@
 import { formatDistanceToNow } from 'date-fns'
 import Link from 'next/link'
+import StatusBadge from '@/components/status-badge'
 import { Card } from '@/components/ui/card'
 import type { requirements } from '@/server/db/schema'
 import type { Role } from '@/types'
-import RequirementStatusBadge from './badge'
 
 type Requirement = typeof requirements.$inferSelect
 
@@ -32,7 +32,7 @@ export default function RequirementCard({
     >
       <Card className='flex h-full cursor-pointer flex-col gap-0 p-4 transition-colors hover:border-primary/50'>
         <div className='mb-1.5 flex items-center justify-between gap-2'>
-          <RequirementStatusBadge role={role} status={requirement.status} />
+          <StatusBadge role={role} status={requirement.status} />
           <span className='shrink-0 text-muted-foreground text-xs'>
             {formatDistanceToNow(new Date(requirement.updatedAt), {
               addSuffix: true,

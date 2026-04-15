@@ -6,10 +6,10 @@ import {
 
 export const statements = {
   ...defaultStatements,
-  organization: ['update', 'delete'],
-  member: ['create', 'update', 'delete'],
-  invitation: ['create', 'cancel'],
-  team: ['create', 'update', 'delete'],
+  organization: ['read', 'update', 'delete'],
+  member: ['create', 'read', 'update', 'delete'],
+  invitation: ['create', 'read', 'cancel'],
+  team: ['create', 'read', 'update', 'delete'],
   ac: ['create', 'read', 'update', 'delete'],
   project: ['create', 'read', 'update', 'delete'],
   requirement: [
@@ -41,8 +41,8 @@ export const statements = {
     'approve',
     'reject',
   ],
-  member_rate: ['manage'],
-  project_budget: ['manage'],
+  member_rate: ['read', 'manage'],
+  project_budget: ['read', 'manage'],
   timesheet_report: ['create', 'read', 'send', 'approve', 'dispute'],
   milestone: ['create', 'read', 'update', 'delete', 'complete'],
   proposal: ['create', 'read', 'update', 'delete', 'send', 'sign'],
@@ -62,10 +62,10 @@ export const ac = createAccessControl(statements)
 
 export const ownerRole = ac.newRole({
   ...adminAc.statements,
-  organization: ['update', 'delete'],
-  member: ['create', 'update', 'delete'],
-  invitation: ['create', 'cancel'],
-  team: ['create', 'update', 'delete'],
+  organization: ['read', 'update', 'delete'],
+  member: ['create', 'read', 'update', 'delete'],
+  invitation: ['create', 'read', 'cancel'],
+  team: ['create', 'read', 'update', 'delete'],
   ac: ['create', 'read', 'update', 'delete'],
   project: ['create', 'read', 'update', 'delete'],
   requirement: [
@@ -97,8 +97,8 @@ export const ownerRole = ac.newRole({
     'approve',
     'reject',
   ],
-  member_rate: ['manage'],
-  project_budget: ['manage'],
+  member_rate: ['read', 'manage'],
+  project_budget: ['read', 'manage'],
   timesheet_report: ['create', 'read', 'send', 'approve', 'dispute'],
   milestone: ['create', 'read', 'update', 'delete', 'complete'],
   proposal: ['create', 'read', 'update', 'delete', 'send', 'sign'],
@@ -116,10 +116,10 @@ export const ownerRole = ac.newRole({
 
 export const adminRole = ac.newRole({
   ...adminAc.statements,
-  organization: ['update'],
-  member: ['create', 'update', 'delete'],
-  invitation: ['create', 'cancel'],
-  team: ['create', 'update', 'delete'],
+  organization: ['read', 'update'],
+  member: ['create', 'read', 'update', 'delete'],
+  invitation: ['create', 'read', 'cancel'],
+  team: ['create', 'read', 'update', 'delete'],
   ac: ['create', 'read', 'update', 'delete'],
   project: ['create', 'read', 'update', 'delete'],
   requirement: [
@@ -151,8 +151,8 @@ export const adminRole = ac.newRole({
     'approve',
     'reject',
   ],
-  member_rate: ['manage'],
-  project_budget: ['manage'],
+  member_rate: ['read', 'manage'],
+  project_budget: ['read', 'manage'],
   timesheet_report: ['create', 'read', 'send', 'approve', 'dispute'],
   milestone: ['create', 'read', 'update', 'delete', 'complete'],
   proposal: ['create', 'read', 'update', 'delete', 'send'],
@@ -169,17 +169,17 @@ export const adminRole = ac.newRole({
 })
 
 export const memberRole = ac.newRole({
-  organization: [],
-  member: [],
+  organization: ['read'],
+  member: ['read'],
   invitation: [],
-  team: [],
+  team: ['read'],
   ac: ['read'],
   project: ['read'],
   requirement: ['create', 'read', 'update'],
   invoice: [],
   thread: ['create', 'read', 'update'],
   time_entry: ['create', 'read', 'update', 'delete', 'submit'],
-  member_rate: [],
+  member_rate: ['read'],
   project_budget: [],
   timesheet_report: ['read'],
   milestone: ['read'],
@@ -189,7 +189,7 @@ export const memberRole = ac.newRole({
 })
 
 export const clientRole = ac.newRole({
-  organization: [],
+  organization: ['read'],
   member: [],
   invitation: [],
   team: [],

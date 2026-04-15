@@ -42,6 +42,11 @@ export const env = createEnv({
     MAIL_PASSWORD: z.string().min(1),
     MAIL_SECURE: z.coerce.boolean(),
     EMAIL_SENDER: z.string().optional().nullable(),
+    // Polar
+    POLAR_ACCESS_TOKEN: z.string().min(1),
+    POLAR_WEBHOOK_SECRET: z.string().min(1),
+    POLAR_PRODUCT_ID: z.string(),
+    POLAR_PRODUCT_SLUG: z.string(),
     // S3
     S3_ENDPOINT: z.string().min(1),
     S3_REGION: z.string().min(1),

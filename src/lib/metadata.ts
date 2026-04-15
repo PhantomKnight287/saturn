@@ -5,6 +5,11 @@ import { APP_DEFAULT_TITLE } from './constants'
 export function createMetadata(override: Metadata): Metadata {
   return {
     ...override,
+    icons: {
+      icon: '/wordmark/logo_for_mark.png',
+      shortcut: '/wordmark/logo_for_mark.png',
+      apple: '/wordmark/logo_for_mark.png',
+    },
     openGraph: {
       title: override.title ?? undefined,
       description: override.description ?? undefined,

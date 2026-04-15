@@ -1,5 +1,6 @@
 import { apiKey } from '@better-auth/api-key'
 import { createId } from '@paralleldrive/cuid2'
+import { checkout, polar, portal, webhooks } from '@polar-sh/better-auth'
 import { render } from '@react-email/render'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
@@ -9,6 +10,7 @@ import { headers } from 'next/headers'
 import type { NextRequest } from 'next/server'
 import InvitationEmail from '@/emails/templates/invitation'
 import { env } from '@/env'
+import { polarClient } from '@/lib/polar'
 import { db } from '@/server/db'
 import * as schema from '@/server/db/schema'
 import { memberRates, settings } from '@/server/db/schema'
@@ -25,7 +27,15 @@ export const auth = betterAuth({
     enabled: true,
   },
   plugins: [
-    apiKey(),
+    apiKey({
+      enableMetadata: true,
+      references: 'organization',
+      rateLimit: {
+        enabled: true,
+        timeWindow: 1000 * 60,
+        maxRequests: 120,
+      },
+    }),
     lastLoginMethod(),
     organization({
       ac,
@@ -52,7 +62,6 @@ export const auth = betterAuth({
       },
       organizationHooks: {
         async afterAcceptInvitation({ member, organization }) {
-          /// We can set the member hourly rate here. Per project override could be done when a member is added to a project
           const [setting] = await db
             .select()
             .from(settings)
@@ -90,6 +99,31 @@ export const auth = betterAuth({
               sortOrder: i,
             }))
           )
+
+          const owner = await db
+            .select({ email: schema.users.email, name: schema.users.name })
+            .from(schema.members)
+            .innerJoin(schema.users, eq(schema.members.userId, schema.users.id))
+            .where(
+              and(
+                eq(schema.members.organizationId, organization.id),
+                eq(schema.members.role, 'owner')
+              )
+            )
+            .then((r) => r.at(0))
+
+          if (owner) {
+            await polarClient.customers
+              .create({
+                email: owner.email,
+                name: owner.name ?? organization.name,
+                externalId: organization.id,
+                metadata: { organizationName: organization.name },
+              })
+              .catch(() => {
+                // Customer may already exist — safe to ignore
+              })
+          }
         },
       },
       teams: {
@@ -118,6 +152,27 @@ export const auth = betterAuth({
           },
         },
       },
+    }),
+    polar({
+      client: polarClient,
+      /// we don't need to create a customer on sign up, as only owners can upgrade themselves, we create them when they create a new organization
+      createCustomerOnSignUp: false,
+      use: [
+        checkout({
+          products: [
+            {
+              productId: env.POLAR_PRODUCT_ID,
+              slug: env.POLAR_PRODUCT_SLUG,
+            },
+          ],
+          successUrl: '/success?checkout_id={CHECKOUT_ID}',
+          authenticatedUsersOnly: true,
+        }),
+        portal(),
+        webhooks({
+          secret: env.POLAR_WEBHOOK_SECRET,
+        }),
+      ],
     }),
   ],
   socialProviders: {

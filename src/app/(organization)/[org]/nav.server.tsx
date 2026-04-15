@@ -40,13 +40,6 @@ export default async function OrgNavServer({ slug }: { slug: string }) {
       ),
     },
     {
-      name: 'Invoices',
-      href: `/${slug}/invoices`,
-      visible: ['admin', 'owner', 'lead', 'member', 'client'].includes(
-        member?.role as string
-      ),
-    },
-    {
       name: 'Settings',
       href: `/${slug}/settings`,
       visible: ['admin', 'owner'].includes(member?.role as string),

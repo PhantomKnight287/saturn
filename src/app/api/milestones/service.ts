@@ -1,4 +1,4 @@
-import { and, asc, eq, sql } from 'drizzle-orm'
+import { and, asc, eq, inArray, sql } from 'drizzle-orm'
 import { db } from '@/server/db'
 import {
   milestoneRequirements,
@@ -118,8 +118,20 @@ const listByProjectWithProgress = async (projectId: string) => {
   return withProgress
 }
 
+const listByProjectIds = async (projectIds: string[]) => {
+  if (projectIds.length === 0) {
+    return []
+  }
+
+  return await db
+    .select()
+    .from(milestones)
+    .where(inArray(milestones.projectId, projectIds))
+}
+
 export const milestonesService = {
   listByProject,
+  listByProjectIds,
   listByProjectWithProgress,
   getById,
   getLinkedRequirements,

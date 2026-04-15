@@ -886,14 +886,28 @@ export const respondTimesheetReportAction = authedActionClient
         .where(eq(timesheetReportRecipients.id, currentRecipient.id))
 
       if (action === 'dispute') {
-        await db
-          .update(timesheetReports)
-          .set({
-            status: 'disputed',
-            disputeReason: reason ?? null,
-            respondedAt: new Date(),
-          })
-          .where(eq(timesheetReports.id, reportId))
+        await db.transaction(async (tx) => {
+          await tx
+            .update(timesheetReports)
+            .set({
+              status: 'disputed',
+              respondedAt: new Date(),
+            })
+            .where(eq(timesheetReports.id, reportId))
+          const entries = await tx
+            .select()
+            .from(timesheetReportEntries)
+            .where(eq(timesheetReportEntries.reportId, reportId))
+          await tx
+            .update(timeEntries)
+            .set({ status: 'client_rejected' })
+            .where(
+              inArray(
+                timeEntries.id,
+                entries.map((e) => e.timeEntryId)
+              )
+            )
+        })
       } else {
         const totalRecipients = recipients.length
         const alreadyApproved = recipients.filter(
@@ -902,13 +916,28 @@ export const respondTimesheetReportAction = authedActionClient
         const totalApproved = alreadyApproved + 1
 
         if (totalApproved >= totalRecipients) {
-          await db
-            .update(timesheetReports)
-            .set({
-              status: 'approved',
-              respondedAt: new Date(),
-            })
-            .where(eq(timesheetReports.id, reportId))
+          await db.transaction(async (tx) => {
+            await tx
+              .update(timesheetReports)
+              .set({
+                status: 'approved',
+                respondedAt: new Date(),
+              })
+              .where(eq(timesheetReports.id, reportId))
+            const entries = await tx
+              .select()
+              .from(timesheetReportEntries)
+              .where(eq(timesheetReportEntries.reportId, reportId))
+            await tx
+              .update(timeEntries)
+              .set({ status: 'client_accepted' })
+              .where(
+                inArray(
+                  timeEntries.id,
+                  entries.map((e) => e.timeEntryId)
+                )
+              )
+          })
         }
       }
 
