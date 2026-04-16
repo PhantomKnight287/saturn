@@ -4,6 +4,22 @@ import { z } from 'zod'
 
 export const env = createEnv({
   extends: [vercel()],
+  createFinalSchema: (shape) =>
+    z.object(shape).refine(
+      (env) => {
+        const hasProxy = !!env.EMAIL_PROXY
+        const hasSmtp =
+          !!env.MAIL_HOST &&
+          !!env.MAIL_PORT &&
+          !!env.MAIL_USER &&
+          !!env.MAIL_PASSWORD
+        return hasProxy || hasSmtp
+      },
+      {
+        message:
+          'Either EMAIL_PROXY or SMTP credentials (MAIL_HOST, MAIL_PORT, MAIL_USER, MAIL_PASSWORD) must be provided',
+      }
+    ),
   server: {
     NODE_ENV: z
       .enum(['development', 'production', 'test'])
@@ -36,12 +52,15 @@ export const env = createEnv({
     // BETTER_AUTH_URL: z.string().min(1).optional(),
     GITHUB_CLIENT_ID: z.string(),
     GITHUB_CLIENT_SECRET: z.string(),
-    MAIL_HOST: z.string().min(1),
-    MAIL_PORT: z.coerce.number().min(1),
-    MAIL_USER: z.string().min(1),
-    MAIL_PASSWORD: z.string().min(1),
-    MAIL_SECURE: z.coerce.boolean(),
+    // Emails
+    MAIL_HOST: z.string().min(1).optional(),
+    MAIL_PORT: z.coerce.number().min(1).optional(),
+    MAIL_USER: z.string().min(1).optional(),
+    MAIL_PASSWORD: z.string().min(1).optional(),
+    MAIL_SECURE: z.coerce.boolean().optional(),
     EMAIL_SENDER: z.string().optional().nullable(),
+    EMAIL_PROXY: z.string().optional().nullable(),
+    EMAIL_PROXY_SECRET: z.string().optional().nullable()
     // Polar
     POLAR_ACCESS_TOKEN: z.string().min(1),
     POLAR_WEBHOOK_SECRET: z.string().min(1),

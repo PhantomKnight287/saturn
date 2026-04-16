@@ -1,6 +1,6 @@
 'use client'
 
-import { Shield, UserPlus } from 'lucide-react'
+import { Briefcase, UserPlus } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
@@ -47,7 +47,7 @@ export function ClientsPageClient({
         <Empty>
           <EmptyHeader>
             <EmptyMedia variant='icon'>
-              <Shield />
+              <Briefcase />
             </EmptyMedia>
             <EmptyTitle>No clients yet</EmptyTitle>
             <EmptyDescription>

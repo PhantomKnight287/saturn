@@ -1,10 +1,10 @@
 import {
+  Briefcase,
   ChevronDown,
   Clock,
   FileSpreadsheet,
   Folder,
   LayoutDashboard,
-  Shield,
   Users,
 } from 'lucide-react'
 import Image from 'next/image'
@@ -16,7 +16,7 @@ function MockNav() {
     { name: 'Overview', icon: LayoutDashboard, active: false },
     { name: 'Projects', icon: Folder, active: true },
     { name: 'Teams', icon: Users, active: false },
-    { name: 'Clients', icon: Shield, active: false },
+    { name: 'Clients', icon: Briefcase, active: false },
     { name: 'Invoices', icon: FileSpreadsheet, active: false },
   ]
 

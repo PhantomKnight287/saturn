@@ -1,6 +1,6 @@
 /** biome-ignore-all lint/a11y/useValidAriaRole: the role being passed isn't aria-role but user role */
 import { useRouter } from '@bprogress/next/app'
-import { Shield, X } from 'lucide-react'
+import { Briefcase, X } from 'lucide-react'
 import { useAction } from 'next-safe-action/hooks'
 import { toast } from 'sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -67,7 +67,7 @@ export default function StakeholdersSection({
       <Empty>
         <EmptyHeader>
           <EmptyMedia variant='icon'>
-            <Shield />
+            <Briefcase />
           </EmptyMedia>
           <EmptyTitle>No clients assigned</EmptyTitle>
           <EmptyDescription>
@@ -91,7 +91,7 @@ export default function StakeholdersSection({
         <Empty>
           <EmptyHeader>
             <EmptyMedia variant='icon'>
-              <Shield />
+              <Briefcase />
             </EmptyMedia>
             <EmptyTitle>No clients yet</EmptyTitle>
             <EmptyDescription>
