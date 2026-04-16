@@ -60,7 +60,7 @@ export const env = createEnv({
     MAIL_SECURE: z.coerce.boolean().optional(),
     EMAIL_SENDER: z.string().optional().nullable(),
     EMAIL_PROXY: z.string().optional().nullable(),
-    EMAIL_PROXY_SECRET: z.string().optional().nullable()
+    EMAIL_PROXY_SECRET: z.string().optional().nullable(),
     // Polar
     POLAR_ACCESS_TOKEN: z.string().min(1),
     POLAR_WEBHOOK_SECRET: z.string().min(1),
