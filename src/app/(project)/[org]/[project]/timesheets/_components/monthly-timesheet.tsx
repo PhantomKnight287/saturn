@@ -154,7 +154,7 @@ export function MonthlyTimesheet({
     if (entry.memberId !== currentMemberId) {
       return false
     }
-    return entry.status === 'draft' || entry.status === 'admin_rejected'
+    return entry.status === 'draft'
   }
 
   function canDelete(entry: TimeEntry): boolean {
@@ -232,11 +232,12 @@ export function MonthlyTimesheet({
               {!isTeamView && submittableEntries.length > 0 && (
                 <Button
                   disabled={selectedIds.size === 0 || submitAction.isPending}
+                  loading={submitAction.isPending}
                   onClick={handleSubmit}
                   size='sm'
                 >
                   <Send className='size-4' />
-                  {submitAction.isPending ? 'Submitting...' : 'Submit Selected'}
+                  Submit Selected
                 </Button>
               )}
             </div>

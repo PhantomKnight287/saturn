@@ -11,6 +11,8 @@ import { createMetadata } from '@/lib/metadata'
 import { TimeTrackingClient } from './page.client'
 
 export const metadata: Metadata = createMetadata({
+  title: 'Timesheets',
+  description: 'Log hours and track team productivity across the project.',
   openGraph: {
     images: ['/api/og?page=Timesheets'],
   },

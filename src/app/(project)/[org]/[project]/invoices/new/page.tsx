@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
@@ -8,9 +9,21 @@ import { projectsService } from '@/app/api/projects/service'
 import { requirementsService } from '@/app/api/requirements/service'
 import { teamService } from '@/app/api/teams/service'
 import { timesheetService } from '@/app/api/timesheets/service'
+import { createMetadata } from '@/lib/metadata'
 import type { Role } from '@/types'
 import InvoiceEditor from '../_components/invoice-editor'
 import type { CustomField, ExtendInvoiceData } from '../types'
+
+export const metadata: Metadata = createMetadata({
+  title: 'New Invoice',
+  description: 'Draft a new invoice for the project.',
+  openGraph: {
+    images: ['/api/og?page=Invoices'],
+  },
+  twitter: {
+    images: ['/api/og?page=Invoices'],
+  },
+})
 
 export default async function NewInvoice({
   params,

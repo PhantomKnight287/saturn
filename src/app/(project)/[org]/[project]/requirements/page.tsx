@@ -8,6 +8,8 @@ import type { Role } from '@/types'
 import { RequirementsClient } from './page.client'
 
 export const metadata: Metadata = createMetadata({
+  title: 'Requirements',
+  description: 'Write, review, and sign off on project requirements.',
   openGraph: {
     images: ['/api/og?page=Requirements'],
   },

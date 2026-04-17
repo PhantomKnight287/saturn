@@ -1,3 +1,5 @@
+'use client'
+
 import { GitHubIcon, UserButton } from 'better-auth-ui'
 import Link from 'next/link'
 import { APP_NAME, logo } from '@/lib/constants'

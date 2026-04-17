@@ -34,4 +34,7 @@ export const addExistingMemberToProjectSchema = z.object({
   projectId: z.string().min(1),
   organizationId: z.string().min(1),
   type: z.enum(['member', 'client']),
+  hourlyRate: z.number().int().nonnegative().optional(),
+  currency: z.string().min(1).optional(),
+  setAsOrgDefault: z.boolean().optional(),
 })

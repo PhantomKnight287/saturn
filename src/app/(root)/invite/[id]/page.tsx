@@ -1,11 +1,24 @@
 import { eq } from 'drizzle-orm'
+import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { createMetadata } from '@/lib/metadata'
 import { auth } from '@/server/auth'
 import { db } from '@/server/db'
 import { organizations } from '@/server/db/schema/auth'
 import { projectInvitations, projects } from '@/server/db/schema/project'
 import { AcceptInviteClient } from './page.client'
+
+export const metadata: Metadata = createMetadata({
+  title: 'Accept invitation',
+  description: 'Join your team on Saturn.',
+  openGraph: {
+    images: ['/api/og?page=Invitation'],
+  },
+  twitter: {
+    images: ['/api/og?page=Invitation'],
+  },
+})
 
 export default async function InvitePage({
   params,

@@ -1,6 +1,19 @@
+import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
+import { createMetadata } from '@/lib/metadata'
 import ProposalEditor from '../_components/proposal-editor'
+
+export const metadata: Metadata = createMetadata({
+  title: 'New Proposal',
+  description: 'Draft a new proposal to send to your client.',
+  openGraph: {
+    images: ['/api/og?page=Proposals'],
+  },
+  twitter: {
+    images: ['/api/og?page=Proposals'],
+  },
+})
 
 export default async function NewProposal({
   params,

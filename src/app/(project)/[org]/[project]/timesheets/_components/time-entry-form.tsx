@@ -307,7 +307,11 @@ export function TimeEntryForm({
             >
               Cancel
             </Button>
-            <Button disabled={isPending} loading={isPending} type='submit'>
+            <Button
+              disabled={isPending || editEntry?.status === 'admin_rejected'}
+              loading={isPending}
+              type='submit'
+            >
               {editEntry ? 'Update Entry' : 'Log Entry'}
             </Button>
           </DialogFooter>

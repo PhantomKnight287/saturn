@@ -367,6 +367,7 @@ export function ClientExpensesView({ expenses }: ClientExpensesViewProps) {
             </Button>
             <Button
               disabled={!rejectReason.trim() || respondAction.isPending}
+              loading={respondAction.isPending}
               onClick={() =>
                 respondAction.execute({
                   expenseIds: [...selectedIds],
@@ -376,7 +377,7 @@ export function ClientExpensesView({ expenses }: ClientExpensesViewProps) {
               }
               variant='destructive'
             >
-              {respondAction.isPending ? 'Rejecting...' : 'Reject'}
+              Reject
             </Button>
           </DialogFooter>
         </DialogContent>

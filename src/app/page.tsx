@@ -1,4 +1,5 @@
 /** biome-ignore-all lint/correctness/useUniqueElementIds: Need em to score to the section in home page */
+
 import {
   ArrowRight,
   Check,
@@ -13,10 +14,12 @@ import {
   Users,
   Video,
 } from 'lucide-react'
+import type { Metadata } from 'next'
 import Link from 'next/link'
 
 import { SaturnLogo } from '@/components/icons/saturn-logo'
 import { buttonVariants } from '@/components/ui/button'
+import { createMetadata } from '@/lib/metadata'
 import {
   capabilities,
   clientFeatures,
@@ -35,6 +38,17 @@ import { MockTimesheetUI } from './_landing/mock-timesheet-ui'
 
 const freelancerIcons = { Code, Palette, Video, Users } as const
 const clientIcons = { Eye, PenTool, MessageSquare, Lock } as const
+
+export const metadata: Metadata = createMetadata({
+  description:
+    'Saturn brings projects, timesheets, invoices, and client management into one place — the operating system for your freelance business.',
+  openGraph: {
+    images: ['/api/og?page=Saturn'],
+  },
+  twitter: {
+    images: ['/api/og?page=Saturn'],
+  },
+})
 
 export default function LandingPage() {
   return (

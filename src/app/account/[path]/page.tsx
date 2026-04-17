@@ -1,7 +1,20 @@
 import { AccountView } from 'better-auth-ui'
 import { accountViewPaths } from 'better-auth-ui/server'
+import type { Metadata } from 'next'
+import { createMetadata } from '@/lib/metadata'
 
 export const dynamicParams = false
+
+export const metadata: Metadata = createMetadata({
+  title: 'Account',
+  description: 'Manage your Saturn account, security, and connected sessions.',
+  openGraph: {
+    images: ['/api/og?page=Account'],
+  },
+  twitter: {
+    images: ['/api/og?page=Account'],
+  },
+})
 
 export function generateStaticParams() {
   return Object.values(accountViewPaths).map((path) => ({

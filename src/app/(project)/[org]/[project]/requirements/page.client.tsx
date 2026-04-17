@@ -1,8 +1,7 @@
 'use client'
 
+import { useRouter } from '@bprogress/next/app'
 import { FileText, Plus } from 'lucide-react'
-import Link from 'next/link'
-
 import { Button } from '@/components/ui/button'
 import {
   Empty,
@@ -13,7 +12,7 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty'
 import type { requirements } from '@/server/db/schema'
-import type { Role, RouteImpl } from '@/types'
+import type { Role } from '@/types'
 import RequirementCard from './_components/requirement-card'
 
 type Requirement = typeof requirements.$inferSelect
@@ -33,18 +32,22 @@ export function RequirementsClient({
   canCreate,
   role,
 }: RequirementsClientProps) {
-  const newUrl = `/${orgSlug}/${projectSlug}/requirements/new` as RouteImpl
-
+  const newUrl = `/${orgSlug}/${projectSlug}/requirements/new`
+  const router = useRouter()
   return (
     <div className='w-full'>
       <div className='mb-6 flex items-center justify-between'>
         <h1 className='font-semibold text-2xl'>Requirements</h1>
         {canCreate && requirements.length > 0 && (
-          <Button asChild size='sm'>
-            <Link href={newUrl}>
-              <Plus className='h-4 w-4' />
-              New Requirement
-            </Link>
+          <Button
+            kbd='c'
+            onClick={() => {
+              router.push(newUrl)
+            }}
+            size='sm'
+          >
+            <Plus className='h-4 w-4' />
+            New Requirement
           </Button>
         )}
       </div>
@@ -63,8 +66,14 @@ export function RequirementsClient({
           </EmptyHeader>
           {canCreate && (
             <EmptyContent>
-              <Button asChild>
-                <Link href={newUrl}>Create Requirement</Link>
+              <Button
+                kbd='c'
+                onClick={() => {
+                  router.push(newUrl)
+                }}
+                size='sm'
+              >
+                New Requirement
               </Button>
             </EmptyContent>
           )}

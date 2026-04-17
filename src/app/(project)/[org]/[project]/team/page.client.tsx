@@ -22,8 +22,11 @@ export function TeamPageClient({
   projectClients,
   projectTeams,
   orgTeams,
+  orgMembers,
   pendingInvitations,
   canManage,
+  defaultMemberRate,
+  defaultCurrency,
 }: TeamPageClientProps) {
   const [activeTab, setActiveTab] = useState<Tab>('members')
   const [showInviteDialog, setShowInviteDialog] = useState(false)
@@ -105,8 +108,11 @@ export function TeamPageClient({
         <TabsContent value='members'>
           <MembersSection
             canManage={canManage}
+            defaultCurrency={defaultCurrency}
+            defaultMemberRate={defaultMemberRate}
             onShowInviteDialogChange={setShowInviteDialog}
             organizationId={organizationId}
+            orgMembers={orgMembers}
             orgSlug={orgSlug}
             pendingInvitations={memberInvitations}
             projectId={projectId}

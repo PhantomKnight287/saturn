@@ -7,6 +7,8 @@ import { createMetadata } from '@/lib/metadata'
 import { ProjectSettingsPageClient } from './page.client'
 
 export const metadata: Metadata = createMetadata({
+  title: 'Project Settings',
+  description: 'Configure project preferences, defaults, and access.',
   openGraph: {
     images: ['/api/og?page=Settings'],
   },

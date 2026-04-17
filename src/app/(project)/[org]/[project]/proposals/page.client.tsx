@@ -1,8 +1,7 @@
 'use client'
 
+import { useRouter } from '@bprogress/next/app'
 import { FileText, Plus } from 'lucide-react'
-import Link from 'next/link'
-
 import { Button } from '@/components/ui/button'
 import {
   Empty,
@@ -13,8 +12,7 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty'
 import type { proposals } from '@/server/db/schema'
-import type { Role, RouteImpl } from '@/types'
-// import type { Role } from './_components/badge'
+import type { Role } from '@/types'
 import ProposalCard from './_components/proposal-card'
 
 type Proposal = typeof proposals.$inferSelect
@@ -34,18 +32,16 @@ export function ProposalsClient({
   canCreate,
   role,
 }: ProposalsClientProps) {
-  const newUrl = `/${orgSlug}/${projectSlug}/proposals/new` as RouteImpl
-
+  const newUrl = `/${orgSlug}/${projectSlug}/proposals/new`
+  const router = useRouter()
   return (
     <div className='w-full'>
       <div className='mb-6 flex items-center justify-between'>
         <h1 className='font-semibold text-2xl'>Proposals</h1>
         {canCreate && proposals.length > 0 && (
-          <Button asChild size='sm'>
-            <Link href={newUrl}>
-              <Plus className='h-4 w-4' />
-              New Proposal
-            </Link>
+          <Button kbd='c' onClick={() => router.push(newUrl)} size='sm'>
+            <Plus className='h-4 w-4' />
+            New Proposal
           </Button>
         )}
       </div>
@@ -64,8 +60,8 @@ export function ProposalsClient({
           </EmptyHeader>
           {canCreate && (
             <EmptyContent>
-              <Button asChild>
-                <Link href={newUrl}>Create Proposal</Link>
+              <Button kbd='c' onClick={() => router.push(newUrl)} size='sm'>
+                New Proposal
               </Button>
             </EmptyContent>
           )}

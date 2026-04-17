@@ -8,6 +8,8 @@ import type { Role } from '@/types'
 import { ProposalsClient } from './page.client'
 
 export const metadata: Metadata = createMetadata({
+  title: 'Proposals',
+  description: 'Draft and send client proposals.',
   openGraph: {
     images: ['/api/og?page=Proposals'],
   },

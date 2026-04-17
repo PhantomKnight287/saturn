@@ -7,7 +7,13 @@ import { ProjectsClient } from './page.client'
 
 export const metadata: Metadata = createMetadata({
   title: 'Projects',
-  description: "View all of your workspace's projects",
+  description: "View all of your workspace's projects.",
+  openGraph: {
+    images: ['/api/og?page=Projects'],
+  },
+  twitter: {
+    images: ['/api/og?page=Projects'],
+  },
 })
 
 export default async function Projects({

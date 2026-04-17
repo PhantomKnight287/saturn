@@ -4,8 +4,8 @@ export const PUBLIC_ROUTES: string[] = [
   '/',
   '/api/og',
   '/polar/webhooks',
-  '/opengraph-image',
-  '/twitter-image',
+  '/opengraph-image.png',
+  '/twitter-image.png',
   '/sitemap.xml',
   '/manifest.webmanifest',
 ]

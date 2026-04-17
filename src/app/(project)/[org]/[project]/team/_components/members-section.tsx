@@ -23,7 +23,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { removeMemberAction } from '../actions'
-import type { PendingInvitation, ProjectMember } from '../types'
+import type { OrgMember, PendingInvitation, ProjectMember } from '../types'
 import InviteDialog from './invite-dialog'
 import PendingInvitationsBlock from './pending-invitations'
 
@@ -37,6 +37,9 @@ export default function MembersSection({
   canManage,
   showInviteDialog,
   onShowInviteDialogChange,
+  orgMembers,
+  defaultMemberRate,
+  defaultCurrency,
 }: {
   projectId: string
   orgSlug: string
@@ -47,6 +50,9 @@ export default function MembersSection({
   canManage: boolean
   showInviteDialog: boolean
   onShowInviteDialogChange: (open: boolean) => void
+  orgMembers: OrgMember[]
+  defaultMemberRate: number
+  defaultCurrency: string
 }) {
   const router = useRouter()
 
@@ -183,11 +189,15 @@ export default function MembersSection({
       )}
 
       <InviteDialog
+        defaultCurrency={defaultCurrency}
+        defaultMemberRate={defaultMemberRate}
         label='Member'
         onOpenChange={onShowInviteDialogChange}
         open={showInviteDialog}
         organizationId={organizationId}
+        orgMembers={orgMembers}
         projectId={projectId}
+        projectMembers={projectMembers}
         role='member'
       />
     </>

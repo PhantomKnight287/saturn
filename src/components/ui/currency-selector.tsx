@@ -134,7 +134,7 @@ const CurrencySelect = React.forwardRef<HTMLButtonElement, CurrencySelectProps>(
             <SelectValue placeholder={placeholder} />
           )}
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="w-full" >
           <SelectGroup>
             <VirtualizedCurrencyList
               currencies={uniqueCurrencies}
@@ -172,14 +172,14 @@ const VirtualizedCurrencyList = React.memo<{
   return (
     <div
       ref={parentRef}
-      className="max-h-[300px] overflow-auto"
+      className="max-h-[300px] overflow-auto w-full"
       style={{
         height: `${Math.min(currencies.length * 40, 300)}px`,
       }}
     >
       {/* Force render selected item at the top */}
       {selectedCurrency && (
-        <div className="sticky top-0 z-10 bg-background border-b">
+        <div className="sticky top-0 z-10 bg-background border-b w-full">
           <SelectItem value={selectedCurrency.code || ""}>
             <div className="flex items-center w-full gap-2">
               <span className="text-sm text-muted-foreground w-8 text-left">

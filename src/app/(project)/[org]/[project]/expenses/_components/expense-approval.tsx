@@ -276,6 +276,7 @@ export function ExpenseApproval({ expenses }: ExpenseApprovalProps) {
             </Button>
             <Button
               disabled={!rejectReason.trim() || rejectAction.isPending}
+              loading={rejectAction.isPending}
               onClick={() =>
                 rejectAction.execute({
                   expenseIds: Array.from(selectedIds),
@@ -284,7 +285,7 @@ export function ExpenseApproval({ expenses }: ExpenseApprovalProps) {
               }
               variant='destructive'
             >
-              {rejectAction.isPending ? 'Rejecting...' : 'Reject'}
+              Reject
             </Button>
           </DialogFooter>
         </DialogContent>

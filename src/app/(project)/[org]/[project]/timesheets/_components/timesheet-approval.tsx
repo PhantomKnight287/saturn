@@ -262,6 +262,7 @@ export function TimesheetApproval({
             </Button>
             <Button
               disabled={!rejectReason.trim() || rejectAction.isPending}
+              loading={rejectAction.isPending}
               onClick={() =>
                 rejectAction.execute({
                   timeEntryIds: [...selectedIds],
@@ -270,7 +271,7 @@ export function TimesheetApproval({
               }
               variant='destructive'
             >
-              {rejectAction.isPending ? 'Rejecting...' : 'Reject'}
+              Reject
             </Button>
           </DialogFooter>
         </DialogContent>

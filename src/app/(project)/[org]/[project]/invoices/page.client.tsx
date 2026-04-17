@@ -1,9 +1,9 @@
 'use client'
 
+import { useRouter } from '@bprogress/next/app'
 import { ChevronDown, Copy, Plus, Receipt } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
-
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -19,7 +19,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty'
-import type { RouteImpl } from '@/types'
 import InvoiceCard from './_components/invoice-card'
 import { InvoicePickerDialog } from './_components/invoice-picker-dialog'
 import type { InvoicesClientProps } from './types'
@@ -31,20 +30,23 @@ export function InvoicesClient({
   canCreate,
   role,
 }: InvoicesClientProps) {
-  const newUrl = `/${orgSlug}/${projectSlug}/invoices/new` as RouteImpl
+  const newUrl = `/${orgSlug}/${projectSlug}/invoices/new`
   const [pickerOpen, setPickerOpen] = useState(false)
-
+  const router = useRouter()
   return (
     <div className='w-full'>
       <div className='mb-6 flex items-center justify-between'>
         <h1 className='font-semibold text-2xl'>Invoices</h1>
         {canCreate && invoices.length > 0 && (
           <div className='flex items-center'>
-            <Button asChild className='rounded-r-none' size='sm'>
-              <Link href={newUrl}>
-                <Plus className='size-4' />
-                New Invoice
-              </Link>
+            <Button
+              className='rounded-r-none'
+              kbd='c'
+              onClick={() => router.push(newUrl)}
+              size='sm'
+            >
+              <Plus className='size-4' />
+              New Invoice
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

@@ -10,6 +10,7 @@ import {
   ShieldAlert,
   Users,
 } from 'lucide-react'
+import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
@@ -29,6 +30,7 @@ import {
 import { OverdueInvoicesAccordion } from '@/components/dashboard/overdue-invoices-accordion'
 import { StatCard } from '@/components/dashboard/stat-card'
 import { Badge } from '@/components/ui/badge'
+import { createMetadata } from '@/lib/metadata'
 import { ActiveMilestonesCard } from './_components/active-milestones-card'
 import { BudgetCard } from './_components/budget-card'
 import {
@@ -37,6 +39,17 @@ import {
 } from './_components/pending-signatures-cards'
 import { ProjectDueDate } from './_components/project-due-date'
 import { TimesheetReportsCard } from './_components/timesheet-reports-card'
+
+export const metadata: Metadata = createMetadata({
+  title: 'Project Overview',
+  description: 'Project at a glance — milestones, budget, and pending work.',
+  openGraph: {
+    images: ['/api/og?page=Overview'],
+  },
+  twitter: {
+    images: ['/api/og?page=Overview'],
+  },
+})
 
 export default async function ProjectOverview({
   params,

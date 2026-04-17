@@ -1,7 +1,7 @@
 'use server'
 
 import { render } from '@react-email/render'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import { headers } from 'next/headers'
 import { authService } from '@/app/api/auth/service'
 import { projectsService } from '@/app/api/projects/service'
@@ -11,6 +11,7 @@ import { sendEmailsToRecipients } from '@/lib/notifications'
 import { authedActionClient } from '@/lib/safe-action'
 import { auth } from '@/server/auth'
 import { db } from '@/server/db'
+import { settings as settingsTable } from '@/server/db/schema'
 import { members, teamMembers, teams, users } from '@/server/db/schema/auth'
 import {
   projectClientAssignments,
@@ -18,6 +19,7 @@ import {
   projectMemberAssignments,
   projectTeamAssignments,
 } from '@/server/db/schema/project'
+import { memberRates } from '@/server/db/schema/timesheet'
 import {
   addExistingMemberToProjectSchema,
   assignTeamSchema,
@@ -272,7 +274,15 @@ export const addExistingMemberToProjectAction = authedActionClient
   .inputSchema(addExistingMemberToProjectSchema)
   .action(
     async ({
-      parsedInput: { email, projectId, organizationId, type },
+      parsedInput: {
+        email,
+        projectId,
+        organizationId,
+        type,
+        hourlyRate,
+        currency,
+        setAsOrgDefault,
+      },
       ctx: { role, user, orgMember },
     }) => {
       if (!role.authorize({ member: ['create'] }).success) {
@@ -324,6 +334,38 @@ export const addExistingMemberToProjectAction = authedActionClient
           .insert(projectMemberAssignments)
           .values({ projectId, memberId: member.id })
           .onConflictDoNothing()
+      }
+
+      // Set member rate if provided
+      if (hourlyRate !== undefined && currency && type !== 'client') {
+        await db
+          .insert(memberRates)
+          .values({
+            memberId: member.id,
+            hourlyRate,
+            currency,
+            effectiveFrom: new Date(),
+          })
+          .onConflictDoNothing()
+      }
+
+      // Update workspace wide defaults if checkbox was checked
+      if (setAsOrgDefault && hourlyRate !== undefined && currency) {
+        await db
+          .insert(settingsTable)
+          .values({
+            organizationId,
+            defaultMemberRate: hourlyRate,
+            defaultCurrency: currency,
+          })
+          .onConflictDoUpdate({
+            target: [settingsTable.organizationId],
+            targetWhere: sql`${settingsTable.projectId} IS NULL`,
+            set: {
+              defaultMemberRate: hourlyRate,
+              defaultCurrency: currency,
+            },
+          })
       }
 
       return { success: true }

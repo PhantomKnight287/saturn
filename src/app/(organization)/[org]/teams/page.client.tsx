@@ -20,6 +20,8 @@ export function TeamsPageClient({
   invitations,
   canManage,
   currentMemberId,
+  defaultMemberRate,
+  defaultCurrency,
 }: TeamsPageClientProps) {
   const [activeTab, setActiveTab] = useState<Tab>('members')
   const [showInviteDialog, setShowInviteDialog] = useState(false)
@@ -76,6 +78,8 @@ export function TeamsPageClient({
           <MembersSection
             canManage={canManage}
             currentMemberId={currentMemberId}
+            defaultCurrency={defaultCurrency}
+            defaultMemberRate={defaultMemberRate}
             invitations={invitations}
             members={members}
             onShowInviteDialogChange={setShowInviteDialog}

@@ -9,6 +9,8 @@ import { createMetadata } from '@/lib/metadata'
 import ExpensesClient from './page.client'
 
 export const metadata: Metadata = createMetadata({
+  title: 'Expenses',
+  description: 'Track and approve project expenses.',
   openGraph: {
     images: ['/api/og?page=Expenses'],
   },
