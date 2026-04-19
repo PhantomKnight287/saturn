@@ -32,6 +32,9 @@ export const settings = pgTable(
     }),
     defaultMemberRate: integer('default_member_rate').default(0).notNull(),
     defaultCurrency: text('default_currency').default('USD').notNull(),
+    invoiceNumberTemplate: text('invoice_number_template')
+      .default('INV-%year(short)%month(num)-%seq(4)')
+      .notNull(),
     defaultTimesheetDuration: timesheetDurationEnum(
       'default_timesheet_duration'
     )

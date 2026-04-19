@@ -24,6 +24,16 @@ export const updateTimesheetDefaultsSchema = z.object({
   defaultTimesheetDuration: z.enum(timesheetDurationOptions),
 })
 
+export const updateInvoiceNumberTemplateSchema = z.object({
+  organizationId: z.string().min(1),
+  projectId: z.string().min(1).optional(),
+  invoiceNumberTemplate: z
+    .string()
+    .trim()
+    .min(1, 'Template cannot be empty')
+    .max(100, 'Template is too long'),
+})
+
 export const deleteOrganizationSchema = z.object({
   organizationId: z.string().min(1),
   confirmName: z.string().min(1, 'Please type the workspace name to confirm'),

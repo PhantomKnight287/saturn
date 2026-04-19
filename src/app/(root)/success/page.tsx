@@ -2,7 +2,7 @@ import { Polar } from '@polar-sh/sdk'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { buttonVariants } from '@/components/ui/button'
+import { buttonVariants } from '@/components/ui/button-variants'
 import {
   Card,
   CardContent,

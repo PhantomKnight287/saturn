@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { authClient } from '@/lib/auth-client'
+import { analyticsService } from '@/services/analytics.service'
 import { acceptInviteAction } from './actions'
 
 interface AcceptInviteClientProps {
@@ -37,6 +38,7 @@ export function AcceptInviteClient({
 
   const { execute: executeAssign } = useAction(acceptInviteAction, {
     onSuccess() {
+      analyticsService.track('member_joined')
       // Redirect to the project if we have one, otherwise to the org
       if (organizationSlug && projectSlug) {
         router.push(`/${organizationSlug}/${projectSlug}`)

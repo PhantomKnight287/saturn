@@ -45,6 +45,7 @@ export default async function ProjectSettingsPage({
       defaultCurrency={settings.defaultCurrency}
       defaultMemberRate={settings.defaultMemberRate}
       defaultTimesheetDuration={settings.defaultTimesheetDuration}
+      invoiceNumberTemplate={settings.invoiceNumberTemplate}
       organizationId={organization.id}
       orgSlug={org}
       project={project}

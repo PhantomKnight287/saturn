@@ -26,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { analyticsService } from '@/services/analytics.service'
 import { inviteOrgMemberAction } from '../actions'
 
 const formSchema = z.object({
@@ -71,6 +72,7 @@ export default function InviteDialog({
       form.reset(defaultValues)
       onOpenChange(false)
       router.refresh()
+      analyticsService.track('member_invited')
     },
     onError({ error }) {
       toast.error(error.serverError ?? 'Failed to send invitation')

@@ -15,6 +15,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { authClient } from '@/lib/auth-client'
+import { analyticsService } from '@/services/analytics.service'
 
 export default function InviteClientDialog({
   open,
@@ -54,6 +55,7 @@ export default function InviteClientDialog({
         setEmail('')
         onOpenChange(false)
         router.refresh()
+        analyticsService.track('client_added')
       }
     } catch {
       toast.error('Failed to send invitation')

@@ -113,6 +113,20 @@
       "when": 1776337175418,
       "tag": "0015_melodic_jack_flag",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1776605275386,
+      "tag": "0016_overconfident_boomerang",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1776611700894,
+      "tag": "0017_crazy_sage",
+      "breakpoints": true
     }
   ]
 }

@@ -2,7 +2,7 @@
 
 import { useRouter } from '@bprogress/next/app'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { AlertTriangle, CreditCard, Save, Sparkles } from 'lucide-react'
+import { AlertTriangle, CreditCard, Hash, Save, Sparkles } from 'lucide-react'
 import { useAction } from 'next-safe-action/hooks'
 import { useCallback, useEffect, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
@@ -37,21 +37,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { authClient } from '@/lib/auth-client'
+import { authClient, useSession } from '@/lib/auth-client'
 import { ApiKeysCard } from './_components/api-keys/card'
+import { InvoiceNumberTemplateInput } from './_components/invoice-number-template-input'
 import {
   deleteOrganizationAction,
   renameOrganizationAction,
+  updateInvoiceNumberTemplateAction,
   updateTimesheetDefaultsAction,
 } from './actions'
 import {
   renameOrganizationSchema,
   type TimesheetDuration,
+  updateInvoiceNumberTemplateSchema,
   updateTimesheetDefaultsSchema,
 } from './common'
 
 type RenameFormValues = z.infer<typeof renameOrganizationSchema>
 type TimesheetFormValues = z.infer<typeof updateTimesheetDefaultsSchema>
+type InvoiceTemplateFormValues = z.infer<
+  typeof updateInvoiceNumberTemplateSchema
+>
 
 export function SettingsPageClient({
   organization,
@@ -60,6 +66,7 @@ export function SettingsPageClient({
   defaultMemberRate,
   defaultTimesheetDuration,
   defaultCurrency,
+  invoiceNumberTemplate,
 }: {
   organization: { id: string; name: string; slug: string }
   orgSlug: string
@@ -67,9 +74,10 @@ export function SettingsPageClient({
   defaultMemberRate: number
   defaultCurrency: string
   defaultTimesheetDuration: TimesheetDuration
+  invoiceNumberTemplate: string
 }) {
   const router = useRouter()
-
+  const session = useSession()
   const renameForm = useForm<RenameFormValues>({
     resolver: zodResolver(renameOrganizationSchema),
     defaultValues: {
@@ -89,6 +97,14 @@ export function SettingsPageClient({
     },
   })
 
+  const invoiceTemplateForm = useForm<InvoiceTemplateFormValues>({
+    resolver: zodResolver(updateInvoiceNumberTemplateSchema),
+    defaultValues: {
+      organizationId: organization.id,
+      invoiceNumberTemplate,
+    },
+  })
+
   const [slugAcknowledged, setSlugAcknowledged] = useState(false)
   const watchedSlug = renameForm.watch('slug')
   const slugChanged = watchedSlug !== organization.slug
@@ -104,7 +120,13 @@ export function SettingsPageClient({
 
   useEffect(() => {
     authClient.customer.subscriptions
-      .list({ query: { limit: 1, active: true, referenceId: organization.id } })
+      .list({
+        query: {
+          limit: 1,
+          active: true,
+          referenceId: session.data?.user.id,
+        },
+      })
       // biome-ignore lint/suspicious/noExplicitAny: I have no idea why this section is not typed
       .then(({ data }: { data: any }) => {
         if (data && data?.result?.items.length > 0) {
@@ -121,20 +143,20 @@ export function SettingsPageClient({
       .catch(() => {
         setSubscription({ status: 'free' })
       })
-  }, [organization.id])
+  }, [session.data?.user.id])
 
   const handleUpgrade = useCallback(async () => {
     setCheckoutLoading(true)
     try {
       await authClient.checkout({
         slug: 'pro-plan',
-        referenceId: organization.id,
+        referenceId: session.data?.user.id,
       })
     } catch {
       toast.error('Failed to start checkout')
       setCheckoutLoading(false)
     }
-  }, [organization.id])
+  }, [session.data?.user.id])
 
   const handleManageBilling = useCallback(async () => {
     try {
@@ -172,6 +194,20 @@ export function SettingsPageClient({
       },
     })
 
+  const {
+    execute: executeInvoiceTemplate,
+    isPending: isSavingInvoiceTemplate,
+  } = useAction(updateInvoiceNumberTemplateAction, {
+    onSuccess() {
+      toast.success('Invoice number template updated')
+      invoiceTemplateForm.reset(invoiceTemplateForm.getValues())
+      router.refresh()
+    },
+    onError({ error }) {
+      toast.error(error.serverError ?? 'Failed to update invoice template')
+    },
+  })
+
   const { execute: executeDelete, isPending: isDeleting } = useAction(
     deleteOrganizationAction,
     {
@@ -195,6 +231,10 @@ export function SettingsPageClient({
 
   function handleTimesheetSubmit(data: TimesheetFormValues) {
     executeTimesheetDefaults(data)
+  }
+
+  function handleInvoiceTemplateSubmit(data: InvoiceTemplateFormValues) {
+    executeInvoiceTemplate(data)
   }
 
   return (
@@ -394,6 +434,59 @@ export function SettingsPageClient({
               >
                 <Save className='size-4' />
                 Save Defaults
+              </Button>
+            </CardFooter>
+          </form>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className='flex items-center gap-2'>
+              <Hash className='size-4 text-muted-foreground' />
+              Invoice Numbering
+            </CardTitle>
+            <CardDescription>
+              Define the template used to generate invoice numbers. Add
+              variables like sequence, date parts, or time, and mix them with
+              your own prefix and separators.
+            </CardDescription>
+          </CardHeader>
+          <form
+            onSubmit={invoiceTemplateForm.handleSubmit(
+              handleInvoiceTemplateSubmit
+            )}
+          >
+            <CardContent>
+              <Controller
+                control={invoiceTemplateForm.control}
+                name='invoiceNumberTemplate'
+                render={({ field, fieldState }) => (
+                  <Field className='gap-1' data-invalid={fieldState.invalid}>
+                    <FieldLabel>Template</FieldLabel>
+                    <InvoiceNumberTemplateInput
+                      onChange={field.onChange}
+                      value={field.value}
+                    />
+                    <FieldDescription>
+                      Preview uses sequence #1 and the current date/time. Real
+                      invoices use the next available sequence.
+                    </FieldDescription>
+                    {fieldState.invalid && (
+                      <FieldError errors={[fieldState.error]} />
+                    )}
+                  </Field>
+                )}
+              />
+            </CardContent>
+            <CardFooter>
+              <Button
+                className='mt-4'
+                disabled={!invoiceTemplateForm.formState.isDirty}
+                loading={isSavingInvoiceTemplate}
+                type='submit'
+              >
+                <Save className='size-4' />
+                Save Template
               </Button>
             </CardFooter>
           </form>

@@ -98,6 +98,7 @@ export default function InvoiceEditor({
   unpaidExpenses = [],
   role,
   defaultCurrency,
+  suggestedInvoiceNumber,
 }: InvoiceEditorProps) {
   const router = useRouter()
   const backUrl = `/${orgSlug}/${projectSlug}/invoices` as RouteImpl
@@ -138,7 +139,7 @@ export default function InvoiceEditor({
   const form = useForm<z.infer<typeof invoiceFormSchema>>({
     resolver: zodResolver(invoiceFormSchema),
     defaultValues: {
-      invoiceNumber: invoice?.invoiceNumber ?? '',
+      invoiceNumber: invoice?.invoiceNumber ?? suggestedInvoiceNumber ?? '',
       currency:
         extendData?.currency ?? invoice?.currency ?? defaultCurrency ?? 'USD',
       issueDate: invoice

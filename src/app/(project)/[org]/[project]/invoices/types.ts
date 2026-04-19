@@ -139,6 +139,7 @@ export interface InvoiceEditorProps {
   projectSlug: string
   requirements: { id: string; title: string; slug: string }[]
   role: Role
+  suggestedInvoiceNumber?: string
   threads?: Thread[]
   timesheetWarning?: string | null
   unbilledTimeEntries?: BillableTimeEntry[]
