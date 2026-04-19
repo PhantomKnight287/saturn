@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import type { projects } from '@/server/db/schema'
 import ProjectBanner from './project-banner'
+import ProjectStatusBadge from './project-status-badge'
 
 function DueDateBadge({ dueDate }: { dueDate: Date }) {
   const now = new Date()
@@ -60,11 +61,16 @@ export default function ProjectCard({
           <p className='mt-1.5 line-clamp-2 flex-1 text-muted-foreground text-sm'>
             {project.description || 'No description'}
           </p>
-          {project.dueDate && (
-            <div className='mt-3'>
-              <DueDateBadge dueDate={new Date(project.dueDate)} />
-            </div>
-          )}
+          <div className='mt-1.5 flex max-h-6 flex-row items-end gap-2'>
+            {project.dueDate &&
+              (project.status === 'in-progress' ||
+                project.status === 'planning') && (
+                <div className='mt-3'>
+                  <DueDateBadge dueDate={new Date(project.dueDate)} />
+                </div>
+              )}
+            <ProjectStatusBadge status={project.status!} />
+          </div>
         </div>
       </Card>
     </Link>

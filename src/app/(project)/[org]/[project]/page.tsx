@@ -37,7 +37,7 @@ import {
   ProposalsPendingCard,
   RequirementsAwaitingSignatureCard,
 } from './_components/pending-signatures-cards'
-import { ProjectDueDate } from './_components/project-due-date'
+import { ProjectHeaderStatus } from './_components/project-header-status'
 import { TimesheetReportsCard } from './_components/timesheet-reports-card'
 
 export const metadata: Metadata = createMetadata({
@@ -55,10 +55,8 @@ export default async function ProjectOverview({
   params,
 }: PageProps<'/[org]/[project]'>) {
   const { org, project: projectSlug } = await params
-  const { project, orgMember, role } = await resolveProjectContext(
-    org,
-    projectSlug
-  )
+  const { organization, project, orgMember, role } =
+    await resolveProjectContext(org, projectSlug)
 
   if (!role.authorize({ project: ['read'] }).success) {
     redirect(
@@ -233,9 +231,13 @@ export default async function ProjectOverview({
           )}
         </div>
         <div className='flex flex-wrap items-center gap-2'>
-          {project.dueDate && (
-            <ProjectDueDate dueDate={new Date(project.dueDate)} />
-          )}
+          <ProjectHeaderStatus
+            canEdit={isAdmin}
+            dueDate={project.dueDate ? new Date(project.dueDate) : null}
+            organizationId={organization.id}
+            projectId={project.id}
+            status={project.status ?? 'planning'}
+          />
           <Badge className='rounded-md' variant='outline'>
             <Users className='size-3' />
             {members.length} {members.length === 1 ? 'member' : 'members'}

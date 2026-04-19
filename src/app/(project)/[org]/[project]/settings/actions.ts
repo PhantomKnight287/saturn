@@ -8,6 +8,7 @@ import { projects } from '@/server/db/schema/project'
 import {
   deleteProjectSchema,
   renameProjectSchema,
+  updateProjectStatusSchema,
   updateProjectTimesheetDefaultsSchema,
 } from './common'
 
@@ -80,6 +81,35 @@ export const updateProjectTimesheetDefaultsAction = authedActionClient
         })
 
       return { success: true }
+    }
+  )
+
+export const updateProjectStatusAction = authedActionClient
+  .inputSchema(updateProjectStatusSchema)
+  .action(
+    async ({
+      parsedInput: { projectId, organizationId, status },
+      ctx: { role, orgMember },
+    }) => {
+      if (!role.authorize({ organization: ['update'] }).success) {
+        throw new Error('You do not have permission to update project status')
+      }
+
+      if (orgMember.organizationId !== organizationId) {
+        throw new Error('Organization mismatch')
+      }
+
+      await db
+        .update(projects)
+        .set({ status })
+        .where(
+          and(
+            eq(projects.id, projectId),
+            eq(projects.organizationId, organizationId)
+          )
+        )
+
+      return { success: true, status }
     }
   )
 
