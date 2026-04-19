@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
 import { milestonesService } from '@/app/api/milestones/service'
+import { projectsService } from '@/app/api/projects/service'
 import { createMetadata } from '@/lib/metadata'
 import { MilestonesClient } from './page.client'
 
@@ -20,10 +21,11 @@ export default async function Milestones({
   params,
 }: PageProps<'/[org]/[project]/milestones'>) {
   const { org, project: projectSlug } = await params
-  const { project: currentProject, role } = await resolveProjectContext(
-    org,
-    projectSlug
-  )
+  const {
+    project: currentProject,
+    role,
+    organization,
+  } = await resolveProjectContext(org, projectSlug)
 
   if (!role.authorize({ milestone: ['read'] }).success) {
     redirect(
@@ -39,6 +41,10 @@ export default async function Milestones({
   const canUpdate = role.authorize({ milestone: ['update'] }).success
   const canComplete = role.authorize({ milestone: ['complete'] }).success
   const canDelete = role.authorize({ milestone: ['delete'] }).success
+  const settings = await projectsService.getSettings(
+    organization.id,
+    currentProject.id
+  )
 
   return (
     <MilestonesClient
@@ -46,6 +52,7 @@ export default async function Milestones({
       canCreate={canCreate}
       canDelete={canDelete}
       canUpdate={canUpdate}
+      defaultCurrency={settings.defaultCurrency}
       milestones={milestoneList}
       orgSlug={org}
       projectId={currentProject.id}

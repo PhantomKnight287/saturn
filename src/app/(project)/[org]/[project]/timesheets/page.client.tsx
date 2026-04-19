@@ -43,6 +43,7 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
     reportEntriesMap,
     reportRecipientsMap,
     clientReports,
+    defaultCurrency,
   } = props
   const [formOpen, setFormOpen] = useState(false)
   const [formDefaultDate, setFormDefaultDate] = useState<Date | undefined>()
@@ -101,6 +102,7 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
           )}
           {isAdmin && (
             <Button
+              kbd='r'
               onClick={() => setRatesOpen(true)}
               size='sm'
               variant='outline'
@@ -109,7 +111,7 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
               Rates
             </Button>
           )}
-          <Button onClick={() => setFormOpen(true)} size='sm'>
+          <Button kbd='l' onClick={() => setFormOpen(true)} size='sm'>
             <Plus className='mr-1 size-4' />
             Log Time
           </Button>
@@ -229,6 +231,7 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
       {isAdmin && (
         <>
           <MemberRatesDialog
+            defaultCurrency={defaultCurrency}
             existingRates={memberRates}
             onOpenChange={setRatesOpen}
             open={ratesOpen}

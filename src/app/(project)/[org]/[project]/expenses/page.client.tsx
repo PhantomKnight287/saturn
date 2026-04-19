@@ -34,6 +34,7 @@ export default function ExpensesClient({
   isClient,
   projectId,
   organizationId,
+  defaultCurrency,
   currentMemberId,
 }: ExpensesClientProps) {
   const [formOpen, setFormOpen] = useState(false)
@@ -129,15 +130,14 @@ export default function ExpensesClient({
           {!isAdmin && canSubmit && selectedSubmittableIds.length > 0 && (
             <Button
               disabled={submitAction.isPending}
+              loading={submitAction.isPending}
               onClick={() =>
                 submitAction.execute({ expenseIds: selectedSubmittableIds })
               }
               size='sm'
               variant='outline'
             >
-              {submitAction.isPending
-                ? 'Submitting...'
-                : `Submit (${selectedSubmittableIds.length})`}
+              Submit (${selectedSubmittableIds.length})
             </Button>
           )}
           {isAdmin && (
@@ -212,6 +212,7 @@ export default function ExpensesClient({
       {canCreate && (
         <ExpenseForm
           categories={categories}
+          defaultCurrency={defaultCurrency}
           onOpenChange={setFormOpen}
           open={formOpen}
           projectId={projectId}

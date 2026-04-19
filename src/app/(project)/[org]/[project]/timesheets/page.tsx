@@ -117,6 +117,7 @@ export default async function TimeTracking({
       clientReports={clientReports}
       clients={clients}
       currentMemberId={orgMember.id}
+      defaultCurrency={settings.defaultCurrency}
       entries={entries}
       isAdmin={isAdmin}
       isClient={isClient}

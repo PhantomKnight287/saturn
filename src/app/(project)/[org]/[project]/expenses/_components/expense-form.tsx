@@ -51,6 +51,7 @@ type ExpenseFormValues = z.infer<typeof expenseFormSchema>
 
 interface ExpenseFormProps {
   categories: ExpenseCategory[]
+  defaultCurrency?: string
   editExpense?: ExpenseWithDetails
   onOpenChange: (open: boolean) => void
   open: boolean
@@ -63,6 +64,7 @@ export function ExpenseForm({
   projectId,
   categories,
   editExpense,
+  defaultCurrency,
 }: ExpenseFormProps) {
   const router = useRouter()
   const form = useForm<ExpenseFormValues>({
@@ -70,7 +72,7 @@ export function ExpenseForm({
     defaultValues: {
       title: editExpense?.title ?? '',
       amount: editExpense ? (editExpense.amountCents / 100).toFixed(2) : '',
-      currency: editExpense?.currency ?? 'USD',
+      currency: editExpense?.currency ?? defaultCurrency ?? 'USD',
       date: editExpense
         ? new Date(editExpense.date).toISOString().split('T').at(0)!
         : new Date().toISOString().split('T').at(0)!,
