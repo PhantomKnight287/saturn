@@ -1,0 +1,1 @@
+ALTER TABLE "settings" ADD COLUMN "invoice_number_template" text DEFAULT '''INV-%year(short)%month(num)-%seq(4)''' NOT NULL;

@@ -18,6 +18,7 @@ export interface ExpensesClientProps {
   categories: ExpenseCategory[]
   clients: ProjectClient[]
   currentMemberId: string
+  defaultCurrency?: string
   expenses: ExpenseWithDetails[]
   isAdmin: boolean
   isClient: boolean

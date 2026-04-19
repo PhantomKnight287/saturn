@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
@@ -8,9 +9,22 @@ import { projectsService } from '@/app/api/projects/service'
 import { requirementsService } from '@/app/api/requirements/service'
 import { teamService } from '@/app/api/teams/service'
 import { timesheetService } from '@/app/api/timesheets/service'
+import { createMetadata } from '@/lib/metadata'
+import { InvoiceNumberGeneratorEngine } from '@/services/invoice-number.service'
 import type { Role } from '@/types'
 import InvoiceEditor from '../_components/invoice-editor'
 import type { CustomField, ExtendInvoiceData } from '../types'
+
+export const metadata: Metadata = createMetadata({
+  title: 'New Invoice',
+  description: 'Draft a new invoice for the project.',
+  openGraph: {
+    images: ['/api/og?page=Invoices'],
+  },
+  twitter: {
+    images: ['/api/og?page=Invoices'],
+  },
+})
 
 export default async function NewInvoice({
   params,
@@ -42,6 +56,7 @@ export default async function NewInvoice({
     allBillableEntries,
     unpaidExpenses,
     projectOrOrgSettings,
+    nextInvoiceSequence,
   ] = await Promise.all([
     teamService.getProjectClients(currentProject.id),
     requirementsService.listByProject(currentProject.id, h),
@@ -53,7 +68,14 @@ export default async function NewInvoice({
       orgMember.userId
     ),
     projectsService.getSettings(organization.id, currentProject.id),
+    invoicesService.getNextSequence(currentProject.id),
   ])
+
+  const suggestedInvoiceNumber =
+    InvoiceNumberGeneratorEngine.generateInvoiceNumber(
+      projectOrOrgSettings.invoiceNumberTemplate,
+      { sequence: nextInvoiceSequence }
+    )
 
   // When coming from a specific timesheet report, use its entries instead
   let billableEntries: Awaited<
@@ -156,6 +178,7 @@ export default async function NewInvoice({
       projectSlug={projectSlug}
       requirements={requirementList}
       role={orgMember.role as Role}
+      suggestedInvoiceNumber={suggestedInvoiceNumber}
       timesheetWarning={timesheetWarning}
       unbilledTimeEntries={allBillableEntries}
       unpaidExpenses={unpaidExpenses}

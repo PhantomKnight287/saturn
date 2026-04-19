@@ -1,20 +1,86 @@
 'use server'
 
-import { and, count, eq } from 'drizzle-orm'
+import { and, count, eq, sql } from 'drizzle-orm'
 import { headers } from 'next/headers'
 import { authedActionClient } from '@/lib/safe-action'
 import { auth } from '@/server/auth'
 import { db } from '@/server/db'
+import { settings as settingsTable } from '@/server/db/schema'
 import { members, teamMembers, teams } from '@/server/db/schema/auth'
+import { pendingMemberRates } from '@/server/db/schema/timesheet'
 import {
   addTeamMemberSchema,
   changeOrgMemberRoleSchema,
   createTeamSchema,
   deleteTeamSchema,
+  inviteOrgMemberSchema,
   removeOrgMemberSchema,
   removeTeamMemberSchema,
   renameTeamSchema,
 } from './common'
+
+export const inviteOrgMemberAction = authedActionClient
+  .inputSchema(inviteOrgMemberSchema)
+  .action(
+    async ({
+      parsedInput: {
+        organizationId,
+        email,
+        role: inviteRole,
+        hourlyRate,
+        currency,
+        setAsOrgDefault,
+      },
+      ctx: { role, orgMember },
+    }) => {
+      if (!role.authorize({ member: ['create'] }).success) {
+        throw new Error('You do not have permission to invite members')
+      }
+
+      if (orgMember.organizationId !== organizationId) {
+        throw new Error('Organization mismatch')
+      }
+
+      const result = await auth.api.createInvitation({
+        headers: await headers(),
+        body: {
+          email,
+          role: inviteRole,
+          organizationId,
+        },
+      })
+
+      if (hourlyRate !== undefined && currency) {
+        await db.insert(pendingMemberRates).values({
+          invitationId: result.id,
+          organizationId,
+          email,
+          hourlyRate,
+          currency,
+        })
+      }
+
+      if (setAsOrgDefault && hourlyRate !== undefined && currency) {
+        await db
+          .insert(settingsTable)
+          .values({
+            organizationId,
+            defaultMemberRate: hourlyRate,
+            defaultCurrency: currency,
+          })
+          .onConflictDoUpdate({
+            target: [settingsTable.organizationId],
+            targetWhere: sql`${settingsTable.projectId} IS NULL`,
+            set: {
+              defaultMemberRate: hourlyRate,
+              defaultCurrency: currency,
+            },
+          })
+      }
+
+      return { success: true }
+    }
+  )
 
 export const removeOrgMemberAction = authedActionClient
   .inputSchema(removeOrgMemberSchema)

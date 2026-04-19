@@ -76,6 +76,7 @@ interface ProposalEditorProps {
   canEdit?: boolean
   canSend?: boolean
   canSign?: boolean
+  defaultCurrency?: string
   hasSignedAlready?: boolean
   //   initialExpenseItems?: ExpenseItem[]
   initialDeliverables?: (typeof proposalDeliverables.$inferSelect)[]
@@ -108,6 +109,7 @@ export default function ProposalEditor({
   initialDeliverables = [],
   signatures = [],
   signatureMedia = [],
+  defaultCurrency,
 }: ProposalEditorProps) {
   const router = useRouter()
   const editorRef = useRef<EditorRef>(null)
@@ -123,7 +125,7 @@ export default function ProposalEditor({
       validUntil: proposal?.validUntil
         ? new Date(proposal.validUntil).toISOString().split('T')[0]
         : '',
-      currency: proposal?.currency ?? 'USD',
+      currency: proposal?.currency ?? defaultCurrency ?? 'USD',
       deliverables: initialDeliverables,
     },
   })

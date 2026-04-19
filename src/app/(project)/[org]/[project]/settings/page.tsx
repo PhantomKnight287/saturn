@@ -7,6 +7,8 @@ import { createMetadata } from '@/lib/metadata'
 import { ProjectSettingsPageClient } from './page.client'
 
 export const metadata: Metadata = createMetadata({
+  title: 'Project Settings',
+  description: 'Configure project preferences, defaults, and access.',
   openGraph: {
     images: ['/api/og?page=Settings'],
   },
@@ -43,6 +45,7 @@ export default async function ProjectSettingsPage({
       defaultCurrency={settings.defaultCurrency}
       defaultMemberRate={settings.defaultMemberRate}
       defaultTimesheetDuration={settings.defaultTimesheetDuration}
+      invoiceNumberTemplate={settings.invoiceNumberTemplate}
       organizationId={organization.id}
       orgSlug={org}
       project={project}

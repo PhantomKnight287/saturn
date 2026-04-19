@@ -1,11 +1,24 @@
+import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { projectsService } from '@/app/api/projects/service'
 import { teamService } from '@/app/api/teams/service'
+import { createMetadata } from '@/lib/metadata'
 import { auth } from '@/server/auth'
 import { resolveOrgContext } from '../cache'
 import { ClientsPageClient } from './page.client'
 import type { PendingInvitation } from './types'
+
+export const metadata: Metadata = createMetadata({
+  title: 'Clients',
+  description: 'Manage client relationships and project access.',
+  openGraph: {
+    images: ['/api/og?page=Clients'],
+  },
+  twitter: {
+    images: ['/api/og?page=Clients'],
+  },
+})
 
 export default async function ClientsPage({
   params,

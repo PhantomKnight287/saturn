@@ -1,11 +1,24 @@
+import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 
 import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
 import { requirementsService } from '@/app/api/requirements/service'
 import { signaturesService } from '@/app/api/signatures/service'
 import { teamService } from '@/app/api/teams/service'
+import { createMetadata } from '@/lib/metadata'
 import type { Role } from '@/types'
 import RequirementEditor from '../_components/requirement-editor'
+
+export const metadata: Metadata = createMetadata({
+  title: 'Requirement',
+  description: 'Review and edit a project requirement.',
+  openGraph: {
+    images: ['/api/og?page=Requirements'],
+  },
+  twitter: {
+    images: ['/api/og?page=Requirements'],
+  },
+})
 
 export default async function RequirementDetail({
   params,

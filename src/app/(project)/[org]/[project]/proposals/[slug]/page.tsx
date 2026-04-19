@@ -1,11 +1,24 @@
+import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
 import { proposalsService } from '@/app/api/proposals/service'
 import { signaturesService } from '@/app/api/signatures/service'
 import { teamService } from '@/app/api/teams/service'
 import { threadService } from '@/app/api/threads/service'
+import { createMetadata } from '@/lib/metadata'
 import type { Role } from '@/types'
 import ProposalEditor from '../_components/proposal-editor'
+
+export const metadata: Metadata = createMetadata({
+  title: 'Proposal',
+  description: 'Review, edit, and track proposal status.',
+  openGraph: {
+    images: ['/api/og?page=Proposals'],
+  },
+  twitter: {
+    images: ['/api/og?page=Proposals'],
+  },
+})
 
 export default async function ProposalDetail({
   params,

@@ -37,6 +37,7 @@ import {
 import type { MemberRate, ProjectMember } from '../types'
 
 interface MemberRatesDialogProps {
+  defaultCurrency?: string
   existingRates: MemberRate[]
   onOpenChange: (open: boolean) => void
   open: boolean
@@ -64,6 +65,7 @@ export function MemberRatesDialog({
   projectMembers,
   projectId,
   existingRates,
+  defaultCurrency,
 }: MemberRatesDialogProps) {
   const [expandedMember, setExpandedMember] = useState<string | null>(null)
 
@@ -74,7 +76,7 @@ export function MemberRatesDialog({
     defaultValues: {
       memberId: '',
       hourlyRate: '',
-      currency: 'USD',
+      currency: defaultCurrency ?? 'USD',
       effectiveFrom: new Date().toISOString().split('T').at(0)!,
       isProjectSpecific: true,
     },
@@ -276,7 +278,7 @@ export function MemberRatesDialog({
                   onValueChange={handleMemberSelect}
                   value={rateForm.watch('memberId')}
                 >
-                  <SelectTrigger id={`${ids}-member`}>
+                  <SelectTrigger className='w-full' id={`${ids}-member`}>
                     <SelectValue placeholder='Select member' />
                   </SelectTrigger>
                   <SelectContent>

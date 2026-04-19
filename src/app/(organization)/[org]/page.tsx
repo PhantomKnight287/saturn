@@ -8,6 +8,7 @@ import {
   Milestone as MilestoneIcon,
   Users,
 } from 'lucide-react'
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 
@@ -26,8 +27,20 @@ import { OverdueInvoicesAccordion } from '@/components/dashboard/overdue-invoice
 import { StatCard } from '@/components/dashboard/stat-card'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
+import { createMetadata } from '@/lib/metadata'
 import type { RouteImpl } from '@/types'
 import { resolveOrgContext } from './cache'
+
+export const metadata: Metadata = createMetadata({
+  title: 'Overview',
+  description: 'Your workspace at a glance — projects, invoices, and activity.',
+  openGraph: {
+    images: ['/api/og?page=Overview'],
+  },
+  twitter: {
+    images: ['/api/og?page=Overview'],
+  },
+})
 
 export default async function OrganizationPage(props: PageProps<'/[org]'>) {
   const { org } = await props.params
@@ -67,7 +80,11 @@ export default async function OrganizationPage(props: PageProps<'/[org]'>) {
         ? expensesServices.listByProjectIds(projectIds)
         : Promise.resolve([]),
       hasProjects && canReadTimesheets
-        ? timesheetService.listByProjectIdsSince(projectIds, monthStart)
+        ? timesheetService.listByProjectIdsSince(
+            projectIds,
+            monthStart,
+            orgMember.role === 'member' ? orgMember.id : undefined
+          )
         : Promise.resolve([]),
       hasProjects && canReadMilestones
         ? milestonesService.listByProjectIds(projectIds)

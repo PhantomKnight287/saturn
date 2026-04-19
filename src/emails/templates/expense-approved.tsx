@@ -1,4 +1,5 @@
 import { Section, Text } from '@react-email/components'
+import { env } from '@/env'
 import {
   ActionButton,
   Badge,
@@ -8,7 +9,7 @@ import {
   text,
 } from '../components/layout'
 
-const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+const baseUrl = env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'
 
 interface ExpenseApprovedEmailProps {
   amount: string

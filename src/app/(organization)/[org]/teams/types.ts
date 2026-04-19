@@ -32,6 +32,8 @@ export interface PendingInvitation {
 export interface TeamsPageClientProps {
   canManage: boolean
   currentMemberId: string
+  defaultCurrency: string
+  defaultMemberRate: number
   invitations: PendingInvitation[]
   members: OrgMember[]
   organizationId: string

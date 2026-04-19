@@ -1,7 +1,8 @@
 import { Polar } from '@polar-sh/sdk'
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { buttonVariants } from '@/components/ui/button'
+import { buttonVariants } from '@/components/ui/button-variants'
 import {
   Card,
   CardContent,
@@ -11,8 +12,20 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { env } from '@/env'
+import { createMetadata } from '@/lib/metadata'
 import { cn } from '@/lib/utils'
 import { getSession } from '@/server/auth'
+
+export const metadata: Metadata = createMetadata({
+  title: 'Welcome to Pro',
+  description: 'Your subscription is active and premium features are unlocked.',
+  openGraph: {
+    images: ['/api/og?page=Welcome'],
+  },
+  twitter: {
+    images: ['/api/og?page=Welcome'],
+  },
+})
 
 export default async function CheckoutSuccessPage({
   searchParams,

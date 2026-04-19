@@ -1,0 +1,1 @@
+ALTER TABLE "settings" ALTER COLUMN "invoice_number_template" SET DEFAULT 'INV-%year(short)%month(num)-%seq(4)';

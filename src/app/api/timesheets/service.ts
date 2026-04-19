@@ -517,7 +517,11 @@ const getReportRecipientsBatch = async (reportIds: string[]) => {
   return Object.fromEntries(grouped) as Record<string, (typeof rows)[number][]>
 }
 
-const listByProjectIdsSince = async (projectIds: string[], since: Date) => {
+const listByProjectIdsSince = async (
+  projectIds: string[],
+  since: Date,
+  memberId?: string
+) => {
   if (projectIds.length === 0) {
     return []
   }
@@ -531,7 +535,8 @@ const listByProjectIdsSince = async (projectIds: string[], since: Date) => {
     .where(
       and(
         inArray(timeEntries.projectId, projectIds),
-        gte(timeEntries.date, since)
+        gte(timeEntries.date, since),
+        memberId ? eq(timeEntries.memberId, memberId) : undefined
       )
     )
 }

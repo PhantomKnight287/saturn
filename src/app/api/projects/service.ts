@@ -120,6 +120,7 @@ const SETTINGS_DEFAULTS = {
   defaultMemberRate: 0,
   defaultCurrency: 'USD' as const,
   defaultTimesheetDuration: 'weekly' as const,
+  invoiceNumberTemplate: 'INV-%year(short)%month(num)-%seq(4)',
 }
 
 /**

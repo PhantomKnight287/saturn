@@ -9,7 +9,6 @@ import SendToClientDialog from '@/components/send-to-client-dialog'
 import { Button } from '@/components/ui/button'
 import {
   Empty,
-  EmptyContent,
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
@@ -35,6 +34,7 @@ export default function ExpensesClient({
   isClient,
   projectId,
   organizationId,
+  defaultCurrency,
   currentMemberId,
 }: ExpensesClientProps) {
   const [formOpen, setFormOpen] = useState(false)
@@ -130,15 +130,14 @@ export default function ExpensesClient({
           {!isAdmin && canSubmit && selectedSubmittableIds.length > 0 && (
             <Button
               disabled={submitAction.isPending}
+              loading={submitAction.isPending}
               onClick={() =>
                 submitAction.execute({ expenseIds: selectedSubmittableIds })
               }
               size='sm'
               variant='outline'
             >
-              {submitAction.isPending
-                ? 'Submitting...'
-                : `Submit (${selectedSubmittableIds.length})`}
+              Submit (${selectedSubmittableIds.length})
             </Button>
           )}
           {isAdmin && (
@@ -152,7 +151,7 @@ export default function ExpensesClient({
             </Button>
           )}
           {canCreate && (
-            <Button onClick={() => setFormOpen(true)} size='sm'>
+            <Button kbd='c' onClick={() => setFormOpen(true)} size='sm'>
               <Plus className='size-4' />
               Log Expense
             </Button>
@@ -171,11 +170,6 @@ export default function ExpensesClient({
               Track project expenses and reimbursements.
             </EmptyDescription>
           </EmptyHeader>
-          {canCreate && (
-            <EmptyContent>
-              <Button onClick={() => setFormOpen(true)}>Log Expense</Button>
-            </EmptyContent>
-          )}
         </Empty>
       ) : (
         <Tabs defaultValue={isAdmin ? 'all' : 'all'}>
@@ -218,6 +212,7 @@ export default function ExpensesClient({
       {canCreate && (
         <ExpenseForm
           categories={categories}
+          defaultCurrency={defaultCurrency}
           onOpenChange={setFormOpen}
           open={formOpen}
           projectId={projectId}

@@ -3,12 +3,14 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
 import { expensesServices } from '@/app/api/expenses/service'
+import { projectsService } from '@/app/api/projects/service'
 import { teamService } from '@/app/api/teams/service'
-
 import { createMetadata } from '@/lib/metadata'
 import ExpensesClient from './page.client'
 
 export const metadata: Metadata = createMetadata({
+  title: 'Expenses',
+  description: 'Track and approve project expenses.',
   openGraph: {
     images: ['/api/og?page=Expenses'],
   },
@@ -39,12 +41,13 @@ export default async function Expenses({
   const isAdmin = orgMember.role === 'owner' || orgMember.role === 'admin'
   const isClient = orgMember.role === 'client'
 
-  const [expenses, categories, clients] = await Promise.all([
+  const [expenses, categories, clients, settings] = await Promise.all([
     expensesServices.listByProject(currentProject.id, h),
     expensesServices.listCategoriesByOrg(organization.id),
     isAdmin
       ? teamService.getProjectClients(currentProject.id)
       : Promise.resolve([]),
+    projectsService.getSettings(organization.id, currentProject.id),
   ])
 
   const canCreate = role.authorize({ expense: ['create'] }).success
@@ -60,6 +63,7 @@ export default async function Expenses({
       categories={categories.filter((c) => !c.isArchived)}
       clients={clients}
       currentMemberId={orgMember.id}
+      defaultCurrency={settings.defaultCurrency}
       expenses={expenses}
       isAdmin={isAdmin}
       isClient={isClient}

@@ -1,10 +1,15 @@
 'use client'
 
 import { useRouter } from '@bprogress/next/app'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { Mail } from 'lucide-react'
-import { useState } from 'react'
+import { useAction } from 'next-safe-action/hooks'
+import { Controller, useForm } from 'react-hook-form'
 import { toast } from 'sonner'
+import { z } from 'zod'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { CurrencySelect } from '@/components/ui/currency-selector'
 import {
   Dialog,
   DialogContent,
@@ -21,46 +26,90 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { authClient } from '@/lib/auth-client'
+import { analyticsService } from '@/services/analytics.service'
+import { inviteOrgMemberAction } from '../actions'
+
+const formSchema = z.object({
+  email: z.string().email('Enter a valid email'),
+  role: z.enum(['member', 'admin']),
+  rateInput: z.string(),
+  currency: z.string(),
+  setAsOrgDefault: z.boolean(),
+})
+
+type FormValues = z.infer<typeof formSchema>
+
+const defaultValues: FormValues = {
+  email: '',
+  role: 'member',
+  rateInput: '',
+  currency: '',
+  setAsOrgDefault: false,
+}
 
 export default function InviteDialog({
   open,
   onOpenChange,
   organizationId,
+  defaultMemberRate,
+  defaultCurrency,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   organizationId: string
+  defaultMemberRate: number
+  defaultCurrency: string
 }) {
   const router = useRouter()
-  const [email, setEmail] = useState('')
-  const [selectedRole, setSelectedRole] = useState<'member' | 'admin'>('member')
-  const [isInviting, setIsInviting] = useState(false)
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues,
+  })
 
-  const handleInvite = async () => {
-    if (!email.trim()) {
-      return
-    }
-    setIsInviting(true)
-    try {
-      const result = await authClient.organization.inviteMember({
-        email: email.trim(),
-        role: selectedRole,
-        organizationId,
-      })
-      if (result.error) {
-        toast.error(result.error.message ?? 'Failed to send invitation')
+  const { execute, isPending } = useAction(inviteOrgMemberAction, {
+    onSuccess({ input }) {
+      toast.success(`Invitation sent to ${input.email}`)
+      form.reset(defaultValues)
+      onOpenChange(false)
+      router.refresh()
+      analyticsService.track('member_invited')
+    },
+    onError({ error }) {
+      toast.error(error.serverError ?? 'Failed to send invitation')
+    },
+  })
+
+  const email = form.watch('email')
+
+  const handleInvite = (data: FormValues) => {
+    const parsedRate = data.rateInput
+      ? Math.round(Number(data.rateInput) * 100)
+      : undefined
+    const resolvedCurrency = data.currency || undefined
+
+    let finalRate = parsedRate
+    let finalCurrency = resolvedCurrency
+
+    if (finalRate === undefined || !finalCurrency) {
+      if (defaultMemberRate > 0 && defaultCurrency) {
+        finalRate = finalRate ?? defaultMemberRate
+        finalCurrency = finalCurrency ?? defaultCurrency
       } else {
-        toast.success(`Invitation sent to ${email}`)
-        setEmail('')
-        onOpenChange(false)
-        router.refresh()
+        toast.error(
+          'No base rate set. Enter a rate or set an workspace wide default in Settings.'
+        )
+        return
       }
-    } catch {
-      toast.error('Failed to send invitation')
-    } finally {
-      setIsInviting(false)
     }
+
+    execute({
+      organizationId,
+      email: data.email.trim(),
+      role: data.role,
+      hourlyRate: finalRate,
+      currency: finalCurrency,
+      setAsOrgDefault: data.setAsOrgDefault,
+    })
   }
 
   return (
@@ -73,51 +122,116 @@ export default function InviteDialog({
             accept.
           </DialogDescription>
         </DialogHeader>
-        <div className='space-y-4'>
-          <div className='space-y-2'>
-            <Label>Email address</Label>
-            <Input
-              autoFocus
-              onChange={(e) => setEmail(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleInvite()
-                }
-              }}
-              placeholder='name@example.com'
-              type='email'
-              value={email}
+        <form className='space-y-4' onSubmit={form.handleSubmit(handleInvite)}>
+          <Controller
+            control={form.control}
+            name='email'
+            render={({ field }) => (
+              <div className='space-y-2'>
+                <Label>Email address</Label>
+                <Input
+                  {...field}
+                  autoFocus
+                  placeholder='name@example.com'
+                  type='email'
+                />
+              </div>
+            )}
+          />
+          <Controller
+            control={form.control}
+            name='role'
+            render={({ field }) => (
+              <div className='space-y-2'>
+                <Label>Role</Label>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value='member'>Member</SelectItem>
+                    <SelectItem value='admin'>Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          />
+          <div className='grid grid-cols-2 gap-3'>
+            <Controller
+              control={form.control}
+              name='rateInput'
+              render={({ field }) => (
+                <div className='space-y-2'>
+                  <Label>
+                    Hourly rate
+                    {defaultMemberRate > 0 && (
+                      <span className='ml-1 font-normal text-muted-foreground'>
+                        (default: {(defaultMemberRate / 100).toFixed(2)})
+                      </span>
+                    )}
+                  </Label>
+                  <Input
+                    {...field}
+                    min='0'
+                    placeholder={
+                      defaultMemberRate > 0
+                        ? (defaultMemberRate / 100).toFixed(2)
+                        : '0.00'
+                    }
+                    step='0.01'
+                    type='number'
+                  />
+                </div>
+              )}
+            />
+            <Controller
+              control={form.control}
+              name='currency'
+              render={({ field }) => (
+                <div className='space-y-2'>
+                  <Label>Currency</Label>
+                  <CurrencySelect
+                    name='currency'
+                    onValueChange={field.onChange}
+                    placeholder={defaultCurrency || 'Select'}
+                    value={field.value}
+                    variant='default'
+                  />
+                </div>
+              )}
             />
           </div>
-          <div className='space-y-2'>
-            <Label>Role</Label>
-            <Select
-              onValueChange={(v) => setSelectedRole(v as 'member' | 'admin')}
-              value={selectedRole}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value='member'>Member</SelectItem>
-                <SelectItem value='admin'>Admin</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <Controller
+            control={form.control}
+            name='setAsOrgDefault'
+            render={({ field }) => (
+              <div className='flex items-center gap-2'>
+                <Checkbox
+                  checked={field.value}
+                  onCheckedChange={(checked) =>
+                    field.onChange(checked === true)
+                  }
+                />
+                <Label className='cursor-pointer font-normal'>
+                  Set this as the workspace wide default rate
+                </Label>
+              </div>
+            )}
+          />
           <div className='flex justify-end gap-2'>
-            <Button onClick={() => onOpenChange(false)} variant='outline'>
+            <Button
+              onClick={() => onOpenChange(false)}
+              type='button'
+              variant='outline'
+            >
               Cancel
             </Button>
-            <Button
-              disabled={!email.trim()}
-              loading={isInviting}
-              onClick={handleInvite}
-            >
+            <Button disabled={!email?.trim()} loading={isPending} type='submit'>
               <Mail className='size-4' />
               Send Invite
             </Button>
           </div>
-        </div>
+        </form>
       </DialogContent>
     </Dialog>
   )

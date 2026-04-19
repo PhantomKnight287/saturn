@@ -1,9 +1,8 @@
 'use server'
 
 import { eq } from 'drizzle-orm'
-import { createSafeActionClient } from 'next-safe-action'
 import z from 'zod'
-import { getSession } from '@/server/auth'
+import { authedActionClient } from '@/lib/safe-action'
 import { db } from '@/server/db'
 import { members } from '@/server/db/schema/auth'
 import {
@@ -12,21 +11,13 @@ import {
   projectMemberAssignments,
 } from '@/server/db/schema/project'
 
-const authedClient = createSafeActionClient().use(async ({ next }) => {
-  const session = await getSession()
-  if (!session) {
-    throw new Error('Not authenticated')
-  }
-  return next({ ctx: { user: session.user } })
-})
-
 const acceptInviteSchema = z.object({
   invitationId: z.string().min(1),
   projectId: z.string().min(1),
   type: z.enum(['member', 'client']),
 })
 
-export const acceptInviteAction = authedClient
+export const acceptInviteAction = authedActionClient
   .inputSchema(acceptInviteSchema)
   .action(async ({ parsedInput: { invitationId, projectId, type }, ctx }) => {
     // Find the member record for this user in the org

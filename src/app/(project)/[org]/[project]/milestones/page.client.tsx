@@ -15,6 +15,7 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty'
 import type { milestones } from '@/server/db/schema'
+import { analyticsService } from '@/services/analytics.service'
 import { CreateMilestoneDialog } from './_components/create-milestone-dialog'
 import { MilestoneCard } from './_components/milestone-card'
 import { createMilestoneAction } from './actions'
@@ -28,6 +29,7 @@ interface MilestonesClientProps {
   canCreate: boolean
   canDelete: boolean
   canUpdate: boolean
+  defaultCurrency?: string
   milestones: Milestone[]
   orgSlug: string
   projectId: string
@@ -43,6 +45,7 @@ export function MilestonesClient({
   canUpdate,
   canComplete,
   canDelete,
+  defaultCurrency,
 }: MilestonesClientProps) {
   const router = useRouter()
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -52,6 +55,7 @@ export function MilestonesClient({
       toast.success('Milestone created')
       router.refresh()
       setDialogOpen(false)
+      analyticsService.track('milestone_created')
     },
     onError({ error }) {
       if (error.validationErrors) {
@@ -67,7 +71,7 @@ export function MilestonesClient({
       <div className='mb-6 flex items-center justify-between'>
         <h1 className='font-semibold text-2xl'>Milestones</h1>
         {canCreate && milestones.length > 0 && (
-          <Button onClick={() => setDialogOpen(true)} size='sm'>
+          <Button kbd='c' onClick={() => setDialogOpen(true)} size='sm'>
             <Plus className='h-4 w-4' />
             New Milestone
           </Button>
@@ -88,7 +92,7 @@ export function MilestonesClient({
           </EmptyHeader>
           {canCreate && (
             <EmptyContent>
-              <Button onClick={() => setDialogOpen(true)}>
+              <Button kbd='c' onClick={() => setDialogOpen(true)}>
                 Create Milestone
               </Button>
             </EmptyContent>
@@ -112,6 +116,7 @@ export function MilestonesClient({
 
       {canCreate && (
         <CreateMilestoneDialog
+          defaultCurrency={defaultCurrency}
           isPending={isPending}
           onOpenChange={setDialogOpen}
           onSubmit={(data) =>

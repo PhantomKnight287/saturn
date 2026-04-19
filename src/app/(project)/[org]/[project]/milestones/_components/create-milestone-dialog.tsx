@@ -25,6 +25,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { createMilestoneSchema } from '../common'
 
 interface CreateMilestoneDialogProps {
+  defaultCurrency?: string
   isPending: boolean
   onOpenChange: (open: boolean) => void
   onSubmit: (data: z.infer<typeof createMilestoneSchema>) => void
@@ -38,6 +39,7 @@ export function CreateMilestoneDialog({
   onSubmit,
   isPending,
   projectId,
+  defaultCurrency,
 }: CreateMilestoneDialogProps) {
   const form = useForm<z.infer<typeof createMilestoneSchema>>({
     resolver: zodResolver(createMilestoneSchema),
@@ -48,7 +50,7 @@ export function CreateMilestoneDialog({
       budgetMinutes: undefined,
       budgetAmountCents: undefined,
       projectId,
-      currency: 'USD',
+      currency: defaultCurrency ?? 'USD',
     },
   })
 

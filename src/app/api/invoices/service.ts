@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray } from 'drizzle-orm'
+import { and, asc, count, desc, eq, inArray } from 'drizzle-orm'
 import type { ReadonlyHeaders } from 'next/dist/server/web/spec-extension/adapters/headers'
 import { getCachedActiveOrgMember } from '@/app/(organization)/[org]/cache'
 import { db } from '@/server/db'
@@ -177,6 +177,14 @@ const listByProjectIds = async (
     .orderBy(desc(invoices.createdAt))
 }
 
+const getNextSequence = async (projectId: string) => {
+  const [row] = await db
+    .select({ value: count() })
+    .from(invoices)
+    .where(eq(invoices.projectId, projectId))
+  return (row?.value ?? 0) + 1
+}
+
 export const invoicesService = {
   listByProject,
   listByProjectIds,
@@ -184,4 +192,5 @@ export const invoicesService = {
   getRecipients,
   getItems,
   getLinkedRequirements,
+  getNextSequence,
 }

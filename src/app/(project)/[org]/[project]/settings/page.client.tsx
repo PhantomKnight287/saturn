@@ -2,12 +2,15 @@
 
 import { useRouter } from '@bprogress/next/app'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { AlertTriangle, Save } from 'lucide-react'
+import { AlertTriangle, Hash, Save } from 'lucide-react'
 import { useAction } from 'next-safe-action/hooks'
 import { useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import type { z } from 'zod'
+import { InvoiceNumberTemplateInput } from '@/app/(organization)/[org]/settings/_components/invoice-number-template-input'
+import { updateInvoiceNumberTemplateAction } from '@/app/(organization)/[org]/settings/actions'
+import { updateInvoiceNumberTemplateSchema } from '@/app/(organization)/[org]/settings/common'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -57,6 +60,9 @@ import {
 type RenameFormValues = z.infer<typeof renameProjectSchema>
 type TimesheetFormValues = z.infer<typeof updateProjectTimesheetDefaultsSchema>
 type DeleteFormValues = z.infer<typeof deleteProjectSchema>
+type InvoiceTemplateFormValues = z.infer<
+  typeof updateInvoiceNumberTemplateSchema
+>
 
 export function ProjectSettingsPageClient({
   project,
@@ -66,6 +72,7 @@ export function ProjectSettingsPageClient({
   defaultMemberRate,
   defaultTimesheetDuration,
   defaultCurrency,
+  invoiceNumberTemplate,
 }: {
   project: { id: string; name: string; slug: string }
   organizationId: string
@@ -74,6 +81,7 @@ export function ProjectSettingsPageClient({
   defaultMemberRate: number
   defaultCurrency: string
   defaultTimesheetDuration: TimesheetDuration
+  invoiceNumberTemplate: string
 }) {
   const router = useRouter()
 
@@ -104,6 +112,15 @@ export function ProjectSettingsPageClient({
       projectId: project.id,
       organizationId,
       confirmName: '',
+    },
+  })
+
+  const invoiceTemplateForm = useForm<InvoiceTemplateFormValues>({
+    resolver: zodResolver(updateInvoiceNumberTemplateSchema),
+    defaultValues: {
+      organizationId,
+      projectId: project.id,
+      invoiceNumberTemplate,
     },
   })
 
@@ -141,6 +158,20 @@ export function ProjectSettingsPageClient({
       },
     })
 
+  const {
+    execute: executeInvoiceTemplate,
+    isPending: isSavingInvoiceTemplate,
+  } = useAction(updateInvoiceNumberTemplateAction, {
+    onSuccess() {
+      toast.success('Invoice number template updated')
+      invoiceTemplateForm.reset(invoiceTemplateForm.getValues())
+      router.refresh()
+    },
+    onError({ error }) {
+      toast.error(error.serverError ?? 'Failed to update invoice template')
+    },
+  })
+
   const { execute: executeDelete, isPending: isDeleting } = useAction(
     deleteProjectAction,
     {
@@ -169,6 +200,10 @@ export function ProjectSettingsPageClient({
 
   function handleDeleteSubmit(data: DeleteFormValues) {
     executeDelete(data)
+  }
+
+  function handleInvoiceTemplateSubmit(data: InvoiceTemplateFormValues) {
+    executeInvoiceTemplate(data)
   }
 
   return (
@@ -369,6 +404,58 @@ export function ProjectSettingsPageClient({
               >
                 <Save className='size-4' />
                 Save Defaults
+              </Button>
+            </CardFooter>
+          </form>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className='flex items-center gap-2'>
+              <Hash className='size-4 text-muted-foreground' />
+              Invoice Numbering
+            </CardTitle>
+            <CardDescription>
+              Override the workspace-level invoice number template for this
+              project only.
+            </CardDescription>
+          </CardHeader>
+          <form
+            onSubmit={invoiceTemplateForm.handleSubmit(
+              handleInvoiceTemplateSubmit
+            )}
+          >
+            <CardContent>
+              <Controller
+                control={invoiceTemplateForm.control}
+                name='invoiceNumberTemplate'
+                render={({ field, fieldState }) => (
+                  <Field className='gap-1' data-invalid={fieldState.invalid}>
+                    <FieldLabel>Template</FieldLabel>
+                    <InvoiceNumberTemplateInput
+                      onChange={field.onChange}
+                      value={field.value}
+                    />
+                    <FieldDescription>
+                      Preview uses sequence #1 and the current date/time. Real
+                      invoices use the next available sequence.
+                    </FieldDescription>
+                    {fieldState.invalid && (
+                      <FieldError errors={[fieldState.error]} />
+                    )}
+                  </Field>
+                )}
+              />
+            </CardContent>
+            <CardFooter>
+              <Button
+                className='mt-4'
+                disabled={!invoiceTemplateForm.formState.isDirty}
+                loading={isSavingInvoiceTemplate}
+                type='submit'
+              >
+                <Save className='size-4' />
+                Save Template
               </Button>
             </CardFooter>
           </form>

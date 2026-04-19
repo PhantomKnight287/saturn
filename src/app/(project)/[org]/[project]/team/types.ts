@@ -12,6 +12,10 @@ export type ProjectTeam = Awaited<
   ReturnType<typeof teamService.getProjectTeams>
 >[number]
 
+export type OrgMember = Awaited<
+  ReturnType<typeof teamService.getOrgMembers>
+>[number]
+
 export interface OrgTeam {
   teamId: string
   teamName: string
@@ -27,7 +31,10 @@ export interface PendingInvitation {
 
 export interface TeamPageClientProps {
   canManage: boolean
+  defaultCurrency: string
+  defaultMemberRate: number
   organizationId: string
+  orgMembers: OrgMember[]
   orgSlug: string
   orgTeams: OrgTeam[]
   pendingInvitations: PendingInvitation[]

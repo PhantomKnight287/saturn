@@ -130,6 +130,7 @@ export interface TimeTrackingPageProps {
   clientReports: ClientReportWithEntries[]
   clients: ProjectClient[]
   currentMemberId: string
+  defaultCurrency?: string
   entries: TimeEntry[]
   isAdmin: boolean
   isClient: boolean

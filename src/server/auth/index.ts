@@ -6,16 +6,29 @@ import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { lastLoginMethod, organization } from 'better-auth/plugins'
 import { and, eq, isNull } from 'drizzle-orm'
+import { revalidateTag } from 'next/cache'
 import { headers } from 'next/headers'
 import type { NextRequest } from 'next/server'
+import { BillingCacheKeys } from '@/cache/billing/keys'
 import InvitationEmail from '@/emails/templates/invitation'
 import { env } from '@/env'
 import { polarClient } from '@/lib/polar'
 import { db } from '@/server/db'
 import * as schema from '@/server/db/schema'
-import { memberRates, settings } from '@/server/db/schema'
+import { memberRates, pendingMemberRates, settings } from '@/server/db/schema'
 import { emailService } from '@/services/email.service'
 import { ac, adminRole, clientRole, memberRole, ownerRole } from './permissions'
+
+function invalidateBillingCache(organizationId: string | null | undefined) {
+  if (!organizationId) {
+    return
+  }
+  for (const tag of BillingCacheKeys.getOrganizationBillingStatus(
+    organizationId
+  )) {
+    revalidateTag(tag, 'max')
+  }
+}
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -61,7 +74,27 @@ export const auth = betterAuth({
         })
       },
       organizationHooks: {
-        async afterAcceptInvitation({ member, organization }) {
+        async afterAcceptInvitation({ invitation, member, organization }) {
+          // Check for a rate specified at invite time
+          const [pendingRate] = await db
+            .select()
+            .from(pendingMemberRates)
+            .where(eq(pendingMemberRates.invitationId, invitation.id))
+
+          if (pendingRate) {
+            await db.insert(memberRates).values({
+              effectiveFrom: new Date(),
+              hourlyRate: pendingRate.hourlyRate,
+              memberId: member.id,
+              currency: pendingRate.currency,
+            })
+            await db
+              .delete(pendingMemberRates)
+              .where(eq(pendingMemberRates.id, pendingRate.id))
+            return
+          }
+
+          // Fall back to workspace wide defaults
           const [setting] = await db
             .select()
             .from(settings)
@@ -171,6 +204,12 @@ export const auth = betterAuth({
         portal(),
         webhooks({
           secret: env.POLAR_WEBHOOK_SECRET,
+          onSubscriptionCreated: async ({ data }) => {
+            await invalidateBillingCache(data.customer.externalId)
+          },
+          onSubscriptionUpdated: async ({ data }) => {
+            await invalidateBillingCache(data.customer.externalId)
+          },
         }),
       ],
     }),

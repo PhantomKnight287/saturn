@@ -145,7 +145,7 @@ export async function requireApiKey(
   }
 
   const billing = await getOrganizationBillingStatus(organizationId)
-  const hasActiveSubscription = billing.result.items.some((sub) =>
+  const hasActiveSubscription = billing?.result.items.some((sub) =>
     ACTIVE_STATUSES.has(sub.status)
   )
   if (!hasActiveSubscription) {

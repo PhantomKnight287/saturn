@@ -4,6 +4,9 @@ export const inviteOrgMemberSchema = z.object({
   organizationId: z.string().min(1),
   email: z.string().email(),
   role: z.enum(['member', 'admin']),
+  hourlyRate: z.number().int().nonnegative().optional(),
+  currency: z.string().min(1).optional(),
+  setAsOrgDefault: z.boolean().optional(),
 })
 
 export const removeOrgMemberSchema = z.object({

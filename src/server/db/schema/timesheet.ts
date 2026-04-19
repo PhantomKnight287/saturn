@@ -158,6 +158,27 @@ export const timesheetReportRecipients = pgTable(
   ]
 )
 
+export const pendingMemberRates = pgTable(
+  'pending_member_rates',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => `pmr_${createId()}`),
+    invitationId: text('invitation_id').notNull().unique(),
+    organizationId: text('organization_id').notNull(),
+    email: text('email').notNull(),
+    hourlyRate: integer('hourly_rate').notNull(),
+    currency: text('currency').default('USD').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('pending_member_rates_org_email_idx').on(
+      table.organizationId,
+      table.email
+    ),
+  ]
+)
+
 export const projectBudgets = pgTable('project_budgets', {
   id: text('id')
     .primaryKey()

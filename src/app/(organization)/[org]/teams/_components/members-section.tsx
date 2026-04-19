@@ -42,6 +42,8 @@ export default function MembersSection({
   currentMemberId,
   showInviteDialog,
   onShowInviteDialogChange,
+  defaultMemberRate,
+  defaultCurrency,
 }: {
   organizationId: string
   orgSlug: string
@@ -51,6 +53,8 @@ export default function MembersSection({
   currentMemberId: string
   showInviteDialog: boolean
   onShowInviteDialogChange: (open: boolean) => void
+  defaultMemberRate: number
+  defaultCurrency: string
 }) {
   const router = useRouter()
 
@@ -179,6 +183,8 @@ export default function MembersSection({
       </Table>
 
       <InviteDialog
+        defaultCurrency={defaultCurrency}
+        defaultMemberRate={defaultMemberRate}
         onOpenChange={onShowInviteDialogChange}
         open={showInviteDialog}
         organizationId={organizationId}

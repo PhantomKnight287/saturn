@@ -232,11 +232,12 @@ export function WeeklyTimesheet({
               {!isTeamView && submittableEntries.length > 0 && (
                 <Button
                   disabled={selectedIds.size === 0 || submitAction.isPending}
+                  loading={submitAction.isPending}
                   onClick={handleSubmit}
                   size='sm'
                 >
                   <Send className='size-4' />
-                  {submitAction.isPending ? 'Submitting...' : 'Submit Selected'}
+                  Submit Selected
                 </Button>
               )}
             </div>

@@ -1,7 +1,20 @@
+import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { projectsService } from '@/app/api/projects/service'
+import { createMetadata } from '@/lib/metadata'
 import { resolveOrgContext } from '../cache'
 import { SettingsPageClient } from './page.client'
+
+export const metadata: Metadata = createMetadata({
+  title: 'Workspace Settings',
+  description: 'Configure workspace defaults, billing, and preferences.',
+  openGraph: {
+    images: ['/api/og?page=Settings'],
+  },
+  twitter: {
+    images: ['/api/og?page=Settings'],
+  },
+})
 
 export default async function SettingsPage({
   params,
@@ -25,6 +38,7 @@ export default async function SettingsPage({
       defaultCurrency={settings.defaultCurrency}
       defaultMemberRate={settings.defaultMemberRate}
       defaultTimesheetDuration={settings.defaultTimesheetDuration}
+      invoiceNumberTemplate={settings.invoiceNumberTemplate}
       organization={organization}
       orgSlug={org}
     />
