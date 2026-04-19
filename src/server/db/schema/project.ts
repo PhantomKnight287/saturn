@@ -26,7 +26,7 @@ export const projects = pgTable('projects', {
   organizationId: text('organization_id')
     .references(() => organizations.id, { onDelete: 'cascade' })
     .notNull(),
-  status: projectStatus().default('planning'),
+  status: projectStatus().default('planning').notNull(),
   dueDate: timestamp('due_date'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at')

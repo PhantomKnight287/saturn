@@ -141,6 +141,13 @@
       "when": 1776617972825,
       "tag": "0019_large_frog_thor",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1776619495238,
+      "tag": "0020_freezing_nightmare",
+      "breakpoints": true
     }
   ]
 }

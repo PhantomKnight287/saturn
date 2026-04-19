@@ -69,7 +69,7 @@ export default function ProjectCard({
                   <DueDateBadge dueDate={new Date(project.dueDate)} />
                 </div>
               )}
-            <ProjectStatusBadge status={project.status!} />
+            <ProjectStatusBadge status={project.status} />
           </div>
         </div>
       </Card>

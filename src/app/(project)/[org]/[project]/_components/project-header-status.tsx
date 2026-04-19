@@ -96,6 +96,7 @@ export function ProjectHeaderStatus({
             {projectStatus.enumValues.map((value) => (
               <DropdownMenuCheckboxItem
                 checked={optimisticStatus === value}
+                disabled={isPending}
                 key={value}
                 onSelect={(e) => {
                   e.preventDefault()
