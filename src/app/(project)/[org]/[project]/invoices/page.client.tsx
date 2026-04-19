@@ -22,6 +22,7 @@ import {
 import InvoiceCard from './_components/invoice-card'
 import { InvoicePickerDialog } from './_components/invoice-picker-dialog'
 import type { InvoicesClientProps } from './types'
+import type { RouteImpl } from '@/types'
 
 export function InvoicesClient({
   invoices,
@@ -30,7 +31,7 @@ export function InvoicesClient({
   canCreate,
   role,
 }: InvoicesClientProps) {
-  const newUrl = `/${orgSlug}/${projectSlug}/invoices/new`
+  const newUrl = `/${orgSlug}/${projectSlug}/invoices/new` as RouteImpl
   const [pickerOpen, setPickerOpen] = useState(false)
   const router = useRouter()
   return (
@@ -42,7 +43,7 @@ export function InvoicesClient({
             <Button
               className='rounded-r-none'
               kbd='c'
-              onClick={() => router.push(newUrl)}
+              onClick={() => router.push(newUrl as unknown as string)}
               size='sm'
             >
               <Plus className='size-4' />

@@ -536,7 +536,7 @@ const listByProjectIdsSince = async (
       and(
         inArray(timeEntries.projectId, projectIds),
         gte(timeEntries.date, since),
-        memberId && eq(timeEntries.memberId, memberId)
+        memberId ? eq(timeEntries.memberId, memberId) : undefined
       )
     )
 }
