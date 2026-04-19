@@ -30,17 +30,17 @@ const entries = [
 
 export function MockTimesheetUI() {
   return (
-    <div className='overflow-hidden rounded-2xl border border-white/[0.08] bg-[#1a1a1f] shadow-2xl shadow-violet-500/10'>
-      <div className='flex items-center justify-between border-white/[0.06] border-b bg-white/[0.03] px-5 py-3'>
+    <div className='overflow-hidden rounded-2xl border border-border bg-card shadow-2xl shadow-primary/10'>
+      <div className='flex items-center justify-between border-border/60 border-b bg-muted/30 px-5 py-3'>
         <div className='flex items-center gap-2'>
-          <Clock className='size-4 text-violet-400' />
-          <span className='font-semibold text-sm text-white/90'>
+          <Clock className='size-4 text-primary' />
+          <span className='font-semibold text-foreground text-sm'>
             Timesheets
           </span>
         </div>
-        <span className='text-white/40 text-xs'>Apr 1 – Apr 7</span>
+        <span className='text-muted-foreground text-xs'>Apr 1 – Apr 7</span>
       </div>
-      <div className='divide-y divide-white/[0.04]'>
+      <div className='divide-y divide-border/50'>
         {entries.map((e) => (
           <div className='flex items-center gap-3 px-5 py-3' key={e.task}>
             <Image
@@ -55,16 +55,20 @@ export function MockTimesheetUI() {
               width={24}
             />
             <div className='flex-1'>
-              <div className='text-sm text-white/80'>{e.task}</div>
-              <div className='text-[11px] text-white/30'>{e.req}</div>
+              <div className='text-foreground/80 text-sm'>{e.task}</div>
+              <div className='text-[11px] text-muted-foreground/70'>
+                {e.req}
+              </div>
             </div>
-            <span className='font-mono text-sm text-white/60'>{e.hours}</span>
+            <span className='font-mono text-muted-foreground text-sm'>
+              {e.hours}
+            </span>
           </div>
         ))}
       </div>
-      <div className='flex items-center justify-between border-white/[0.06] border-t bg-white/[0.02] px-5 py-3'>
-        <span className='text-white/40 text-xs'>Total</span>
-        <span className='font-mono font-semibold text-sm text-violet-300'>
+      <div className='flex items-center justify-between border-border/60 border-t bg-muted/20 px-5 py-3'>
+        <span className='text-muted-foreground text-xs'>Total</span>
+        <span className='font-mono font-semibold text-primary text-sm'>
           11.0h
         </span>
       </div>

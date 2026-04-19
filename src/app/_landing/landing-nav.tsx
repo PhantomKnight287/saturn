@@ -36,12 +36,6 @@ export function LandingNav() {
                 Pricing
               </Link>
               <Link
-                className={buttonVariants({ variant: 'ghost', size: 'sm' })}
-                href='/auth/sign-in'
-              >
-                Sign in
-              </Link>
-              <Link
                 className={buttonVariants({ size: 'sm' })}
                 href='/auth/sign-up'
               >
