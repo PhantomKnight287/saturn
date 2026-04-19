@@ -8,6 +8,14 @@ import {
 } from 'drizzle-orm/pg-core'
 import { members, organizations, teams } from './auth'
 
+export const projectStatus = pgEnum('project_status', [
+  'planning',
+  'in-progress',
+  'on-hold',
+  'completed',
+  'archived',
+])
+
 export const projects = pgTable('projects', {
   id: text('id')
     .primaryKey()
@@ -18,6 +26,7 @@ export const projects = pgTable('projects', {
   organizationId: text('organization_id')
     .references(() => organizations.id, { onDelete: 'cascade' })
     .notNull(),
+  status: projectStatus().default('planning').notNull(),
   dueDate: timestamp('due_date'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at')

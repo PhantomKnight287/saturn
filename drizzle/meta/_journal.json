@@ -127,6 +127,27 @@
       "when": 1776611700894,
       "tag": "0017_crazy_sage",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1776613842379,
+      "tag": "0018_brown_tony_stark",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1776617972825,
+      "tag": "0019_large_frog_thor",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1776619495238,
+      "tag": "0020_freezing_nightmare",
+      "breakpoints": true
     }
   ]
 }

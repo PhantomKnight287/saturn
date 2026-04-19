@@ -1,0 +1,1 @@
+CREATE TYPE "public"."project_status" AS ENUM('planning', 'in-progress', 'on-hold', 'completed', 'archived');

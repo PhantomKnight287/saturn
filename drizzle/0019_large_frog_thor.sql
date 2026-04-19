@@ -1,0 +1,1 @@
+ALTER TABLE "projects" ADD COLUMN "status" "project_status" DEFAULT 'planning';

@@ -1,5 +1,6 @@
 import z from 'zod'
 import { updateTimesheetDefaultsSchema as orgTimesheetDefaultsSchema } from '@/app/(organization)/[org]/settings/common'
+import { projectStatus } from '@/server/db/schema'
 
 export {
   type TimesheetDuration,
@@ -20,6 +21,12 @@ export const renameProjectSchema = z.object({
     .min(1, 'Slug is required')
     .max(100)
     .regex(/^[a-z0-9-]+$/, 'Slug must be lowercase alphanumeric with hyphens'),
+})
+
+export const updateProjectStatusSchema = z.object({
+  projectId: z.string().min(1),
+  organizationId: z.string().min(1),
+  status: z.enum(projectStatus.enumValues),
 })
 
 export const deleteProjectSchema = z.object({
