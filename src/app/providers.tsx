@@ -29,6 +29,7 @@ export function Providers({ children }: { children: ReactNode }) {
               prefix: 'saturn_',
             }}
             authClient={authClient}
+            //@ts-expect-error
             Link={Link}
             navigate={(href) =>
               router.push(href as unknown as Parameters<typeof router.push>[0])
