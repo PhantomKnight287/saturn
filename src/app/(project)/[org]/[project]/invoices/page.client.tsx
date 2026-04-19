@@ -19,10 +19,10 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty'
+import type { RouteImpl } from '@/types'
 import InvoiceCard from './_components/invoice-card'
 import { InvoicePickerDialog } from './_components/invoice-picker-dialog'
 import type { InvoicesClientProps } from './types'
-import type { RouteImpl } from '@/types'
 
 export function InvoicesClient({
   invoices,
