@@ -117,7 +117,7 @@ export default async function TimeTracking({
       clientReports={clientReports}
       clients={clients}
       currentMemberId={orgMember.id}
-      defaultCurrency={settings.defaultCurrency}
+      defaultCurrency={settings.currency}
       entries={entries}
       isAdmin={isAdmin}
       isClient={isClient}
@@ -134,7 +134,7 @@ export default async function TimeTracking({
       reportEntriesMap={reportEntriesMap}
       reportRecipientsMap={reportRecipientsMap}
       requirements={requirementsList}
-      timesheetDuration={settings.defaultTimesheetDuration}
+      timesheetDuration={settings.timesheetDuration}
       timesheetReports={reports}
     />
   )

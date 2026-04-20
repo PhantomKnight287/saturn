@@ -166,7 +166,7 @@ export default async function NewInvoice({
       autoImportTime={!!fromTimesheet}
       billableEntries={billableEntries}
       clients={clients}
-      defaultCurrency={projectOrOrgSettings?.defaultCurrency}
+      defaultCurrency={projectOrOrgSettings?.currency}
       extendData={extendData}
       mediaItems={orgMedia}
       memberRateMap={memberRateMap}

@@ -52,7 +52,7 @@ export default async function Milestones({
       canCreate={canCreate}
       canDelete={canDelete}
       canUpdate={canUpdate}
-      defaultCurrency={settings.defaultCurrency}
+      defaultCurrency={settings.currency}
       milestones={milestoneList}
       orgSlug={org}
       projectId={currentProject.id}

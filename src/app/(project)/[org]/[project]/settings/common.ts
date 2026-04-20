@@ -16,6 +16,7 @@ export const renameProjectSchema = z.object({
   projectId: z.string().min(1),
   organizationId: z.string().min(1),
   name: z.string().min(1, 'Name is required').max(100),
+  dueDate: z.date().optional(),
   slug: z
     .string()
     .min(1, 'Slug is required')

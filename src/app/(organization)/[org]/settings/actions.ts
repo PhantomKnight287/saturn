@@ -69,17 +69,17 @@ export const updateTimesheetDefaultsAction = authedActionClient
           .insert(settingsTable)
           .values({
             organizationId,
-            defaultMemberRate,
-            defaultCurrency,
-            defaultTimesheetDuration,
+            memberRate: defaultMemberRate,
+            currency: defaultCurrency,
+            timesheetDuration: defaultTimesheetDuration,
           })
           .onConflictDoUpdate({
             target: [settingsTable.organizationId],
             targetWhere: sql`${settingsTable.projectId} IS NULL`,
             set: {
-              defaultMemberRate,
-              defaultCurrency,
-              defaultTimesheetDuration,
+              memberRate: defaultMemberRate,
+              currency: defaultCurrency,
+              timesheetDuration: defaultTimesheetDuration,
             },
           })
 

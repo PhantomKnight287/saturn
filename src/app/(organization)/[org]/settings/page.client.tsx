@@ -442,7 +442,6 @@ export function SettingsPageClient({
         <Card>
           <CardHeader>
             <CardTitle className='flex items-center gap-2'>
-              <Hash className='size-4 text-muted-foreground' />
               Invoice Numbering
             </CardTitle>
             <CardDescription>

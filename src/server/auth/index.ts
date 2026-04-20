@@ -109,9 +109,9 @@ export const auth = betterAuth({
           }
           await db.insert(memberRates).values({
             effectiveFrom: new Date(),
-            hourlyRate: setting.defaultMemberRate,
+            hourlyRate: setting.memberRate,
             memberId: member.id,
-            currency: setting.defaultCurrency,
+            currency: setting.currency,
           })
         },
         async afterCreateOrganization({ organization }) {

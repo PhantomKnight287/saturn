@@ -67,16 +67,16 @@ export const updateProjectTimesheetDefaultsAction = authedActionClient
         .values({
           organizationId,
           projectId,
-          defaultMemberRate,
-          defaultCurrency,
-          defaultTimesheetDuration,
+          memberRate: defaultMemberRate,
+          currency: defaultCurrency,
+          timesheetDuration: defaultTimesheetDuration,
         })
         .onConflictDoUpdate({
           target: [settingsTable.organizationId, settingsTable.projectId],
           set: {
-            defaultMemberRate,
-            defaultCurrency,
-            defaultTimesheetDuration,
+            memberRate: defaultMemberRate,
+            currency: defaultCurrency,
+            timesheetDuration: defaultTimesheetDuration,
           },
         })
 

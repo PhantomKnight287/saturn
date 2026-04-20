@@ -18,6 +18,12 @@ export const timesheetDurationEnum = pgEnum('timesheet_duration', [
   'monthly',
 ])
 
+export const clientInvolvementEnum = pgEnum('client_involvement', [
+  'full',
+  'partial',
+  'none',
+])
+
 export const settings = pgTable(
   'settings',
   {
@@ -30,15 +36,16 @@ export const settings = pgTable(
     projectId: text('project_id').references(() => projects.id, {
       onDelete: 'cascade',
     }),
-    defaultMemberRate: integer('default_member_rate').default(0).notNull(),
-    defaultCurrency: text('default_currency').default('USD').notNull(),
+    memberRate: integer('member_rate').default(0).notNull(),
+    currency: text('currency').default('USD').notNull(),
     invoiceNumberTemplate: text('invoice_number_template')
       .default('INV-%year(short)%month(num)-%seq(4)')
       .notNull(),
-    defaultTimesheetDuration: timesheetDurationEnum(
-      'default_timesheet_duration'
-    )
+    timesheetDuration: timesheetDurationEnum('timesheet_duration')
       .default('weekly')
+      .notNull(),
+    clientInvolvement: clientInvolvementEnum('client_involvement')
+      .default('full')
       .notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')

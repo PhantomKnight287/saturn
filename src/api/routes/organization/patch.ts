@@ -17,11 +17,9 @@ const bodySchema = z
       .optional(),
     settings: z
       .object({
-        defaultMemberRate: z.number().int().min(0).optional(),
-        defaultCurrency: z.string().length(3).optional(),
-        defaultTimesheetDuration: z
-          .enum(['weekly', 'biweekly', 'monthly'])
-          .optional(),
+        memberRate: z.number().int().min(0).optional(),
+        currency: z.string().length(3).optional(),
+        timesheetDuration: z.enum(['weekly', 'biweekly', 'monthly']).optional(),
       })
       .optional(),
   })
@@ -30,9 +28,9 @@ const bodySchema = z
       data.name !== undefined ||
       data.slug !== undefined ||
       (data.settings &&
-        (data.settings.defaultMemberRate !== undefined ||
-          data.settings.defaultCurrency !== undefined ||
-          data.settings.defaultTimesheetDuration !== undefined)),
+        (data.settings.memberRate !== undefined ||
+          data.settings.currency !== undefined ||
+          data.settings.timesheetDuration !== undefined)),
     { message: 'At least one field must be provided' }
   )
 
@@ -118,15 +116,14 @@ export const handler = (hono: typeof app) => {
 
       if (body.settings) {
         const settingsUpdate: Partial<typeof settings.$inferInsert> = {}
-        if (body.settings.defaultMemberRate !== undefined) {
-          settingsUpdate.defaultMemberRate = body.settings.defaultMemberRate
+        if (body.settings.memberRate !== undefined) {
+          settingsUpdate.memberRate = body.settings.memberRate
         }
-        if (body.settings.defaultCurrency !== undefined) {
-          settingsUpdate.defaultCurrency = body.settings.defaultCurrency
+        if (body.settings.currency !== undefined) {
+          settingsUpdate.currency = body.settings.currency
         }
-        if (body.settings.defaultTimesheetDuration !== undefined) {
-          settingsUpdate.defaultTimesheetDuration =
-            body.settings.defaultTimesheetDuration
+        if (body.settings.timesheetDuration !== undefined) {
+          settingsUpdate.timesheetDuration = body.settings.timesheetDuration
         }
         if (Object.keys(settingsUpdate).length > 0) {
           const [existing] = await tx
@@ -158,9 +155,9 @@ export const handler = (hono: typeof app) => {
         id: organizations.id,
         name: organizations.name,
         slug: organizations.slug,
-        defaultMemberRate: settings.defaultMemberRate,
-        defaultCurrency: settings.defaultCurrency,
-        defaultTimesheetDuration: settings.defaultTimesheetDuration,
+        defaultMemberRate: settings.memberRate,
+        defaultCurrency: settings.currency,
+        defaultTimesheetDuration: settings.timesheetDuration,
       })
       .from(organizations)
       .where(eq(organizations.id, key.organizationId))

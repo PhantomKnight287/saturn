@@ -38,7 +38,7 @@ export default async function NewProposal({
 
   return (
     <ProposalEditor
-      defaultCurrency={settings.defaultCurrency}
+      defaultCurrency={settings.currency}
       mode='create'
       orgSlug={org}
       projectId={currentProject.id}
