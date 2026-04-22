@@ -39,6 +39,7 @@ import type { Requirement, TimeEntry, TimeEntryFormValues } from '../types'
 
 interface TimeEntryFormProps {
   defaultDate?: Date
+  defaultDurationMinutes?: number
   editEntry?: TimeEntry
   onOpenChange: (open: boolean) => void
   open: boolean
@@ -86,6 +87,7 @@ export function TimeEntryForm({
   requirements,
   editEntry,
   defaultDate,
+  defaultDurationMinutes,
 }: TimeEntryFormProps) {
   const router = useRouter()
   const initialDate = editEntry
@@ -97,7 +99,11 @@ export function TimeEntryForm({
       requirementId: editEntry?.requirementId ?? '',
       description: editEntry?.description ?? '',
       date: toLocalDateString(initialDate),
-      durationInput: editEntry ? formatMinutes(editEntry.durationMinutes) : '',
+      durationInput: editEntry
+        ? formatMinutes(editEntry.durationMinutes)
+        : defaultDurationMinutes
+          ? formatMinutes(defaultDurationMinutes)
+          : '',
       billable: editEntry?.billable ?? true,
     },
   })
@@ -107,6 +113,12 @@ export function TimeEntryForm({
       form.setValue('date', toLocalDateString(defaultDate))
     }
   }, [defaultDate, editEntry, form])
+
+  useEffect(() => {
+    if (defaultDurationMinutes && !editEntry) {
+      form.setValue('durationInput', formatMinutes(defaultDurationMinutes))
+    }
+  }, [defaultDurationMinutes, editEntry, form])
 
   const createAction = useAction(createTimeEntryAction, {
     onSuccess: () => {

@@ -23,8 +23,15 @@ export const metadata: Metadata = createMetadata({
 
 export default async function TimeTracking({
   params,
+  searchParams,
 }: PageProps<'/[org]/[project]/timesheets'>) {
   const { org, project: projectSlug } = await params
+  const { logMinutes } = await searchParams
+  const initialLogMinutes =
+    // biome-ignore lint/performance/useTopLevelRegex: Todo: replace this with nuqs
+    typeof logMinutes === 'string' && /^\d+$/.test(logMinutes)
+      ? Math.max(1, Number(logMinutes))
+      : undefined
   const {
     organization,
     project: currentProject,
@@ -119,6 +126,7 @@ export default async function TimeTracking({
       currentMemberId={orgMember.id}
       defaultCurrency={settings.currency}
       entries={entries}
+      initialLogMinutes={initialLogMinutes}
       isAdmin={isAdmin}
       isClient={isClient}
       isClientInvolved={settings.clientInvolvement.timesheets === 'on'}

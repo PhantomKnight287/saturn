@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { ThemeProvider } from 'next-themes'
 import type { ReactNode } from 'react'
 import { Toaster } from 'sonner'
+import { FloatingTimer } from '@/components/floating-timer'
 import { TailwindIndicator } from '@/components/tailwind-indicator'
 import { SidebarProvider } from '@/components/ui/sidebar'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -58,6 +59,7 @@ export function Providers({ children }: { children: ReactNode }) {
               stopDelay={1000}
             >
               {children}
+              <FloatingTimer />
               <Toaster position='top-center' />
               <TailwindIndicator />
             </ProgressProvider>
