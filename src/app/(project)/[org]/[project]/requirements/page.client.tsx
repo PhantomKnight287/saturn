@@ -19,11 +19,11 @@ type Requirement = typeof requirements.$inferSelect
 
 interface RequirementsClientProps {
   canCreate: boolean
+  isClientInvolved?: boolean
   orgSlug: string
   projectSlug: string
   requirements: Requirement[]
   role: Role
-  isClientInvolved?: boolean
 }
 
 export function RequirementsClient({
@@ -84,12 +84,12 @@ export function RequirementsClient({
         <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-3'>
           {requirements.map((requirement) => (
             <RequirementCard
+              isClientInvolved={isClientInvolved}
               key={requirement.id}
               orgSlug={orgSlug}
               projectSlug={projectSlug}
               requirement={requirement}
               role={role}
-              isClientInvolved={isClientInvolved}
             />
           ))}
         </div>

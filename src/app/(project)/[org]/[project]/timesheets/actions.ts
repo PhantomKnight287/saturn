@@ -722,8 +722,17 @@ export const sendTimesheetToClientAction = authedActionClient
       const entries = await db
         .select(timeEntryColumns)
         .from(timeEntries)
-        .where(inArray(timeEntries.id, timeEntryIds))
-
+        .where(
+          and(
+            inArray(timeEntries.id, timeEntryIds),
+            eq(timeEntries.projectId, projectId)
+          )
+        )
+      if (entries.length !== timeEntryIds.length) {
+        throw new Error(
+          'Some of the time entries do not belong to the selected project.'
+        )
+      }
       for (const entry of entries) {
         if (entry.status !== 'admin_accepted') {
           throw new Error('Only approved entries can be sent to clients')

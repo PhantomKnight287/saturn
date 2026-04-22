@@ -80,14 +80,14 @@ export default async function ProposalDetail({
       canSend={canSend}
       canSign={isRecipient}
       hasSignedAlready={hasSigned}
-      isClientInvolved={settings.clientInvolvement.proposals === 'on'}
+      initialDeliverables={lineItems}
       //   initialExpenseItems={expenseItems.map((item) => ({
       //     description: item.description,
       //     amount: item.amount,
       //     category: item.category ?? '',
       //     billable: item.billable,
       //   }))}
-      initialDeliverables={lineItems}
+      isClientInvolved={settings.clientInvolvement.proposals === 'on'}
       mode='edit'
       orgSlug={org}
       projectClients={projectClients}

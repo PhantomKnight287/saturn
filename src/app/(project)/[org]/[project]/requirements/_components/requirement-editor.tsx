@@ -55,7 +55,8 @@ export default function RequirementEditor(props: RequirementEditorProps) {
   const backUrl =
     `/${props.orgSlug}/${props.projectSlug}/requirements` as RouteImpl
   const isEditable =
-    props.mode === 'create' || props.canEdit || props.isClientInvolved === false
+    props.mode === 'create' ||
+    (props.canEdit && props.isClientInvolved === false)
 
   const form = useForm<z.infer<typeof requirementFormSchema>>({
     resolver: zodResolver(requirementFormSchema),

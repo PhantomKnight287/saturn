@@ -9,6 +9,12 @@ import { Controller, useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import type { z } from 'zod'
 import { proPlanFeatures } from '@/app/_landing/data'
+import {
+  type ClientInvolvementValue,
+  clientInvolvementEntities,
+  clientInvolvementEntityLabels,
+  defaultClientInvolvement,
+} from '@/app/(project)/[org]/[project]/settings/common'
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -38,12 +44,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { authClient, useSession } from '@/lib/auth-client'
-import {
-  clientInvolvementEntities,
-  clientInvolvementEntityLabels,
-  type ClientInvolvementValue,
-  defaultClientInvolvement,
-} from '@/app/(project)/[org]/[project]/settings/common'
 import { ApiKeysCard } from './_components/api-keys/card'
 import { InvoiceNumberTemplateInput } from './_components/invoice-number-template-input'
 import {

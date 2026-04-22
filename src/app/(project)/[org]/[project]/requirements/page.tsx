@@ -2,11 +2,11 @@ import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
+import { projectsService } from '@/app/api/projects/service'
 import { requirementsService } from '@/app/api/requirements/service'
 import { createMetadata } from '@/lib/metadata'
 import type { Role } from '@/types'
 import { RequirementsClient } from './page.client'
-import { projectsService } from '@/app/api/projects/service'
 
 export const metadata: Metadata = createMetadata({
   title: 'Requirements',
@@ -48,11 +48,11 @@ export default async function Requirements({
   return (
     <RequirementsClient
       canCreate={canCreate}
+      isClientInvolved={settings.clientInvolvement.requirements === 'on'}
       orgSlug={org}
       projectSlug={projectSlug}
       requirements={requirementList}
       role={orgMember.role as Role}
-      isClientInvolved={settings.clientInvolvement.requirements === 'on'}
     />
   )
 }

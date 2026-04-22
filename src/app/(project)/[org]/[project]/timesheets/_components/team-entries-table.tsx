@@ -317,7 +317,10 @@ export function TeamEntriesTable({
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger>
-                                  <StatusBadge isClientInvolved={isClientInvolved} status={entry.status} />
+                                  <StatusBadge
+                                    isClientInvolved={isClientInvolved}
+                                    status={entry.status}
+                                  />
                                 </TooltipTrigger>
                                 <TooltipContent
                                   className='max-w-xs'
@@ -329,7 +332,10 @@ export function TeamEntriesTable({
                               </Tooltip>
                             </TooltipProvider>
                           ) : (
-                            <StatusBadge isClientInvolved={isClientInvolved} status={entry.status} />
+                            <StatusBadge
+                              isClientInvolved={isClientInvolved}
+                              status={entry.status}
+                            />
                           )}
                         </TableCell>
                         <TableCell>

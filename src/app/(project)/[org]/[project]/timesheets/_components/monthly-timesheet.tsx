@@ -408,7 +408,10 @@ export function MonthlyTimesheet({
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger>
-                                <StatusBadge isClientInvolved={isClientInvolved} status={entry.status} />
+                                <StatusBadge
+                                  isClientInvolved={isClientInvolved}
+                                  status={entry.status}
+                                />
                               </TooltipTrigger>
                               <TooltipContent className='max-w-xs' side='left'>
                                 <p className='font-medium'>Reason:</p>
@@ -417,7 +420,10 @@ export function MonthlyTimesheet({
                             </Tooltip>
                           </TooltipProvider>
                         ) : (
-                          <StatusBadge isClientInvolved={isClientInvolved} status={entry.status} />
+                          <StatusBadge
+                            isClientInvolved={isClientInvolved}
+                            status={entry.status}
+                          />
                         )}
                       </TableCell>
                       {showActions && (

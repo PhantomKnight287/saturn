@@ -68,8 +68,7 @@ export default async function InvoiceDetail({
   const isAdmin = orgMember.role === 'owner' || orgMember.role === 'admin'
   const canMarkPaid = isClientInvolved
     ? invoice.status === 'sent' && isRecipient
-    : isAdmin &&
-      (invoice.status === 'sent' || invoice.status === 'draft')
+    : isAdmin && (invoice.status === 'sent' || invoice.status === 'draft')
   const canCreateThread = role.authorize({ thread: ['create'] }).success
   const canResolveThread = role.authorize({ thread: ['resolve'] }).success
 

@@ -168,7 +168,9 @@ export default async function NewInvoice({
       clients={clients}
       defaultCurrency={projectOrOrgSettings?.currency}
       extendData={extendData}
-      isClientInvolved={projectOrOrgSettings.clientInvolvement.invoices === 'on'}
+      isClientInvolved={
+        projectOrOrgSettings.clientInvolvement.invoices === 'on'
+      }
       mediaItems={orgMedia}
       memberRateMap={memberRateMap}
       mode='create'

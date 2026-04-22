@@ -140,10 +140,7 @@ export default function LineItemsEditor({
             </tbody>
             <tfoot>
               <tr className='bg-muted/30'>
-                <td
-                  className='px-3 py-2 text-right font-semibold'
-                  colSpan={3}
-                >
+                <td className='px-3 py-2 text-right font-semibold' colSpan={3}>
                   Total ({currency})
                 </td>
                 <td className='px-3 py-2 text-right font-semibold'>
@@ -238,6 +235,7 @@ const LineItemRow = memo(function LineItemRow({
             className='h-7 w-7 p-0 text-muted-foreground hover:text-destructive'
             onClick={() => onRemove(index)}
             size='sm'
+            type='button'
             variant='ghost'
           >
             <Trash2 className='size-3.5' />

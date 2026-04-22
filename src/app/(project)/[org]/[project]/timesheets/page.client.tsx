@@ -254,7 +254,7 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
               clientMemberIds,
               title: reportTitle.trim(),
               timeEntryIds: [...selectedEntryIds],
-              currency: 'USD',
+              currency: defaultCurrency ?? 'USD',
             })
             toast.success('Timesheet sent to client')
             setSendOpen(false)
@@ -279,16 +279,14 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
       )}
 
       {isAdmin && (
-        <>
-          <MemberRatesDialog
-            defaultCurrency={defaultCurrency}
-            existingRates={memberRates}
-            onOpenChange={setRatesOpen}
-            open={ratesOpen}
-            projectId={projectId}
-            projectMembers={projectMembers}
-          />
-        </>
+        <MemberRatesDialog
+          defaultCurrency={defaultCurrency}
+          existingRates={memberRates}
+          onOpenChange={setRatesOpen}
+          open={ratesOpen}
+          projectId={projectId}
+          projectMembers={projectMembers}
+        />
       )}
     </div>
   )

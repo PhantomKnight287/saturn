@@ -8,7 +8,6 @@ import { useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import type { z } from 'zod'
-import DatePicker from '@/components/ui/date-picker'
 import { InvoiceNumberTemplateInput } from '@/app/(organization)/[org]/settings/_components/invoice-number-template-input'
 import { updateInvoiceNumberTemplateAction } from '@/app/(organization)/[org]/settings/actions'
 import { updateInvoiceNumberTemplateSchema } from '@/app/(organization)/[org]/settings/common'
@@ -24,6 +23,7 @@ import {
 } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { CurrencySelect } from '@/components/ui/currency-selector'
+import DatePicker from '@/components/ui/date-picker'
 import {
   Dialog,
   DialogContent,
@@ -203,6 +203,7 @@ export function ProjectSettingsPageClient({
   } = useAction(updateClientInvolvementLevelAction, {
     onSuccess() {
       router.refresh()
+      toast.success('Updated client involvement level')
     },
     onError({ error }) {
       toast.error(

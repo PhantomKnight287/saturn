@@ -45,10 +45,6 @@ export const createRequirementAction = authedActionClient
     if (!organization) {
       throw new Error('Organization not found')
     }
-    const settings = await projectsService.getSettings(
-      organization.id,
-      projectId
-    )
     const hasProjectAccess = await authService.checkProjectAccess(
       organization.id,
       projectId,
@@ -59,6 +55,10 @@ export const createRequirementAction = authedActionClient
         hasProjectAccess.error ?? 'You do not have access to this project'
       )
     }
+    const settings = await projectsService.getSettings(
+      organization.id,
+      projectId
+    )
     if (!role.authorize({ requirement: ['create'] }).success) {
       throw new Error('You do not have permission to create requirements')
     }

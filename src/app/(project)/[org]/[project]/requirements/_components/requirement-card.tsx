@@ -35,9 +35,9 @@ export default function RequirementCard({
       <Card className='flex h-full cursor-pointer flex-col gap-0 p-4 transition-colors hover:border-primary/50'>
         <div className='mb-1.5 flex items-center justify-between gap-2'>
           <StatusBadge
+            isClientInvolved={isClientInvolved}
             role={role}
             status={requirement.status}
-            isClientInvolved={isClientInvolved}
           />
           <span className='shrink-0 text-muted-foreground text-xs'>
             {formatDistanceToNow(new Date(requirement.updatedAt), {
