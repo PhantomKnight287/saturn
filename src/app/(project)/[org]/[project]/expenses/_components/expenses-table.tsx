@@ -328,14 +328,12 @@ export function ExpensesTable({
                               </span>
                             )}
                             {expense.billable && (
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger>
-                                    <DollarSign className='size-3 text-green-600' />
-                                  </TooltipTrigger>
-                                  <TooltipContent>Billable</TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <DollarSign className='size-3 text-green-600' />
+                                </TooltipTrigger>
+                                <TooltipContent>Billable</TooltipContent>
+                              </Tooltip>
                             )}
                           </div>
                         </TableCell>
@@ -375,25 +373,20 @@ export function ExpensesTable({
                           {(expense.status === 'admin_rejected' ||
                             expense.status === 'client_rejected') &&
                           expense.rejectReason ? (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger>
-                                  <Badge
-                                    className={`cursor-help text-xs ${cfg!.className}`}
-                                    variant={cfg!.variant}
-                                  >
-                                    {cfg!.label}
-                                  </Badge>
-                                </TooltipTrigger>
-                                <TooltipContent
-                                  className='max-w-xs'
-                                  side='left'
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Badge
+                                  className={`cursor-help text-xs ${cfg!.className}`}
+                                  variant={cfg!.variant}
                                 >
-                                  <p className='font-medium'>Reason:</p>
-                                  <p>{expense.rejectReason}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                                  {cfg!.label}
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent className='max-w-xs' side='left'>
+                                <p className='font-medium'>Reason:</p>
+                                <p>{expense.rejectReason}</p>
+                              </TooltipContent>
+                            </Tooltip>
                           ) : (
                             <Badge
                               className={`text-xs ${cfg!.className}`}

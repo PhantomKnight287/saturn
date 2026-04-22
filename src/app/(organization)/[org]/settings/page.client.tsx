@@ -147,19 +147,28 @@ export function SettingsPageClient({
           referenceId: session.data?.user.id,
         },
       })
-      // biome-ignore lint/suspicious/noExplicitAny: I have no idea why this section is not typed
-      .then(({ data }: { data: any }) => {
-        if (data && data?.result?.items.length > 0) {
-          const sub = data?.result?.items[0]
-          setSubscription({
-            status: 'active',
-            currentPeriodEnd: sub.currentPeriodEnd,
-            productName: sub.productName,
-          })
-        } else {
-          setSubscription({ status: 'free' })
+      .then(
+        ({
+          data,
+        }: {
+          data: {
+            result: {
+              items: { currentPeriodEnd?: string; productName?: string }[]
+            }
+          } | null
+        }) => {
+          const sub = data?.result?.items?.[0]
+          if (sub) {
+            setSubscription({
+              status: 'active',
+              currentPeriodEnd: sub.currentPeriodEnd,
+              productName: sub.productName,
+            })
+          } else {
+            setSubscription({ status: 'free' })
+          }
         }
-      })
+      )
       .catch(() => {
         setSubscription({ status: 'free' })
       })

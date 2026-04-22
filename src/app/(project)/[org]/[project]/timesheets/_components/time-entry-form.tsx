@@ -1,4 +1,3 @@
-/** biome-ignore-all lint/performance/useTopLevelRegex: I have no idea what this lint rule does tbh */
 'use client'
 
 import { useRouter } from '@bprogress/next/app'
@@ -54,25 +53,30 @@ function toLocalDateString(date: Date): string {
   return `${y}-${m}-${d}`
 }
 
+const HOURS_MINUTES_RE = /^(\d+)\s*h\s*(\d+)\s*m?$/
+const HOURS_ONLY_RE = /^(\d+(?:\.\d+)?)\s*h$/
+const MINUTES_ONLY_RE = /^(\d+)\s*m$/
+const DECIMAL_HOURS_RE = /^(\d+(?:\.\d+)?)$/
+
 function parseDuration(input: string): number | null {
   const trimmed = input.trim().toLowerCase()
 
-  const hm = trimmed.match(/^(\d+)\s*h\s*(\d+)\s*m?$/)
+  const hm = trimmed.match(HOURS_MINUTES_RE)
   if (hm) {
     return Number(hm.at(1)) * 60 + Number(hm.at(2))
   }
 
-  const hOnly = trimmed.match(/^(\d+(?:\.\d+)?)\s*h$/)
+  const hOnly = trimmed.match(HOURS_ONLY_RE)
   if (hOnly) {
     return Math.round(Number(hOnly.at(1)) * 60)
   }
 
-  const mOnly = trimmed.match(/^(\d+)\s*m$/)
+  const mOnly = trimmed.match(MINUTES_ONLY_RE)
   if (mOnly) {
     return Number(mOnly.at(1))
   }
 
-  const decimal = trimmed.match(/^(\d+(?:\.\d+)?)$/)
+  const decimal = trimmed.match(DECIMAL_HOURS_RE)
   if (decimal) {
     return Math.round(Number(decimal.at(1)) * 60)
   }
@@ -109,20 +113,17 @@ export function TimeEntryForm({
   })
 
   useEffect(() => {
-    if (defaultDate && !editEntry) {
-      form.setValue('date', toLocalDateString(defaultDate))
-    }
-  }, [defaultDate, editEntry, form])
-
-  useEffect(() => {
     if (editEntry) {
       return
+    }
+    if (defaultDate) {
+      form.setValue('date', toLocalDateString(defaultDate))
     }
     form.setValue(
       'durationInput',
       defaultDurationMinutes ? formatMinutes(defaultDurationMinutes) : ''
     )
-  }, [defaultDurationMinutes, editEntry, form])
+  }, [defaultDate, defaultDurationMinutes, editEntry, form])
 
   const createAction = useAction(createTimeEntryAction, {
     onSuccess: () => {

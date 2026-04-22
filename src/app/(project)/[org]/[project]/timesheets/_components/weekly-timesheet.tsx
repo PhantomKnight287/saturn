@@ -13,7 +13,6 @@ import { useParams } from 'next/navigation'
 import { useAction } from 'next-safe-action/hooks'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import StatusBadge from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -28,12 +27,13 @@ import {
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { useSetSelection } from '@/hooks/use-set-selection'
 import { deleteTimeEntryAction, submitTimesheetAction } from '../actions'
-import { formatMinutes } from '../common'
+import { canDeleteTimeEntry, canEditTimeEntry, formatMinutes } from '../common'
 import type { Requirement, TimeEntry } from '../types'
+import { StatusBadgeWithReason } from './status-badge-with-reason'
 import { TimeEntryForm } from './time-entry-form'
 
 interface WeeklyTimesheetProps {
@@ -81,7 +81,9 @@ export function WeeklyTimesheet({
   onAddEntry,
 }: WeeklyTimesheetProps) {
   const [weekOffset, setWeekOffset] = useState(0)
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const { selectedIds, toggle, toggleAll, clear } = useSetSelection<TimeEntry>(
+    (e) => e.id
+  )
   const [editEntry, setEditEntry] = useState<TimeEntry | null>(null)
   const params = useParams()
   const today = new Date()
@@ -116,7 +118,7 @@ export function WeeklyTimesheet({
   const submitAction = useAction(submitTimesheetAction, {
     onSuccess: () => {
       toast.success('Timesheet submitted for approval')
-      setSelectedIds(new Set())
+      clear()
       router.refresh()
     },
     onError: ({ error }) => {
@@ -133,56 +135,12 @@ export function WeeklyTimesheet({
       toast.error(error.serverError ?? 'Failed to delete entry'),
   })
 
-  function toggleSelect(id: string) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) {
-        next.delete(id)
-      } else {
-        next.add(id)
-      }
-      return next
-    })
-  }
-
-  function toggleSelectAll() {
-    if (selectedIds.size === submittableEntries.length) {
-      setSelectedIds(new Set())
-    } else {
-      setSelectedIds(new Set(submittableEntries.map((e) => e.id)))
-    }
-  }
-
   function handleSubmit() {
     if (selectedIds.size === 0) {
       toast.error('Select at least one draft entry to submit')
       return
     }
     submitAction.execute({ timeEntryIds: [...selectedIds] })
-  }
-
-  // Determine if an entry is editable
-  function canEdit(entry: TimeEntry): boolean {
-    // Admins can edit any entry
-    if (isAdmin) {
-      return true
-    }
-    // Members can edit their own draft or rejected entries
-    if (entry.memberId !== currentMemberId) {
-      return false
-    }
-    return entry.status === 'draft' || entry.status === 'admin_rejected'
-  }
-
-  // Determine if an entry can be deleted
-  function canDelete(entry: TimeEntry): boolean {
-    if (isAdmin) {
-      return true
-    }
-    if (entry.memberId !== currentMemberId) {
-      return false
-    }
-    return entry.status === 'draft'
   }
 
   const showActions = !isTeamView || isAdmin
@@ -257,7 +215,7 @@ export function WeeklyTimesheet({
                           submittableEntries.length > 0 &&
                           selectedIds.size === submittableEntries.length
                         }
-                        onCheckedChange={toggleSelectAll}
+                        onCheckedChange={() => toggleAll(submittableEntries)}
                       />
                     </TableHead>
                   )}
@@ -314,7 +272,7 @@ export function WeeklyTimesheet({
                             {isDraft && (
                               <Checkbox
                                 checked={selectedIds.has(entry.id)}
-                                onCheckedChange={() => toggleSelect(entry.id)}
+                                onCheckedChange={() => toggle(entry.id)}
                               />
                             )}
                           </TableCell>
@@ -330,14 +288,12 @@ export function WeeklyTimesheet({
                               {entry.description}
                             </span>
                             {entry.billable && (
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger>
-                                    <DollarSign className='size-3 text-primary' />
-                                  </TooltipTrigger>
-                                  <TooltipContent>Billable</TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <DollarSign className='size-3 text-primary' />
+                                </TooltipTrigger>
+                                <TooltipContent>Billable</TooltipContent>
+                              </Tooltip>
                             )}
                           </div>
                         </TableCell>
@@ -366,36 +322,19 @@ export function WeeklyTimesheet({
                           {formatMinutes(rowTotal)}
                         </TableCell>
                         <TableCell className='text-center'>
-                          {entry.status === 'admin_rejected' &&
-                          entry.rejectReason ? (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger>
-                                  <StatusBadge
-                                    isClientInvolved={isClientInvolved}
-                                    status={entry.status}
-                                  />
-                                </TooltipTrigger>
-                                <TooltipContent
-                                  className='max-w-xs'
-                                  side='left'
-                                >
-                                  <p className='font-medium'>Reason:</p>
-                                  <p>{entry.rejectReason}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          ) : (
-                            <StatusBadge
-                              isClientInvolved={isClientInvolved}
-                              status={entry.status}
-                            />
-                          )}
+                          <StatusBadgeWithReason
+                            entry={entry}
+                            isClientInvolved={isClientInvolved}
+                          />
                         </TableCell>
                         {showActions && (
                           <TableCell>
                             <div className='flex items-center gap-1'>
-                              {canEdit(entry) && (
+                              {canEditTimeEntry(
+                                entry,
+                                currentMemberId,
+                                isAdmin
+                              ) && (
                                 <Button
                                   className='size-7'
                                   onClick={() => setEditEntry(entry)}
@@ -405,7 +344,11 @@ export function WeeklyTimesheet({
                                   <Pencil className='size-3.5' />
                                 </Button>
                               )}
-                              {canDelete(entry) && (
+                              {canDeleteTimeEntry(
+                                entry,
+                                currentMemberId,
+                                isAdmin
+                              ) && (
                                 <Button
                                   className='size-7 text-destructive'
                                   onClick={() =>
