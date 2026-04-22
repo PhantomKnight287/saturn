@@ -1,14 +1,15 @@
 'use client'
 
 import { useRouter } from '@bprogress/next/app'
-import { Plus, Send, Settings2 } from 'lucide-react'
-import { useState } from 'react'
+import { Play, Plus, Send, Settings2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import SendToClientDialog from '@/components/send-to-client-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useTimerStore } from '@/stores/timer-store'
 import { BiweeklyTimesheet } from './_components/biweekly-timesheet'
 import { BudgetIndicator } from './_components/budget-indicator'
 import { ClientReportsView } from './_components/client-reports-view'
@@ -45,9 +46,35 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
     clientReports,
     defaultCurrency,
     isClientInvolved,
+    initialLogMinutes,
   } = props
-  const [formOpen, setFormOpen] = useState(false)
+  const [formOpen, setFormOpen] = useState(!!initialLogMinutes)
   const [formDefaultDate, setFormDefaultDate] = useState<Date | undefined>()
+  const [formDefaultDuration, setFormDefaultDuration] = useState<
+    number | undefined
+  >(initialLogMinutes)
+  const timerStartedAt = useTimerStore((s) => s.startedAt)
+  const timerAccumulatedMs = useTimerStore((s) => s.accumulatedMs)
+  const startTimer = useTimerStore((s) => s.start)
+  const timerActive = timerStartedAt !== null || timerAccumulatedMs > 0
+
+  useEffect(() => {
+    if (initialLogMinutes) {
+      const url = new URL(window.location.href)
+      url.searchParams.delete('logMinutes')
+      window.history.replaceState(null, '', url.toString())
+    }
+  }, [initialLogMinutes])
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ minutes: number }>).detail
+      setFormDefaultDuration(detail.minutes)
+      setFormOpen(true)
+    }
+    window.addEventListener('timer:log', handler)
+    return () => window.removeEventListener('timer:log', handler)
+  }, [])
   const [ratesOpen, setRatesOpen] = useState(false)
   const [sendOpen, setSendOpen] = useState(false)
   const [selectedEntryIds, setSelectedEntryIds] = useState<Set<string>>(
@@ -112,6 +139,18 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
               Rates
             </Button>
           )}
+          <Button
+            disabled={timerActive}
+            kbd='t'
+            onClick={() =>
+              startTimer({ orgSlug, projectSlug, projectId, projectName })
+            }
+            size='sm'
+            variant='outline'
+          >
+            <Play className='mr-1 size-4' />
+            {timerStartedAt ? 'Recording…' : 'Record'}
+          </Button>
           <Button kbd='l' onClick={() => setFormOpen(true)} size='sm'>
             <Plus className='mr-1 size-4' />
             Log Time
@@ -226,10 +265,12 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
 
       <TimeEntryForm
         defaultDate={formDefaultDate}
+        defaultDurationMinutes={formDefaultDuration}
         onOpenChange={(open) => {
           setFormOpen(open)
           if (!open) {
             setFormDefaultDate(undefined)
+            setFormDefaultDuration(undefined)
           }
         }}
         open={formOpen}

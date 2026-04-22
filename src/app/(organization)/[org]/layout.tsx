@@ -1,6 +1,7 @@
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { ApplicationHeader } from '@/components/application-header'
+import { FloatingTimer } from '@/components/floating-timer'
 import { Separator } from '@/components/ui/separator'
 import { authClient } from '@/lib/auth-client'
 import { getCachedOrganization, getCachedUserSession } from './cache'
@@ -48,6 +49,7 @@ export default async function OrganizationLayout({
           {children}
         </div>
       </div>
+      <FloatingTimer />
     </div>
   )
 }

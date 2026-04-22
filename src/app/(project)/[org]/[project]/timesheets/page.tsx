@@ -10,6 +10,8 @@ import { timesheetService } from '@/app/api/timesheets/service'
 import { createMetadata } from '@/lib/metadata'
 import { TimeTrackingClient } from './page.client'
 
+const LOG_MINUTES_RE = /^\d+$/
+
 export const metadata: Metadata = createMetadata({
   title: 'Timesheets',
   description: 'Log hours and track team productivity across the project.',
@@ -23,8 +25,17 @@ export const metadata: Metadata = createMetadata({
 
 export default async function TimeTracking({
   params,
+  searchParams,
 }: PageProps<'/[org]/[project]/timesheets'>) {
   const { org, project: projectSlug } = await params
+  const { logMinutes } = await searchParams
+  let initialLogMinutes: number | undefined
+  if (typeof logMinutes === 'string' && LOG_MINUTES_RE.test(logMinutes)) {
+    const parsed = Number(logMinutes)
+    if (Number.isSafeInteger(parsed)) {
+      initialLogMinutes = Math.max(1, parsed)
+    }
+  }
   const {
     organization,
     project: currentProject,
@@ -119,6 +130,7 @@ export default async function TimeTracking({
       currentMemberId={orgMember.id}
       defaultCurrency={settings.currency}
       entries={entries}
+      initialLogMinutes={initialLogMinutes}
       isAdmin={isAdmin}
       isClient={isClient}
       isClientInvolved={settings.clientInvolvement.timesheets === 'on'}

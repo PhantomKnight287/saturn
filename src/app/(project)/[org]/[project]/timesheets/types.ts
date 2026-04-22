@@ -132,6 +132,7 @@ export interface TimeTrackingPageProps {
   currentMemberId: string
   defaultCurrency?: string
   entries: TimeEntry[]
+  initialLogMinutes?: number
   isAdmin: boolean
   isClient: boolean
   isClientInvolved: boolean
