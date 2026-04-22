@@ -10,6 +10,8 @@ import { timesheetService } from '@/app/api/timesheets/service'
 import { createMetadata } from '@/lib/metadata'
 import { TimeTrackingClient } from './page.client'
 
+const LOG_MINUTES_RE = /^\d+$/
+
 export const metadata: Metadata = createMetadata({
   title: 'Timesheets',
   description: 'Log hours and track team productivity across the project.',
@@ -27,11 +29,13 @@ export default async function TimeTracking({
 }: PageProps<'/[org]/[project]/timesheets'>) {
   const { org, project: projectSlug } = await params
   const { logMinutes } = await searchParams
-  const initialLogMinutes =
-    // biome-ignore lint/performance/useTopLevelRegex: Todo: replace this with nuqs
-    typeof logMinutes === 'string' && /^\d+$/.test(logMinutes)
-      ? Math.max(1, Number(logMinutes))
-      : undefined
+  let initialLogMinutes: number | undefined
+  if (typeof logMinutes === 'string' && LOG_MINUTES_RE.test(logMinutes)) {
+    const parsed = Number(logMinutes)
+    if (Number.isSafeInteger(parsed)) {
+      initialLogMinutes = Math.max(1, parsed)
+    }
+  }
   const {
     organization,
     project: currentProject,

@@ -115,9 +115,13 @@ export function TimeEntryForm({
   }, [defaultDate, editEntry, form])
 
   useEffect(() => {
-    if (defaultDurationMinutes && !editEntry) {
-      form.setValue('durationInput', formatMinutes(defaultDurationMinutes))
+    if (editEntry) {
+      return
     }
+    form.setValue(
+      'durationInput',
+      defaultDurationMinutes ? formatMinutes(defaultDurationMinutes) : ''
+    )
   }, [defaultDurationMinutes, editEntry, form])
 
   const createAction = useAction(createTimeEntryAction, {

@@ -7,6 +7,7 @@ import {
 } from '@/app/(organization)/[org]/cache'
 import { projectsService } from '@/app/api/projects/service'
 import { ApplicationHeader } from '@/components/application-header'
+import { FloatingTimer } from '@/components/floating-timer'
 import { Separator } from '@/components/ui/separator'
 import { authClient } from '@/lib/auth-client'
 import OrgNavServer from './nav.server'
@@ -66,6 +67,7 @@ export default async function ProjectLayout({
           {children}
         </div>
       </div>
+      <FloatingTimer />
     </div>
   )
 }
