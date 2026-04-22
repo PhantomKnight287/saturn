@@ -5,6 +5,7 @@ import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
 import { expensesServices } from '@/app/api/expenses/service'
 import { invoicesService } from '@/app/api/invoices/service'
 import { mediaService } from '@/app/api/media/service'
+import { projectsService } from '@/app/api/projects/service'
 import { requirementsService } from '@/app/api/requirements/service'
 import { teamService } from '@/app/api/teams/service'
 import { threadService } from '@/app/api/threads/service'
@@ -54,15 +55,20 @@ export default async function InvoiceDetail({
 
   const isClient = orgMember.role === 'client'
 
-  const [items, linkedReqs, recipients, threads] = await Promise.all([
+  const [items, linkedReqs, recipients, threads, settings] = await Promise.all([
     invoicesService.getItems(invoiceId),
     invoicesService.getLinkedRequirements(invoiceId),
     invoicesService.getRecipients(invoiceId),
     threadService.getThreads(currentProject.id, invoiceId),
+    projectsService.getSettings(organization.id, currentProject.id),
   ])
 
   const isRecipient = recipients.some((r) => r.memberId === orgMember.id)
-  const canMarkPaid = invoice.status === 'sent' && isRecipient
+  const isClientInvolved = settings.clientInvolvement.invoices === 'on'
+  const isAdmin = orgMember.role === 'owner' || orgMember.role === 'admin'
+  const canMarkPaid = isClientInvolved
+    ? invoice.status === 'sent' && isRecipient
+    : isAdmin && (invoice.status === 'sent' || invoice.status === 'draft')
   const canCreateThread = role.authorize({ thread: ['create'] }).success
   const canResolveThread = role.authorize({ thread: ['resolve'] }).success
 
@@ -154,6 +160,7 @@ export default async function InvoiceDetail({
           | { label: string; value: string }[]
           | null,
       }}
+      isClientInvolved={isClientInvolved}
       linkedRequirements={linkedReqs}
       mediaItems={orgMedia}
       memberRateMap={memberRateMap}

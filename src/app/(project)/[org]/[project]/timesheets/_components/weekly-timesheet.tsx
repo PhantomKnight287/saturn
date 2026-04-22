@@ -40,6 +40,7 @@ interface WeeklyTimesheetProps {
   currentMemberId: string
   entries: TimeEntry[]
   isAdmin?: boolean
+  isClientInvolved?: boolean
   isTeamView?: boolean
   onAddEntry?: () => void
   projectId: string
@@ -76,6 +77,7 @@ export function WeeklyTimesheet({
   currentMemberId,
   isAdmin = false,
   isTeamView = false,
+  isClientInvolved,
   onAddEntry,
 }: WeeklyTimesheetProps) {
   const [weekOffset, setWeekOffset] = useState(0)
@@ -369,7 +371,10 @@ export function WeeklyTimesheet({
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger>
-                                  <StatusBadge status={entry.status} />
+                                  <StatusBadge
+                                    isClientInvolved={isClientInvolved}
+                                    status={entry.status}
+                                  />
                                 </TooltipTrigger>
                                 <TooltipContent
                                   className='max-w-xs'
@@ -381,7 +386,10 @@ export function WeeklyTimesheet({
                               </Tooltip>
                             </TooltipProvider>
                           ) : (
-                            <StatusBadge status={entry.status} />
+                            <StatusBadge
+                              isClientInvolved={isClientInvolved}
+                              status={entry.status}
+                            />
                           )}
                         </TableCell>
                         {showActions && (

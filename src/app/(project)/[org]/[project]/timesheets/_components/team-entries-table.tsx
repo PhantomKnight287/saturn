@@ -45,6 +45,7 @@ import { TimeEntryForm } from './time-entry-form'
 interface TeamEntriesTableProps {
   currentMemberId: string
   entries: TimeEntry[]
+  isClientInvolved?: boolean
   onSelectionChange?: (ids: Set<string>) => void
   projectId: string
   projectMembers: ProjectMember[]
@@ -59,6 +60,7 @@ export function TeamEntriesTable({
   projectId,
   selectedIds,
   onSelectionChange,
+  isClientInvolved,
 }: TeamEntriesTableProps) {
   const selectable = !!onSelectionChange
   const params = useParams()
@@ -315,7 +317,10 @@ export function TeamEntriesTable({
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger>
-                                  <StatusBadge status={entry.status} />
+                                  <StatusBadge
+                                    isClientInvolved={isClientInvolved}
+                                    status={entry.status}
+                                  />
                                 </TooltipTrigger>
                                 <TooltipContent
                                   className='max-w-xs'
@@ -327,7 +332,10 @@ export function TeamEntriesTable({
                               </Tooltip>
                             </TooltipProvider>
                           ) : (
-                            <StatusBadge status={entry.status} />
+                            <StatusBadge
+                              isClientInvolved={isClientInvolved}
+                              status={entry.status}
+                            />
                           )}
                         </TableCell>
                         <TableCell>

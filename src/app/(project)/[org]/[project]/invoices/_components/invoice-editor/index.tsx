@@ -99,6 +99,7 @@ export default function InvoiceEditor({
   role,
   defaultCurrency,
   suggestedInvoiceNumber,
+  isClientInvolved = true,
 }: InvoiceEditorProps) {
   const router = useRouter()
   const backUrl = `/${orgSlug}/${projectSlug}/invoices` as RouteImpl
@@ -488,7 +489,11 @@ export default function InvoiceEditor({
         </Button>
         <div className='flex items-center gap-2'>
           {mode === 'edit' && invoice && (
-            <InvoiceStatusBadge role={role} status={invoice.status} />
+            <InvoiceStatusBadge
+              isClientInvolved={isClientInvolved}
+              role={role}
+              status={invoice.status}
+            />
           )}
           {canChangeStatus && invoice?.status === 'paid' && (
             <Button
@@ -504,23 +509,6 @@ export default function InvoiceEditor({
               Mark as Unpaid
             </Button>
           )}
-          {canMarkPaid && invoice?.status === 'sent' && (
-            <Button loading={isMarkingPaid} onClick={handleMarkPaid} size='sm'>
-              <CheckCircle2 className='size-4' />
-              Mark as Paid
-            </Button>
-          )}
-          {canSend && invoice?.status === 'draft' && (
-            <Button
-              loading={isSending}
-              onClick={() => setSendOpen(true)}
-              size='sm'
-              variant='outline'
-            >
-              <Send className='size-4' />
-              Send to Client
-            </Button>
-          )}
           {canDelete && invoice?.status === 'draft' && (
             <Button
               className='text-destructive hover:bg-destructive/10'
@@ -530,6 +518,30 @@ export default function InvoiceEditor({
               variant='outline'
             >
               <Trash2 className='size-4' />
+              Delete
+            </Button>
+          )}
+          {canMarkPaid &&
+            (invoice?.status === 'sent' ||
+              (!isClientInvolved && invoice?.status === 'draft')) && (
+              <Button
+                loading={isMarkingPaid}
+                onClick={handleMarkPaid}
+                size='sm'
+              >
+                <CheckCircle2 className='size-4' />
+                Mark as Paid
+              </Button>
+            )}
+          {canSend && isClientInvolved && invoice?.status === 'draft' && (
+            <Button
+              loading={isSending}
+              onClick={() => setSendOpen(true)}
+              size='sm'
+              variant='outline'
+            >
+              <Send className='size-4' />
+              Send to Client
             </Button>
           )}
           {isEditable && (
@@ -1142,15 +1154,17 @@ export default function InvoiceEditor({
         rates={rateMap}
       />
 
-      <SendToClientDialog
-        clients={clients}
-        description='Select which clients should receive this invoice.'
-        onOpenChange={setSendOpen}
-        onSend={handleSend}
-        open={sendOpen}
-        recipientLabel='client'
-        title='Send Invoice'
-      />
+      {isClientInvolved && (
+        <SendToClientDialog
+          clients={clients}
+          description='Select which clients should receive this invoice.'
+          onOpenChange={setSendOpen}
+          onSend={handleSend}
+          open={sendOpen}
+          recipientLabel='client'
+          title='Send Invoice'
+        />
+      )}
 
       <SignatureDialog
         description='Draw your signature or pick one from the library.'

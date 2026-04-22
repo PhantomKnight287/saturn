@@ -6,6 +6,7 @@ import { db } from '@/server/db'
 import { settings as settingsTable } from '@/server/db/schema'
 import { projects } from '@/server/db/schema/project'
 import {
+  clientInvolvementProjectSchema,
   deleteProjectSchema,
   renameProjectSchema,
   updateProjectStatusSchema,
@@ -16,7 +17,7 @@ export const renameProjectAction = authedActionClient
   .inputSchema(renameProjectSchema)
   .action(
     async ({
-      parsedInput: { projectId, organizationId, name, slug },
+      parsedInput: { projectId, organizationId, name, slug, dueDate },
       ctx: { role, orgMember },
     }) => {
       if (!role.authorize({ organization: ['update'] }).success) {
@@ -29,7 +30,7 @@ export const renameProjectAction = authedActionClient
 
       await db
         .update(projects)
-        .set({ name, slug })
+        .set({ name, slug, dueDate: dueDate ?? null })
         .where(
           and(
             eq(projects.id, projectId),
@@ -67,16 +68,16 @@ export const updateProjectTimesheetDefaultsAction = authedActionClient
         .values({
           organizationId,
           projectId,
-          defaultMemberRate,
-          defaultCurrency,
-          defaultTimesheetDuration,
+          memberRate: defaultMemberRate,
+          currency: defaultCurrency,
+          timesheetDuration: defaultTimesheetDuration,
         })
         .onConflictDoUpdate({
           target: [settingsTable.organizationId, settingsTable.projectId],
           set: {
-            defaultMemberRate,
-            defaultCurrency,
-            defaultTimesheetDuration,
+            memberRate: defaultMemberRate,
+            currency: defaultCurrency,
+            timesheetDuration: defaultTimesheetDuration,
           },
         })
 
@@ -154,6 +155,52 @@ export const deleteProjectAction = authedActionClient
             eq(projects.organizationId, organizationId)
           )
         )
+
+      return { success: true }
+    }
+  )
+
+export const updateClientInvolvementLevelAction = authedActionClient
+  .inputSchema(clientInvolvementProjectSchema)
+  .action(
+    async ({
+      parsedInput: { clientInvolvement, organizationId, projectId },
+      ctx: { role, orgMember },
+    }) => {
+      if (!role.authorize({ organization: ['update'] }).success) {
+        throw new Error('You do not have permission to update project settings')
+      }
+
+      if (orgMember.organizationId !== organizationId) {
+        throw new Error('Organization mismatch')
+      }
+
+      const [project] = await db
+        .select({ name: projects.name })
+        .from(projects)
+        .where(
+          and(
+            eq(projects.id, projectId),
+            eq(projects.organizationId, organizationId)
+          )
+        )
+
+      if (!project) {
+        throw new Error('Project not found')
+      }
+      await db
+        .insert(settingsTable)
+        .values({
+          organizationId,
+          projectId,
+          clientInvolvement,
+        })
+        .onConflictDoUpdate({
+          target: [settingsTable.organizationId, settingsTable.projectId],
+          set: {
+            clientInvolvement,
+          },
+        })
 
       return { success: true }
     }

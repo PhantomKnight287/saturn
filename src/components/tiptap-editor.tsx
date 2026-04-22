@@ -310,7 +310,7 @@ export default function TiptapEditor({
       />
 
       {showToolbar && (
-        <div className='sticky top-0 z-10 flex flex-wrap items-center gap-0.5 border-b bg-background px-2 py-1.5'>
+        <div className='sticky top-0 z-10 flex flex-wrap items-center gap-0.5 overflow-hidden border-b bg-background px-2 py-1.5'>
           <Toggle
             onPressedChange={() =>
               editor.chain().focus().toggleHeading({ level: 1 }).run()

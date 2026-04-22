@@ -65,15 +65,15 @@ export const inviteOrgMemberAction = authedActionClient
           .insert(settingsTable)
           .values({
             organizationId,
-            defaultMemberRate: hourlyRate,
-            defaultCurrency: currency,
+            memberRate: hourlyRate,
+            currency,
           })
           .onConflictDoUpdate({
             target: [settingsTable.organizationId],
             targetWhere: sql`${settingsTable.projectId} IS NULL`,
             set: {
-              defaultMemberRate: hourlyRate,
-              defaultCurrency: currency,
+              memberRate: hourlyRate,
+              currency,
             },
           })
       }

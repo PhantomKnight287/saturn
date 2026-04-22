@@ -44,6 +44,7 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
     reportRecipientsMap,
     clientReports,
     defaultCurrency,
+    isClientInvolved,
   } = props
   const [formOpen, setFormOpen] = useState(false)
   const [formDefaultDate, setFormDefaultDate] = useState<Date | undefined>()
@@ -88,7 +89,7 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
           )}
         </div>
         <div className='flex items-center gap-2'>
-          {isAdmin && (
+          {isAdmin && isClientInvolved && (
             <Button
               disabled={selectedEntryIds.size === 0}
               onClick={() => setSendOpen(true)}
@@ -132,14 +133,16 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
                   </span>
                 )}
               </TabsTrigger>
-              <TabsTrigger value='reports'>
-                Client Reports
-                {disputedReports.length > 0 && (
-                  <span className='ml-1.5 inline-flex size-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-xs'>
-                    {disputedReports.length}
-                  </span>
-                )}
-              </TabsTrigger>
+              {isClientInvolved && (
+                <TabsTrigger value='reports'>
+                  Client Reports
+                  {disputedReports.length > 0 && (
+                    <span className='ml-1.5 inline-flex size-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-xs'>
+                      {disputedReports.length}
+                    </span>
+                  )}
+                </TabsTrigger>
+              )}
             </>
           )}
         </TabsList>
@@ -150,6 +153,7 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
               currentMemberId={currentMemberId}
               entries={myEntries}
               isAdmin={false}
+              isClientInvolved={isClientInvolved}
               onAddEntry={(date) => {
                 setFormDefaultDate(date)
                 setFormOpen(true)
@@ -162,6 +166,7 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
               currentMemberId={currentMemberId}
               entries={myEntries}
               isAdmin={false}
+              isClientInvolved={isClientInvolved}
               onAddEntry={() => setFormOpen(true)}
               projectId={projectId}
               requirements={requirements}
@@ -171,6 +176,7 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
               currentMemberId={currentMemberId}
               entries={myEntries}
               isAdmin={false}
+              isClientInvolved={isClientInvolved}
               onAddEntry={() => setFormOpen(true)}
               projectId={projectId}
               requirements={requirements}
@@ -184,6 +190,7 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
               <TeamEntriesTable
                 currentMemberId={currentMemberId}
                 entries={entries.filter((e) => e.status !== 'draft')}
+                isClientInvolved={isClientInvolved}
                 onSelectionChange={setSelectedEntryIds}
                 projectId={projectId}
                 projectMembers={projectMembers}
@@ -201,16 +208,18 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
               />
             </TabsContent>
 
-            <TabsContent value='reports'>
-              <SentReportsList
-                orgSlug={orgSlug}
-                projectName={projectName}
-                projectSlug={projectSlug}
-                reportEntriesMap={reportEntriesMap}
-                reportRecipientsMap={reportRecipientsMap}
-                reports={timesheetReports}
-              />
-            </TabsContent>
+            {isClientInvolved && (
+              <TabsContent value='reports'>
+                <SentReportsList
+                  orgSlug={orgSlug}
+                  projectName={projectName}
+                  projectSlug={projectSlug}
+                  reportEntriesMap={reportEntriesMap}
+                  reportRecipientsMap={reportRecipientsMap}
+                  reports={timesheetReports}
+                />
+              </TabsContent>
+            )}
           </>
         )}
       </Tabs>
@@ -228,55 +237,56 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
         requirements={requirements}
       />
 
-      {isAdmin && (
-        <>
-          <MemberRatesDialog
-            defaultCurrency={defaultCurrency}
-            existingRates={memberRates}
-            onOpenChange={setRatesOpen}
-            open={ratesOpen}
-            projectId={projectId}
-            projectMembers={projectMembers}
-          />
-          <SendToClientDialog
-            clients={clients}
-            description={`Send ${selectedEntryIds.size} selected ${selectedEntryIds.size === 1 ? 'entry' : 'entries'} (${formatMinutes(selectedMinutes)}) for client review.`}
-            onOpenChange={(open) => {
-              setSendOpen(open)
-              if (!open) {
-                setSelectedEntryIds(new Set())
-                setReportTitle('')
-              }
-            }}
-            onSend={async (clientMemberIds) => {
-              await sendTimesheetToClientAction({
-                projectId,
-                clientMemberIds,
-                title: reportTitle.trim(),
-                timeEntryIds: [...selectedEntryIds],
-                currency: 'USD',
-              })
-              toast.success('Timesheet sent to client')
-              setSendOpen(false)
+      {isAdmin && isClientInvolved && (
+        <SendToClientDialog
+          clients={clients}
+          description={`Send ${selectedEntryIds.size} selected ${selectedEntryIds.size === 1 ? 'entry' : 'entries'} (${formatMinutes(selectedMinutes)}) for client review.`}
+          onOpenChange={(open) => {
+            setSendOpen(open)
+            if (!open) {
               setSelectedEntryIds(new Set())
               setReportTitle('')
-              router.refresh()
-            }}
-            open={sendOpen}
-            recipientLabel='client'
-            sendDisabled={!reportTitle.trim()}
-            title='Send Timesheet to Client'
-          >
-            <div className='space-y-1.5'>
-              <Label>Report Title</Label>
-              <Input
-                onChange={(e) => setReportTitle(e.target.value)}
-                placeholder='e.g. Week of Mar 3 – Mar 9'
-                value={reportTitle}
-              />
-            </div>
-          </SendToClientDialog>
-        </>
+            }
+          }}
+          onSend={async (clientMemberIds) => {
+            await sendTimesheetToClientAction({
+              projectId,
+              clientMemberIds,
+              title: reportTitle.trim(),
+              timeEntryIds: [...selectedEntryIds],
+              currency: defaultCurrency ?? 'USD',
+            })
+            toast.success('Timesheet sent to client')
+            setSendOpen(false)
+            setSelectedEntryIds(new Set())
+            setReportTitle('')
+            router.refresh()
+          }}
+          open={sendOpen}
+          recipientLabel='client'
+          sendDisabled={!reportTitle.trim()}
+          title='Send Timesheet to Client'
+        >
+          <div className='space-y-1.5'>
+            <Label>Report Title</Label>
+            <Input
+              onChange={(e) => setReportTitle(e.target.value)}
+              placeholder='e.g. Week of Mar 3 – Mar 9'
+              value={reportTitle}
+            />
+          </div>
+        </SendToClientDialog>
+      )}
+
+      {isAdmin && (
+        <MemberRatesDialog
+          defaultCurrency={defaultCurrency}
+          existingRates={memberRates}
+          onOpenChange={setRatesOpen}
+          open={ratesOpen}
+          projectId={projectId}
+          projectMembers={projectMembers}
+        />
       )}
     </div>
   )

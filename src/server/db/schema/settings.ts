@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm'
 import {
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   text,
@@ -30,15 +31,31 @@ export const settings = pgTable(
     projectId: text('project_id').references(() => projects.id, {
       onDelete: 'cascade',
     }),
-    defaultMemberRate: integer('default_member_rate').default(0).notNull(),
-    defaultCurrency: text('default_currency').default('USD').notNull(),
+    memberRate: integer('member_rate').default(0).notNull(),
+    currency: text('currency').default('USD').notNull(),
     invoiceNumberTemplate: text('invoice_number_template')
       .default('INV-%year(short)%month(num)-%seq(4)')
       .notNull(),
-    defaultTimesheetDuration: timesheetDurationEnum(
-      'default_timesheet_duration'
-    )
+    timesheetDuration: timesheetDurationEnum('timesheet_duration')
       .default('weekly')
+      .notNull(),
+    clientInvolvement: jsonb('client_involvement')
+      .$type<{
+        proposals: 'on' | 'off'
+        requirements: 'on' | 'off'
+        milestones: 'on' | 'off'
+        timesheets: 'on' | 'off'
+        expenses: 'on' | 'off'
+        invoices: 'on' | 'off'
+      }>()
+      .$defaultFn(() => ({
+        proposals: 'on',
+        requirements: 'on',
+        milestones: 'on',
+        timesheets: 'on',
+        expenses: 'on',
+        invoices: 'on',
+      }))
       .notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')

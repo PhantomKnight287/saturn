@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
+import { projectsService } from '@/app/api/projects/service'
 import { requirementsService } from '@/app/api/requirements/service'
 import { createMetadata } from '@/lib/metadata'
 import type { Role } from '@/types'
@@ -40,10 +41,14 @@ export default async function Requirements({
   )
 
   const canCreate = role.authorize({ requirement: ['create'] }).success
-
+  const settings = await projectsService.getSettings(
+    orgMember.organizationId,
+    currentProject.id
+  )
   return (
     <RequirementsClient
       canCreate={canCreate}
+      isClientInvolved={settings.clientInvolvement.requirements === 'on'}
       orgSlug={org}
       projectSlug={projectSlug}
       requirements={requirementList}

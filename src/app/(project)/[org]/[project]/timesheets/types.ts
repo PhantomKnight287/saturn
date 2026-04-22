@@ -134,6 +134,7 @@ export interface TimeTrackingPageProps {
   entries: TimeEntry[]
   isAdmin: boolean
   isClient: boolean
+  isClientInvolved: boolean
   memberRates: MemberRate[]
   orgSlug: string
   projectId: string

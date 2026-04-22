@@ -24,9 +24,9 @@ const route = createRoute({
             name: z.string(),
             slug: z.string(),
             settings: z.object({
-              defaultMemberRate: z.number().nullable(),
-              defaultCurrency: z.string().nullable(),
-              defaultTimesheetDuration: z
+              memberRate: z.number().nullable(),
+              currency: z.string().nullable(),
+              timesheetDuration: z
                 .enum(['weekly', 'biweekly', 'monthly'])
                 .nullable(),
             }),
@@ -53,9 +53,9 @@ export const handler = (hono: typeof app) => {
         id: organizations.id,
         name: organizations.name,
         slug: organizations.slug,
-        defaultMemberRate: settings.defaultMemberRate,
-        defaultCurrency: settings.defaultCurrency,
-        defaultTimesheetDuration: settings.defaultTimesheetDuration,
+        memberRate: settings.memberRate,
+        currency: settings.currency,
+        timesheetDuration: settings.timesheetDuration,
       })
       .from(organizations)
       .where(eq(organizations.id, key.organizationId))
@@ -75,9 +75,9 @@ export const handler = (hono: typeof app) => {
         name: organization.name,
         slug: organization.slug,
         settings: {
-          defaultMemberRate: organization?.defaultMemberRate,
-          defaultCurrency: organization?.defaultCurrency,
-          defaultTimesheetDuration: organization?.defaultTimesheetDuration,
+          memberRate: organization?.memberRate,
+          currency: organization?.currency,
+          timesheetDuration: organization?.timesheetDuration,
         },
       },
       200

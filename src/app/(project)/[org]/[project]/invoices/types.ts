@@ -21,6 +21,7 @@ export interface Invoice {
 export interface InvoicesClientProps {
   canCreate: boolean
   invoices: Invoice[]
+  isClientInvolved?: boolean
   orgSlug: string
   projectSlug: string
   role: Role
@@ -37,6 +38,7 @@ export interface InvoiceCardProps {
     updatedAt: Date
     recipients: ProjectClient[]
   }
+  isClientInvolved?: boolean
   orgSlug: string
   projectSlug: string
   role: Role
@@ -128,6 +130,7 @@ export interface InvoiceEditorProps {
   existingRecipientIds?: string[]
   extendData?: ExtendInvoiceData
   invoice?: InvoiceData
+  isClientInvolved?: boolean
   linkedRequirements?: LinkedRequirement[]
   mediaItems?: MediaItem[]
   memberRateMap?: Record<string, { hourlyRate: number; currency: string }>

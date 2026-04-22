@@ -63,10 +63,11 @@ export default async function Expenses({
       categories={categories.filter((c) => !c.isArchived)}
       clients={clients}
       currentMemberId={orgMember.id}
-      defaultCurrency={settings.defaultCurrency}
+      defaultCurrency={settings.currency}
       expenses={expenses}
       isAdmin={isAdmin}
       isClient={isClient}
+      isClientInvolved={settings.clientInvolvement.expenses === 'on'}
       organizationId={organization.id}
       orgSlug={org}
       projectId={currentProject.id}

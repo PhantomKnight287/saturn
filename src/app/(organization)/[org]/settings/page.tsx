@@ -35,9 +35,10 @@ export default async function SettingsPage({
   return (
     <SettingsPageClient
       canDelete={canDelete}
-      defaultCurrency={settings.defaultCurrency}
-      defaultMemberRate={settings.defaultMemberRate}
-      defaultTimesheetDuration={settings.defaultTimesheetDuration}
+      clientInvolvement={settings.clientInvolvement}
+      defaultCurrency={settings.currency}
+      defaultMemberRate={settings.memberRate}
+      defaultTimesheetDuration={settings.timesheetDuration}
       invoiceNumberTemplate={settings.invoiceNumberTemplate}
       organization={organization}
       orgSlug={org}

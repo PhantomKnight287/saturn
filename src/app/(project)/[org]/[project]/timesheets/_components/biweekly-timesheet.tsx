@@ -41,6 +41,7 @@ interface BiweeklyTimesheetProps {
   currentMemberId: string
   entries: TimeEntry[]
   isAdmin?: boolean
+  isClientInvolved?: boolean
   isTeamView?: boolean
   onAddEntry?: () => void
   projectId: string
@@ -56,6 +57,7 @@ export function BiweeklyTimesheet({
   currentMemberId,
   isAdmin = false,
   isTeamView = false,
+  isClientInvolved,
 }: BiweeklyTimesheetProps) {
   const [periodOffset, setPeriodOffset] = useState(0)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -294,7 +296,10 @@ export function BiweeklyTimesheet({
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger>
-                              <StatusBadge status={entry.status} />
+                              <StatusBadge
+                                isClientInvolved={isClientInvolved}
+                                status={entry.status}
+                              />
                             </TooltipTrigger>
                             <TooltipContent className='max-w-xs' side='left'>
                               <p className='font-medium'>Reason:</p>
@@ -303,7 +308,10 @@ export function BiweeklyTimesheet({
                           </Tooltip>
                         </TooltipProvider>
                       ) : (
-                        <StatusBadge status={entry.status} />
+                        <StatusBadge
+                          isClientInvolved={isClientInvolved}
+                          status={entry.status}
+                        />
                       )}
                     </TableCell>
                     {showActions && (

@@ -11,6 +11,7 @@ import {
   deleteOrganizationSchema,
   renameOrganizationSchema,
   updateInvoiceNumberTemplateSchema,
+  updateOrgClientInvolvementSchema,
   updateTimesheetDefaultsSchema,
 } from './common'
 
@@ -69,17 +70,17 @@ export const updateTimesheetDefaultsAction = authedActionClient
           .insert(settingsTable)
           .values({
             organizationId,
-            defaultMemberRate,
-            defaultCurrency,
-            defaultTimesheetDuration,
+            memberRate: defaultMemberRate,
+            currency: defaultCurrency,
+            timesheetDuration: defaultTimesheetDuration,
           })
           .onConflictDoUpdate({
             target: [settingsTable.organizationId],
             targetWhere: sql`${settingsTable.projectId} IS NULL`,
             set: {
-              defaultMemberRate,
-              defaultCurrency,
-              defaultTimesheetDuration,
+              memberRate: defaultMemberRate,
+              currency: defaultCurrency,
+              timesheetDuration: defaultTimesheetDuration,
             },
           })
 
@@ -133,6 +134,35 @@ export const updateInvoiceNumberTemplateAction = authedActionClient
             set: { invoiceNumberTemplate },
           })
       }
+
+      return { success: true }
+    }
+  )
+
+export const updateOrgClientInvolvementAction = authedActionClient
+  .inputSchema(updateOrgClientInvolvementSchema)
+  .action(
+    async ({
+      parsedInput: { organizationId, clientInvolvement },
+      ctx: { role, orgMember },
+    }) => {
+      if (!role.authorize({ organization: ['update'] }).success) {
+        throw new Error(
+          'You do not have permission to update workspace settings'
+        )
+      }
+      if (orgMember.organizationId !== organizationId) {
+        throw new Error('Organization mismatch')
+      }
+
+      await db
+        .insert(settingsTable)
+        .values({ organizationId, clientInvolvement })
+        .onConflictDoUpdate({
+          target: [settingsTable.organizationId],
+          targetWhere: sql`${settingsTable.projectId} IS NULL`,
+          set: { clientInvolvement },
+        })
 
       return { success: true }
     }

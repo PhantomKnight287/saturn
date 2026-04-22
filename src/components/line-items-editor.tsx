@@ -1,6 +1,7 @@
 'use client'
 
 import { Plus, Trash2 } from 'lucide-react'
+import { memo, useCallback, useId, useMemo, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
@@ -12,12 +13,22 @@ export interface LineItem {
   unitPrice: string
 }
 
+interface InternalLineItem extends LineItem {
+  _rid: string
+}
+
 interface LineItemsEditorProps {
   currency: string
   editable: boolean
   items: LineItem[]
   onChange: (items: LineItem[]) => void
   title?: string
+}
+
+const calcAmount = (quantity: string, unitPrice: string) => {
+  const qty = Number(quantity) || 0
+  const price = Number(unitPrice) || 0
+  return (qty * price).toFixed(2)
 }
 
 export default function LineItemsEditor({
@@ -27,23 +38,51 @@ export default function LineItemsEditor({
   editable,
   title,
 }: LineItemsEditorProps) {
-  const updateItem = (index: number, field: keyof LineItem, value: string) => {
-    const updated = [...items]
-    //@ts-expect-error - we know the index is valid
-    updated[index] = { ...updated[index], [field]: value }
-
-    if (field === 'quantity' || field === 'unitPrice') {
-      const qty = Number(updated[index]!.quantity) || 0
-      const price = Number(updated[index]!.unitPrice) || 0
-      updated[index]!.amount = (qty * price).toFixed(2)
-    }
-
-    onChange(updated)
+  const idPrefix = useId()
+  const ridsRef = useRef<string[]>([])
+  if (ridsRef.current.length !== items.length) {
+    ridsRef.current = items.map(
+      (_, i) => ridsRef.current[i] ?? `${idPrefix}-${i}-${Math.random()}`
+    )
   }
 
-  const addItem = () => {
+  const internalItems: InternalLineItem[] = useMemo(
+    () => items.map((it, i) => ({ ...it, _rid: ridsRef.current[i]! })),
+    [items]
+  )
+
+  const itemsRef = useRef(items)
+  itemsRef.current = items
+
+  const updateItem = useCallback(
+    (index: number, patch: Partial<LineItem>) => {
+      const current = itemsRef.current
+      const next = current.slice()
+      const merged = { ...current[index]!, ...patch }
+      if ('quantity' in patch || 'unitPrice' in patch) {
+        merged.amount = calcAmount(merged.quantity, merged.unitPrice)
+      }
+      next[index] = merged
+      onChange(next)
+    },
+    [onChange]
+  )
+
+  const removeItem = useCallback(
+    (index: number) => {
+      ridsRef.current = ridsRef.current.filter((_, i) => i !== index)
+      onChange(itemsRef.current.filter((_, i) => i !== index))
+    },
+    [onChange]
+  )
+
+  const addItem = useCallback(() => {
+    ridsRef.current = [
+      ...ridsRef.current,
+      `${idPrefix}-${ridsRef.current.length}-${Math.random()}`,
+    ]
     onChange([
-      ...items,
+      ...itemsRef.current,
       {
         title: '',
         description: '',
@@ -52,13 +91,12 @@ export default function LineItemsEditor({
         amount: '0',
       },
     ])
-  }
+  }, [idPrefix, onChange])
 
-  const removeItem = (index: number) => {
-    onChange(items.filter((_, i) => i !== index))
-  }
-
-  const total = items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
+  const total = useMemo(
+    () => items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0),
+    [items]
+  )
 
   return (
     <div className='space-y-3'>
@@ -89,76 +127,20 @@ export default function LineItemsEditor({
               </tr>
             </thead>
             <tbody>
-              {items.map((item, index) => (
-                <tr className='border-b last:border-b-0' key={index}>
-                  <td className='px-3 py-2'>
-                    {editable ? (
-                      <Input
-                        className='h-8 border-none shadow-none focus-visible:ring-0'
-                        onChange={(e) => {
-                          updateItem(index, 'description', e.target.value)
-                          updateItem(index, 'title', e.target.value)
-                        }}
-                        placeholder='Item description'
-                        value={item.description ?? item.title}
-                      />
-                    ) : (
-                      <span>{item.description}</span>
-                    )}
-                  </td>
-                  <td className='px-3 py-2 text-right'>
-                    {editable ? (
-                      <Input
-                        className='h-8 border-none text-right shadow-none focus-visible:ring-0'
-                        onChange={(e) =>
-                          updateItem(index, 'quantity', e.target.value)
-                        }
-                        value={item.quantity}
-                      />
-                    ) : (
-                      <span>{item.quantity}</span>
-                    )}
-                  </td>
-                  <td className='px-3 py-2 text-right'>
-                    {editable ? (
-                      <Input
-                        className='h-8 border-none text-right shadow-none focus-visible:ring-0'
-                        onChange={(e) =>
-                          updateItem(index, 'unitPrice', e.target.value)
-                        }
-                        value={item.unitPrice}
-                      />
-                    ) : (
-                      <span>{item.unitPrice}</span>
-                    )}
-                  </td>
-                  <td className='px-3 py-2 text-right font-medium'>
-                    {Number(item.amount).toLocaleString('en-US', {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
-                  </td>
-                  {editable && (
-                    <td className='px-2 py-2'>
-                      <Button
-                        className='h-7 w-7 p-0 text-muted-foreground hover:text-destructive'
-                        onClick={() => removeItem(index)}
-                        size='sm'
-                        variant='ghost'
-                      >
-                        <Trash2 className='size-3.5' />
-                      </Button>
-                    </td>
-                  )}
-                </tr>
+              {internalItems.map((item, index) => (
+                <LineItemRow
+                  editable={editable}
+                  index={index}
+                  item={item}
+                  key={item._rid}
+                  onRemove={removeItem}
+                  onUpdate={updateItem}
+                />
               ))}
             </tbody>
             <tfoot>
               <tr className='bg-muted/30'>
-                <td
-                  className='px-3 py-2 text-right font-semibold'
-                  colSpan={editable ? 3 : 3}
-                >
+                <td className='px-3 py-2 text-right font-semibold' colSpan={3}>
                   Total ({currency})
                 </td>
                 <td className='px-3 py-2 text-right font-semibold'>
@@ -176,3 +158,90 @@ export default function LineItemsEditor({
     </div>
   )
 }
+
+interface LineItemRowProps {
+  editable: boolean
+  index: number
+  item: InternalLineItem
+  onRemove: (index: number) => void
+  onUpdate: (index: number, patch: Partial<LineItem>) => void
+}
+
+const LineItemRow = memo(function LineItemRow({
+  editable,
+  index,
+  item,
+  onRemove,
+  onUpdate,
+}: LineItemRowProps) {
+  return (
+    <tr className='border-b last:border-b-0'>
+      <td className='px-3 py-2'>
+        {editable ? (
+          <Input
+            className='h-8 border-none shadow-none focus-visible:ring-0'
+            defaultValue={item.description ?? item.title ?? ''}
+            onBlur={(e) => {
+              const value = e.target.value
+              if (value !== (item.description ?? item.title ?? '')) {
+                onUpdate(index, { description: value, title: value })
+              }
+            }}
+            placeholder='Item description'
+          />
+        ) : (
+          <span>{item.description}</span>
+        )}
+      </td>
+      <td className='px-3 py-2 text-right'>
+        {editable ? (
+          <Input
+            className='h-8 border-none text-right shadow-none focus-visible:ring-0'
+            defaultValue={item.quantity}
+            onBlur={(e) => {
+              if (e.target.value !== item.quantity) {
+                onUpdate(index, { quantity: e.target.value })
+              }
+            }}
+          />
+        ) : (
+          <span>{item.quantity}</span>
+        )}
+      </td>
+      <td className='px-3 py-2 text-right'>
+        {editable ? (
+          <Input
+            className='h-8 border-none text-right shadow-none focus-visible:ring-0'
+            defaultValue={item.unitPrice}
+            onBlur={(e) => {
+              if (e.target.value !== item.unitPrice) {
+                onUpdate(index, { unitPrice: e.target.value })
+              }
+            }}
+          />
+        ) : (
+          <span>{item.unitPrice}</span>
+        )}
+      </td>
+      <td className='px-3 py-2 text-right font-medium'>
+        {Number(item.amount).toLocaleString('en-US', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}
+      </td>
+      {editable && (
+        <td className='px-2 py-2'>
+          <Button
+            className='h-7 w-7 p-0 text-muted-foreground hover:text-destructive'
+            onClick={() => onRemove(index)}
+            size='sm'
+            type='button'
+            variant='ghost'
+          >
+            <Trash2 className='size-3.5' />
+          </Button>
+        </td>
+      )}
+    </tr>
+  )
+})

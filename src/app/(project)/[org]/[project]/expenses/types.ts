@@ -22,6 +22,7 @@ export interface ExpensesClientProps {
   expenses: ExpenseWithDetails[]
   isAdmin: boolean
   isClient: boolean
+  isClientInvolved: boolean
   organizationId: string
   orgSlug: string
   projectId: string

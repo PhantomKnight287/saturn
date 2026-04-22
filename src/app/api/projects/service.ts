@@ -117,10 +117,18 @@ const getById = async (projectId: string) => {
   return project ?? null
 }
 const SETTINGS_DEFAULTS = {
-  defaultMemberRate: 0,
-  defaultCurrency: 'USD' as const,
-  defaultTimesheetDuration: 'weekly' as const,
+  memberRate: 0,
+  currency: 'USD' as const,
+  timesheetDuration: 'weekly' as const,
   invoiceNumberTemplate: 'INV-%year(short)%month(num)-%seq(4)',
+  clientInvolvement: {
+    proposals: 'on',
+    requirements: 'on',
+    milestones: 'on',
+    timesheets: 'on',
+    expenses: 'on',
+    invoices: 'on',
+  } as const,
 }
 
 /**
