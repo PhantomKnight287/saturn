@@ -10,6 +10,7 @@ export default function InvoiceCard({
   orgSlug,
   projectSlug,
   role,
+  isClientInvolved,
 }: InvoiceCardProps) {
   const symbol =
     currencies.find((c) => c.cc === invoice.currency)?.value ?? invoice.currency
@@ -36,7 +37,11 @@ export default function InvoiceCard({
     >
       <Card className='flex h-full cursor-pointer flex-col gap-0 p-4 transition-colors hover:border-primary/50'>
         <div className='mb-1.5 flex items-center justify-between gap-2'>
-          <InvoiceStatusBadge role={role} status={invoice.status} />
+          <InvoiceStatusBadge
+            isClientInvolved={isClientInvolved}
+            role={role}
+            status={invoice.status}
+          />
 
           <span className='shrink-0 text-muted-foreground text-xs'>
             {formatDistanceToNow(new Date(invoice.updatedAt), {

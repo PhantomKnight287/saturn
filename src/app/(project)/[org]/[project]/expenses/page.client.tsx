@@ -36,6 +36,7 @@ export default function ExpensesClient({
   organizationId,
   defaultCurrency,
   currentMemberId,
+  isClientInvolved,
 }: ExpensesClientProps) {
   const [formOpen, setFormOpen] = useState(false)
   const [categoriesOpen, setCategoriesOpen] = useState(false)
@@ -116,7 +117,7 @@ export default function ExpensesClient({
       <div className='mb-6 flex items-center justify-between'>
         <h1 className='font-semibold text-2xl'>Expenses</h1>
         <div className='flex items-center gap-2'>
-          {isAdmin && sendableExpenses.length > 0 && (
+          {isAdmin && isClientInvolved && sendableExpenses.length > 0 && (
             <Button
               disabled={selectedIds.size === 0}
               onClick={() => setSendToClientOpen(true)}
@@ -194,6 +195,7 @@ export default function ExpensesClient({
               currentMemberId={currentMemberId}
               expenses={expenses}
               isAdmin={isAdmin}
+              isClientInvolved={isClientInvolved}
               onToggleAll={toggleAll}
               onToggleSelect={toggleSelect}
               projectId={projectId}
@@ -227,7 +229,7 @@ export default function ExpensesClient({
           organizationId={organizationId}
         />
       )}
-      {isAdmin && (
+      {isAdmin && isClientInvolved && (
         <SendToClientDialog
           clients={clients}
           description='Select clients to send the selected expense(s) to for review and sign-off. They will receive an email notification.'

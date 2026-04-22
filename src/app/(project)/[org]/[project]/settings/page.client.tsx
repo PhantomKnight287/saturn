@@ -2,15 +2,17 @@
 
 import { useRouter } from '@bprogress/next/app'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { AlertTriangle, Hash, Save } from 'lucide-react'
+import { AlertTriangle, Save } from 'lucide-react'
 import { useAction } from 'next-safe-action/hooks'
 import { useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import type { z } from 'zod'
+import DatePicker from '@/components/ui/date-picker'
 import { InvoiceNumberTemplateInput } from '@/app/(organization)/[org]/settings/_components/invoice-number-template-input'
 import { updateInvoiceNumberTemplateAction } from '@/app/(organization)/[org]/settings/actions'
 import { updateInvoiceNumberTemplateSchema } from '@/app/(organization)/[org]/settings/common'
+import type { projectsService } from '@/app/api/projects/service'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -48,12 +50,16 @@ import {
 import {
   deleteProjectAction,
   renameProjectAction,
+  updateClientInvolvementLevelAction,
   updateProjectTimesheetDefaultsAction,
 } from './actions'
 import {
+  clientInvolvementEntities,
+  clientInvolvementEntityLabels,
+  clientInvolvementProjectSchema,
+  defaultClientInvolvement,
   deleteProjectSchema,
   renameProjectSchema,
-  type TimesheetDuration,
   updateProjectTimesheetDefaultsSchema,
 } from './common'
 
@@ -69,19 +75,13 @@ export function ProjectSettingsPageClient({
   organizationId,
   orgSlug,
   canDelete,
-  defaultMemberRate,
-  defaultTimesheetDuration,
-  defaultCurrency,
-  invoiceNumberTemplate,
+  settings,
 }: {
-  project: { id: string; name: string; slug: string }
+  project: { id: string; name: string; slug: string; dueDate: Date | null }
   organizationId: string
   orgSlug: string
   canDelete: boolean
-  defaultMemberRate: number
-  defaultCurrency: string
-  defaultTimesheetDuration: TimesheetDuration
-  invoiceNumberTemplate: string
+  settings: Awaited<ReturnType<typeof projectsService.getSettings>>
 }) {
   const router = useRouter()
 
@@ -92,6 +92,7 @@ export function ProjectSettingsPageClient({
       organizationId,
       name: project.name,
       slug: project.slug,
+      dueDate: project.dueDate ?? undefined,
     },
   })
 
@@ -100,9 +101,9 @@ export function ProjectSettingsPageClient({
     defaultValues: {
       organizationId,
       projectId: project.id,
-      defaultMemberRate,
-      defaultCurrency,
-      defaultTimesheetDuration,
+      defaultMemberRate: settings.memberRate,
+      defaultCurrency: settings.currency,
+      defaultTimesheetDuration: settings.timesheetDuration,
     },
   })
 
@@ -120,7 +121,18 @@ export function ProjectSettingsPageClient({
     defaultValues: {
       organizationId,
       projectId: project.id,
-      invoiceNumberTemplate,
+      invoiceNumberTemplate: settings.invoiceNumberTemplate,
+    },
+  })
+
+  const clientInvolvementForm = useForm<
+    z.infer<typeof clientInvolvementProjectSchema>
+  >({
+    resolver: zodResolver(clientInvolvementProjectSchema),
+    defaultValues: {
+      clientInvolvement: settings.clientInvolvement ?? defaultClientInvolvement,
+      projectId: project.id,
+      organizationId,
     },
   })
 
@@ -136,7 +148,7 @@ export function ProjectSettingsPageClient({
       onSuccess({ data }) {
         toast.success('Project updated')
         if (data?.slug && data.slug !== project.slug) {
-          router.push(`/${orgSlug}/${data.slug}/settings`)
+          router.replace(`/${orgSlug}/${data.slug}/settings`)
         } else {
           router.refresh()
         }
@@ -177,7 +189,7 @@ export function ProjectSettingsPageClient({
     {
       onSuccess() {
         toast.success('Project deleted')
-        router.push(`/${orgSlug}`)
+        router.replace(`/${orgSlug}`)
       },
       onError({ error }) {
         toast.error(error.serverError ?? 'Failed to delete project')
@@ -185,12 +197,27 @@ export function ProjectSettingsPageClient({
     }
   )
 
+  const {
+    execute: executeClientInvolvementUpdate,
+    isPending: isClientInvolvementUpdating,
+  } = useAction(updateClientInvolvementLevelAction, {
+    onSuccess() {
+      router.refresh()
+    },
+    onError({ error }) {
+      toast.error(
+        error.serverError ?? 'Failed to update client involvement level'
+      )
+    },
+  })
+
   function handleRenameSubmit(data: RenameFormValues) {
     executeRename({
       projectId: data.projectId,
       organizationId: data.organizationId,
       name: data.name.trim(),
       slug: data.slug.trim(),
+      dueDate: data.dueDate,
     })
   }
 
@@ -217,12 +244,12 @@ export function ProjectSettingsPageClient({
           <CardHeader>
             <CardTitle>General</CardTitle>
             <CardDescription>
-              Manage your project name and URL slug.
+              Manage your project name, URL slug and due date.
             </CardDescription>
           </CardHeader>
           <form onSubmit={renameForm.handleSubmit(handleRenameSubmit)}>
             <CardContent>
-              <FieldGroup>
+              <FieldGroup className='gap-4'>
                 <Controller
                   control={renameForm.control}
                   name='name'
@@ -263,6 +290,25 @@ export function ProjectSettingsPageClient({
                       <FieldDescription>
                         Your project will be accessible at /{orgSlug}/
                         {field.value}
+                      </FieldDescription>
+                      {fieldState.invalid && (
+                        <FieldError errors={[fieldState.error]} />
+                      )}
+                    </Field>
+                  )}
+                />
+                <Controller
+                  control={renameForm.control}
+                  name='dueDate'
+                  render={({ field, fieldState }) => (
+                    <Field className='gap-1' data-invalid={fieldState.invalid}>
+                      <FieldLabel>Due Date</FieldLabel>
+                      <DatePicker
+                        onChange={(date) => field.onChange(date ?? undefined)}
+                        value={field.value ?? undefined}
+                      />
+                      <FieldDescription>
+                        Optional target date for project completion.
                       </FieldDescription>
                       {fieldState.invalid && (
                         <FieldError errors={[fieldState.error]} />
@@ -408,7 +454,65 @@ export function ProjectSettingsPageClient({
             </CardFooter>
           </form>
         </Card>
-
+        <Card>
+          <CardHeader>
+            <CardTitle className='flex items-center gap-2'>
+              Client Approval
+            </CardTitle>
+            <CardDescription>
+              Choose which parts of the workflow require client approval. Turn
+              off the ones your client isn't involved in — those steps will be
+              handled internally instead.
+            </CardDescription>
+          </CardHeader>
+          <form
+            onSubmit={clientInvolvementForm.handleSubmit((values) =>
+              executeClientInvolvementUpdate(values)
+            )}
+          >
+            <CardContent>
+              <FieldGroup>
+                {clientInvolvementEntities.map((entity) => (
+                  <Controller
+                    control={clientInvolvementForm.control}
+                    key={entity}
+                    name={`clientInvolvement.${entity}`}
+                    render={({ field }) => (
+                      <Field orientation='horizontal'>
+                        <Checkbox
+                          checked={field.value === 'on'}
+                          id={`client-involvement-${entity}`}
+                          onCheckedChange={(checked) =>
+                            field.onChange(checked === true ? 'on' : 'off')
+                          }
+                        />
+                        <div className='flex flex-col gap-0.5'>
+                          <FieldLabel htmlFor={`client-involvement-${entity}`}>
+                            {clientInvolvementEntityLabels[entity].label}
+                          </FieldLabel>
+                          <FieldDescription>
+                            {clientInvolvementEntityLabels[entity].description}
+                          </FieldDescription>
+                        </div>
+                      </Field>
+                    )}
+                  />
+                ))}
+              </FieldGroup>
+            </CardContent>
+            <CardFooter>
+              <Button
+                className='mt-4'
+                disabled={!clientInvolvementForm.formState.isDirty}
+                loading={isClientInvolvementUpdating}
+                type='submit'
+              >
+                <Save className='size-4' />
+                Save Approval Settings
+              </Button>
+            </CardFooter>
+          </form>
+        </Card>
         <Card>
           <CardHeader>
             <CardTitle className='flex items-center gap-2'>

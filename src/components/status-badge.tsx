@@ -5,10 +5,15 @@ import type { Role } from '@/types'
 
 export type Status = (typeof statusEnum.enumValues)[number]
 
-const variants: Record<
-  Status,
-  { label: string; clientLabel?: string; className: string }
-> = {
+interface Variant {
+  className: string
+  clientLabel?: string
+  label: string
+  noClientClassName?: string
+  noClientLabel?: string
+}
+
+const variants: Record<Status, Variant> = {
   draft: {
     label: 'Draft',
     className: 'bg-muted text-muted-foreground border-muted',
@@ -31,18 +36,23 @@ const variants: Record<
   submitted_to_client: {
     label: 'Sent to Client',
     clientLabel: 'Pending Your Signature',
+    noClientLabel: 'Finalized',
     className:
       'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/40 dark:text-purple-300 dark:border-purple-800',
+    noClientClassName:
+      'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/40 dark:text-green-300 dark:border-green-800',
   },
   client_accepted: {
     label: 'Client Signed',
     clientLabel: 'Signed',
+    noClientLabel: 'Completed',
     className:
       'bg-teal-100 text-teal-800 border-teal-300 dark:bg-teal-900/40 dark:text-teal-300 dark:border-teal-700',
   },
   client_rejected: {
     label: 'Client Declined',
     clientLabel: 'Declined',
+    noClientLabel: 'Withdrawn',
     className:
       'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/40 dark:text-red-300 dark:border-red-800',
   },
@@ -56,18 +66,28 @@ const variants: Record<
 export default function StatusBadge({
   status,
   role,
+  isClientInvolved = true,
 }: {
   status: Status
   role?: Role
+  isClientInvolved?: boolean
 }) {
   const variant = variants[status]
-  const label =
-    role === 'client' && variant.clientLabel
-      ? variant.clientLabel
-      : variant.label
+
+  let label = variant.label
+  if (!isClientInvolved && variant.noClientLabel) {
+    label = variant.noClientLabel
+  } else if (role === 'client' && variant.clientLabel) {
+    label = variant.clientLabel
+  }
+
+  const className =
+    !isClientInvolved && variant.noClientClassName
+      ? variant.noClientClassName
+      : variant.className
 
   return (
-    <Badge className={cn(variant.className)} variant='outline'>
+    <Badge className={cn(className)} variant='outline'>
       {label}
     </Badge>
   )

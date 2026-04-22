@@ -67,6 +67,7 @@ export default async function Expenses({
       expenses={expenses}
       isAdmin={isAdmin}
       isClient={isClient}
+      isClientInvolved={settings.clientInvolvement.expenses === 'on'}
       organizationId={organization.id}
       orgSlug={org}
       projectId={currentProject.id}

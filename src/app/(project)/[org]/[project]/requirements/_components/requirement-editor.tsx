@@ -54,7 +54,8 @@ export default function RequirementEditor(props: RequirementEditorProps) {
   const editorRef = useRef<EditorRef | null>(null)
   const backUrl =
     `/${props.orgSlug}/${props.projectSlug}/requirements` as RouteImpl
-  const isEditable = props.mode === 'create' || props.canEdit
+  const isEditable =
+    props.mode === 'create' || props.canEdit || props.isClientInvolved === false
 
   const form = useForm<z.infer<typeof requirementFormSchema>>({
     resolver: zodResolver(requirementFormSchema),
@@ -271,7 +272,9 @@ export default function RequirementEditor(props: RequirementEditorProps) {
           Back
         </Link>
         <div className='flex items-center gap-2'>
-          {props.mode === 'edit' && props.requirement !== null ? (
+          {props.mode === 'edit' &&
+          props.requirement !== null &&
+          props.isClientInvolved ? (
             <StatusBadge role={props.role} status={props.requirement!.status} />
           ) : null}
           {showSign && (
@@ -295,7 +298,7 @@ export default function RequirementEditor(props: RequirementEditorProps) {
               Request Changes
             </Button>
           )}
-          {canSend && (
+          {canSend && props.isClientInvolved && (
             <Button
               onClick={() => setShowSendDialog(true)}
               size='sm'
@@ -305,7 +308,7 @@ export default function RequirementEditor(props: RequirementEditorProps) {
               Send for Sign
             </Button>
           )}
-          {showThreads && (
+          {showThreads && props.isClientInvolved && (
             <Button onClick={handleStartThread} size='sm' variant='outline'>
               <MessageSquarePlus className='mr-1 size-4' />
               New Thread

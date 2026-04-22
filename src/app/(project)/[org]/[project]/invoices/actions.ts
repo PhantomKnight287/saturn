@@ -353,6 +353,15 @@ export const sendInvoiceAction = authedActionClient
       if (!hasProjectAccess.success) {
         throw new Error('Invoice not found')
       }
+      const settings = await projectsService.getSettings(
+        orgMember.organizationId,
+        invoice.projectId
+      )
+      if (settings.clientInvolvement.invoices === 'off') {
+        throw new Error(
+          'Client involvement is disabled for invoices in this project'
+        )
+      }
       if (invoice.status !== 'draft') {
         throw new Error('Only draft invoices can be sent')
       }
@@ -474,19 +483,35 @@ export const markInvoicePaidAction = authedActionClient
       if (!hasProjectAccess.success) {
         throw new Error('Invoice not found')
       }
-      if (invoice.status !== 'sent') {
-        throw new Error('Only sent invoices can be marked as paid')
-      }
 
-      const allRecipients = await db
-        .select({ memberId: invoiceRecipients.clientMemberId })
-        .from(invoiceRecipients)
-        .where(eq(invoiceRecipients.invoiceId, invoiceId))
+      const settings = await projectsService.getSettings(
+        orgMember.organizationId,
+        invoice.projectId
+      )
+      const clientOff = settings.clientInvolvement.invoices === 'off'
+      const isAdmin = orgMember.role === 'owner' || orgMember.role === 'admin'
 
-      const isRecipient = allRecipients.some((r) => r.memberId === orgMember.id)
-
-      if (!isRecipient) {
-        throw new Error('Only an invoice recipient can mark it as paid')
+      if (clientOff) {
+        if (!isAdmin) {
+          throw new Error('Only admins can mark invoices as paid')
+        }
+        if (invoice.status !== 'sent' && invoice.status !== 'draft') {
+          throw new Error('Only draft or sent invoices can be marked as paid')
+        }
+      } else {
+        if (invoice.status !== 'sent') {
+          throw new Error('Only sent invoices can be marked as paid')
+        }
+        const allRecipients = await db
+          .select({ memberId: invoiceRecipients.clientMemberId })
+          .from(invoiceRecipients)
+          .where(eq(invoiceRecipients.invoiceId, invoiceId))
+        const isRecipient = allRecipients.some(
+          (r) => r.memberId === orgMember.id
+        )
+        if (!isRecipient) {
+          throw new Error('Only an invoice recipient can mark it as paid')
+        }
       }
 
       await db
@@ -608,6 +633,15 @@ export const createInvoiceThreadAction = authedActionClient
       )
       if (!hasProjectAccess.success) {
         throw new Error('Invoice not found')
+      }
+      const settings = await projectsService.getSettings(
+        orgMember.organizationId,
+        invoice.projectId
+      )
+      if (settings.clientInvolvement.invoices === 'off') {
+        throw new Error(
+          'Client involvement is disabled for invoices in this project'
+        )
       }
       if (invoice.status !== 'sent' && invoice.status !== 'disputed') {
         throw new Error(

@@ -80,6 +80,7 @@ interface ProposalEditorProps {
   hasSignedAlready?: boolean
   //   initialExpenseItems?: ExpenseItem[]
   initialDeliverables?: (typeof proposalDeliverables.$inferSelect)[]
+  isClientInvolved?: boolean
   mode: 'create' | 'edit'
   orgSlug: string
   projectClients?: ProjectClient[]
@@ -110,11 +111,12 @@ export default function ProposalEditor({
   signatures = [],
   signatureMedia = [],
   defaultCurrency,
+  isClientInvolved = true,
 }: ProposalEditorProps) {
   const router = useRouter()
   const editorRef = useRef<EditorRef>(null)
   const backUrl = `/${orgSlug}/${projectSlug}/proposals` as RouteImpl
-  const isEditable = mode === 'create' || canEdit
+  const isEditable = mode === 'create' || canEdit || !isClientInvolved
 
   const form = useForm({
     resolver: zodResolver(proposalFormSchema),
@@ -140,18 +142,23 @@ export default function ProposalEditor({
     canSend &&
     mode === 'edit' &&
     proposal != null &&
+    isClientInvolved &&
     (proposal.status === 'draft' || proposal.status === 'changes_requested')
 
   const showSign =
     canSign &&
     mode === 'edit' &&
+    isClientInvolved &&
     proposal?.status === 'submitted_to_client' &&
     !hasSignedAlready
 
   const showDecline =
-    canSign && mode === 'edit' && proposal?.status === 'submitted_to_client'
+    canSign &&
+    mode === 'edit' &&
+    isClientInvolved &&
+    proposal?.status === 'submitted_to_client'
 
-  const showThreads = mode === 'edit' && proposal != null
+  const showThreads = mode === 'edit' && proposal != null && isClientInvolved
 
   const { execute: executeCreate, isPending: isCreating } = useAction(
     createProposalAction,
@@ -394,7 +401,11 @@ export default function ProposalEditor({
         </Button>
         <div className='flex items-center gap-2'>
           {mode === 'edit' && proposal && (
-            <StatusBadge role={role} status={proposal.status} />
+            <StatusBadge
+              isClientInvolved={isClientInvolved}
+              role={role}
+              status={proposal.status}
+            />
           )}
           {showSign && (
             <Button

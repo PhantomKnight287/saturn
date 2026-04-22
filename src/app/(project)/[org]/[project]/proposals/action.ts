@@ -65,6 +65,10 @@ export const createProposalAction = authedActionClient
     if (!role.authorize({ proposal: ['create'] }).success) {
       throw new Error('You do not have permission to create proposals')
     }
+    const settings = await projectsService.getSettings(
+      organization.id,
+      projectId
+    )
     const { slugified, slugifiedWithSuffix } = titleToSlug(title)
     const [proposalWithSlug] = await db
       .select({ id: proposals.id })
@@ -86,6 +90,10 @@ export const createProposalAction = authedActionClient
           validUntil: validUntil ? new Date(validUntil) : null,
           currency: currency || 'USD',
           totalAmount: calculateTotal(deliverables),
+          status:
+            settings.clientInvolvement.proposals === 'off'
+              ? 'client_accepted'
+              : 'draft',
         })
         .returning()
 
@@ -142,11 +150,18 @@ export const updateProposalAction = authedActionClient
     if (!role.authorize({ proposal: ['update'] }).success) {
       throw new Error('You do not have permission to update proposals')
     }
+    const settings = await projectsService.getSettings(
+      organization.id,
+      projectId
+    )
     const proposal = await getProposalById(proposalId, projectId)
     if (!proposal) {
       throw new Error('Proposal not found')
     }
-    if (proposal.status === 'client_accepted') {
+    if (
+      proposal.status === 'client_accepted' &&
+      settings.clientInvolvement.proposals === 'on'
+    ) {
       throw new Error(
         'You cannot update a proposal that has been accepted by the client'
       )
@@ -212,6 +227,15 @@ export const sendProposalAction = authedActionClient
     }
     if (!role.authorize({ proposal: ['send'] }).success) {
       throw new Error('You do not have permission to send proposals')
+    }
+    const settings = await projectsService.getSettings(
+      organization.id,
+      projectId
+    )
+    if (settings.clientInvolvement.proposals === 'off') {
+      throw new Error(
+        'Client involvement is disabled for proposals in this project'
+      )
     }
     const project = await projectsService.getById(projectId)
     if (!project) {
@@ -296,6 +320,15 @@ export const signProposalAction = authedActionClient
     if (hasProjectAccess.success === false) {
       throw new Error(
         hasProjectAccess.error ?? 'You do not have access to this project'
+      )
+    }
+    const settings = await projectsService.getSettings(
+      organization.id,
+      projectId
+    )
+    if (settings.clientInvolvement.proposals === 'off') {
+      throw new Error(
+        'Client involvement is disabled for proposals in this project'
       )
     }
     const project = await projectsService.getById(projectId)
@@ -545,6 +578,15 @@ export const declineProposalAction = authedActionClient
     if (hasProjectAccess.success === false) {
       throw new Error(
         hasProjectAccess.error ?? 'You do not have access to this project'
+      )
+    }
+    const settings = await projectsService.getSettings(
+      organization.id,
+      projectId
+    )
+    if (settings.clientInvolvement.proposals === 'off') {
+      throw new Error(
+        'Client involvement is disabled for proposals in this project'
       )
     }
     const proposal = await getProposalById(proposalId, projectId)

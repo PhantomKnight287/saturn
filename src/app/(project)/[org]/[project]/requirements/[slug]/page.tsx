@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 
 import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
+import { projectsService } from '@/app/api/projects/service'
 import { requirementsService } from '@/app/api/requirements/service'
 import { signaturesService } from '@/app/api/signatures/service'
 import { teamService } from '@/app/api/teams/service'
@@ -28,6 +29,7 @@ export default async function RequirementDetail({
     project: currentProject,
     orgMember,
     role,
+    organization,
   } = await resolveProjectContext(org, projectSlug)
 
   if (!role.authorize({ requirement: ['read'] }).success) {
@@ -59,6 +61,7 @@ export default async function RequirementDetail({
     signatures,
     changeRequests,
     signatureMedia,
+    settings,
   ] = await Promise.all([
     requirementsService.getThreads(currentProject.id, requirement.id),
     canSendForSign ? teamService.getProjectClients(currentProject.id) : [],
@@ -69,6 +72,7 @@ export default async function RequirementDetail({
       currentProject.organizationId,
       orgMember.id
     ),
+    projectsService.getSettings(organization.id, currentProject.id),
   ])
 
   const isRecipient = recipients.some((r) => r.clientMemberId === orgMember.id)
@@ -81,6 +85,7 @@ export default async function RequirementDetail({
       canSign={isRecipient}
       changeRequests={changeRequests}
       hasSignedAlready={hasSigned}
+      isClientInvolved={settings.clientInvolvement.requirements === 'on'}
       mode='edit'
       orgSlug={org}
       projectClients={projectClients}

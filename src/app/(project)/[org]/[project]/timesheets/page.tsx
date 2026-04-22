@@ -121,6 +121,7 @@ export default async function TimeTracking({
       entries={entries}
       isAdmin={isAdmin}
       isClient={isClient}
+      isClientInvolved={settings.clientInvolvement.timesheets === 'on'}
       memberRates={rates}
       orgSlug={org}
       projectId={currentProject.id}

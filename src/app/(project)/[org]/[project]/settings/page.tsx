@@ -42,13 +42,15 @@ export default async function ProjectSettingsPage({
   return (
     <ProjectSettingsPageClient
       canDelete={canDelete}
-      defaultCurrency={settings.currency}
-      defaultMemberRate={settings.memberRate}
-      defaultTimesheetDuration={settings.timesheetDuration}
-      invoiceNumberTemplate={settings.invoiceNumberTemplate}
       organizationId={organization.id}
       orgSlug={org}
-      project={project}
+      project={{
+        id: project.id,
+        name: project.name,
+        slug: project.slug,
+        dueDate: project.dueDate ? new Date(project.dueDate) : null,
+      }}
+      settings={settings}
     />
   )
 }

@@ -121,6 +121,14 @@ const SETTINGS_DEFAULTS = {
   currency: 'USD' as const,
   timesheetDuration: 'weekly' as const,
   invoiceNumberTemplate: 'INV-%seq(4)',
+  clientInvolvement: {
+    proposals: 'on',
+    requirements: 'on',
+    milestones: 'on',
+    timesheets: 'on',
+    expenses: 'on',
+    invoices: 'on',
+  } as const,
 }
 
 /**

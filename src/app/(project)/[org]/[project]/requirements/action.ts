@@ -45,6 +45,10 @@ export const createRequirementAction = authedActionClient
     if (!organization) {
       throw new Error('Organization not found')
     }
+    const settings = await projectsService.getSettings(
+      organization.id,
+      projectId
+    )
     const hasProjectAccess = await authService.checkProjectAccess(
       organization.id,
       projectId,
@@ -76,6 +80,10 @@ export const createRequirementAction = authedActionClient
         title,
         slug: requirementWithSlug ? slugifiedWithSuffix : slugified,
         body: body || '',
+        status:
+          settings.clientInvolvement.requirements === 'off'
+            ? 'client_accepted'
+            : 'draft',
       })
       .returning()
 
@@ -91,6 +99,10 @@ export const updateRequirementAction = authedActionClient
     if (!organization) {
       throw new Error('Organization not found')
     }
+    const settings = await projectsService.getSettings(
+      organization.id,
+      projectId
+    )
     const hasProjectAccess = await authService.checkProjectAccess(
       organization.id,
       projectId,
@@ -112,7 +124,10 @@ export const updateRequirementAction = authedActionClient
     if (!requirement) {
       throw new Error('Requirement not found')
     }
-    if (requirement.status === 'client_accepted') {
+    if (
+      requirement.status === 'client_accepted' &&
+      settings.clientInvolvement.requirements === 'on'
+    ) {
       throw new Error(
         'You cannot update a requirement that has been accepted by the client'
       )
@@ -147,6 +162,15 @@ export const sendForSignAction = authedActionClient
     if (!role.authorize({ requirement: ['send_for_sign'] }).success) {
       throw new Error(
         'You do not have permission to send requirements for sign'
+      )
+    }
+    const settings = await projectsService.getSettings(
+      organization.id,
+      projectId
+    )
+    if (settings.clientInvolvement.requirements === 'off') {
+      throw new Error(
+        'Client involvement is disabled for requirements in this project'
       )
     }
     const project = await projectsService.getById(projectId)
@@ -231,6 +255,15 @@ export const signRequirementAction = authedActionClient
     if (hasProjectAccess.success === false) {
       throw new Error(
         hasProjectAccess.error ?? 'You do not have access to this project'
+      )
+    }
+    const settings = await projectsService.getSettings(
+      organization.id,
+      projectId
+    )
+    if (settings.clientInvolvement.requirements === 'off') {
+      throw new Error(
+        'Client involvement is disabled for requirements in this project'
       )
     }
     const project = await projectsService.getById(projectId)
@@ -427,6 +460,15 @@ export const requestChangesAction = authedActionClient
     if (!role.authorize({ requirement: ['request_changes'] }).success) {
       throw new Error('You do not have permission to request changes')
     }
+    const settings = await projectsService.getSettings(
+      organization.id,
+      projectId
+    )
+    if (settings.clientInvolvement.requirements === 'off') {
+      throw new Error(
+        'Client involvement is disabled for requirements in this project'
+      )
+    }
     const project = await projectsService.getById(projectId)
     if (!project) {
       throw new Error('Project not found')
@@ -521,6 +563,15 @@ export const resolveChangeRequestAction = authedActionClient
     )
     if (!changeRequest) {
       throw new Error('Change request not found')
+    }
+    const settings = await projectsService.getSettings(
+      organization.id,
+      projectId
+    )
+    if (settings.clientInvolvement.requirements === 'off') {
+      throw new Error(
+        'Client involvement is disabled for requirements in this project'
+      )
     }
     if (resolution === 'accepted') {
       if (!role.authorize({ requirement: ['resolve_changes'] }).success) {

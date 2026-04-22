@@ -19,6 +19,7 @@ type Proposal = typeof proposals.$inferSelect
 
 interface ProposalsClientProps {
   canCreate: boolean
+  isClientInvolved?: boolean
   orgSlug: string
   projectSlug: string
   proposals: Proposal[]
@@ -31,6 +32,7 @@ export function ProposalsClient({
   projectSlug,
   canCreate,
   role,
+  isClientInvolved,
 }: ProposalsClientProps) {
   const newUrl = `/${orgSlug}/${projectSlug}/proposals/new`
   const router = useRouter()
@@ -71,6 +73,7 @@ export function ProposalsClient({
           {proposals.map((proposal) => (
             <ProposalCard
               key={proposal.id}
+              isClientInvolved={isClientInvolved}
               orgSlug={orgSlug}
               projectSlug={projectSlug}
               proposal={proposal}

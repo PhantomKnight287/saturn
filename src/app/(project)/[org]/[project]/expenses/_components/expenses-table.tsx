@@ -88,6 +88,7 @@ interface ExpensesTableProps {
   currentMemberId: string
   expenses: ExpenseWithDetails[]
   isAdmin: boolean
+  isClientInvolved?: boolean
   onToggleAll: () => void
   onToggleSelect: (id: string) => void
   projectId: string
@@ -104,6 +105,7 @@ export function ExpensesTable({
   selectedIds,
   onToggleSelect,
   onToggleAll,
+  isClientInvolved = true,
 }: ExpensesTableProps) {
   const router = useRouter()
   const [filterStatus, setFilterStatus] = useState<string>('all')
@@ -256,8 +258,23 @@ export function ExpensesTable({
                 </TableHeader>
                 <TableBody>
                   {filtered.map((expense) => {
-                    const cfg =
+                    const baseCfg =
                       statusConfig[expense.status] ?? statusConfig.draft
+                    const cfg =
+                      !isClientInvolved &&
+                      (expense.status === 'submitted_to_client' ||
+                        expense.status === 'client_accepted' ||
+                        expense.status === 'client_rejected')
+                        ? {
+                            ...baseCfg,
+                            label:
+                              expense.status === 'client_accepted'
+                                ? 'Completed'
+                                : expense.status === 'client_rejected'
+                                  ? 'Withdrawn'
+                                  : 'Finalized',
+                          }
+                        : baseCfg
                     const canEdit =
                       isAdmin ||
                       (expense.memberId === currentMemberId &&

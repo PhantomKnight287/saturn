@@ -23,6 +23,7 @@ interface RequirementsClientProps {
   projectSlug: string
   requirements: Requirement[]
   role: Role
+  isClientInvolved?: boolean
 }
 
 export function RequirementsClient({
@@ -31,6 +32,7 @@ export function RequirementsClient({
   projectSlug,
   canCreate,
   role,
+  isClientInvolved,
 }: RequirementsClientProps) {
   const newUrl = `/${orgSlug}/${projectSlug}/requirements/new`
   const router = useRouter()
@@ -87,6 +89,7 @@ export function RequirementsClient({
               projectSlug={projectSlug}
               requirement={requirement}
               role={role}
+              isClientInvolved={isClientInvolved}
             />
           ))}
         </div>

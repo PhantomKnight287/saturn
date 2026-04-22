@@ -59,6 +59,7 @@ interface MonthlyTimesheetProps {
   currentMemberId: string
   entries: TimeEntry[]
   isAdmin?: boolean
+  isClientInvolved?: boolean
   isTeamView?: boolean
   onAddEntry?: (day?: Date) => void
   projectId: string
@@ -74,6 +75,7 @@ export function MonthlyTimesheet({
   currentMemberId,
   isAdmin = false,
   isTeamView = false,
+  isClientInvolved,
   onAddEntry,
 }: MonthlyTimesheetProps) {
   const [monthOffset, setMonthOffset] = useState(0)
@@ -406,7 +408,7 @@ export function MonthlyTimesheet({
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger>
-                                <StatusBadge status={entry.status} />
+                                <StatusBadge isClientInvolved={isClientInvolved} status={entry.status} />
                               </TooltipTrigger>
                               <TooltipContent className='max-w-xs' side='left'>
                                 <p className='font-medium'>Reason:</p>
@@ -415,7 +417,7 @@ export function MonthlyTimesheet({
                             </Tooltip>
                           </TooltipProvider>
                         ) : (
-                          <StatusBadge status={entry.status} />
+                          <StatusBadge isClientInvolved={isClientInvolved} status={entry.status} />
                         )}
                       </TableCell>
                       {showActions && (

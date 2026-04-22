@@ -34,6 +34,7 @@ export interface RequirementEditorProps {
   canSign?: boolean
   changeRequests?: ChangeRequest[]
   hasSignedAlready?: boolean
+  isClientInvolved?: boolean
   mode: 'create' | 'edit'
   orgSlug: string
   projectClients?: ProjectClient[]

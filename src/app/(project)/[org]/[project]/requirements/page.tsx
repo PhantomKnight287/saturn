@@ -6,6 +6,7 @@ import { requirementsService } from '@/app/api/requirements/service'
 import { createMetadata } from '@/lib/metadata'
 import type { Role } from '@/types'
 import { RequirementsClient } from './page.client'
+import { projectsService } from '@/app/api/projects/service'
 
 export const metadata: Metadata = createMetadata({
   title: 'Requirements',
@@ -40,7 +41,10 @@ export default async function Requirements({
   )
 
   const canCreate = role.authorize({ requirement: ['create'] }).success
-
+  const settings = await projectsService.getSettings(
+    orgMember.organizationId,
+    currentProject.id
+  )
   return (
     <RequirementsClient
       canCreate={canCreate}
@@ -48,6 +52,7 @@ export default async function Requirements({
       projectSlug={projectSlug}
       requirements={requirementList}
       role={orgMember.role as Role}
+      isClientInvolved={settings.clientInvolvement.requirements === 'on'}
     />
   )
 }

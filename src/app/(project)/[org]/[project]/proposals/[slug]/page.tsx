@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
+import { projectsService } from '@/app/api/projects/service'
 import { proposalsService } from '@/app/api/proposals/service'
 import { signaturesService } from '@/app/api/signatures/service'
 import { teamService } from '@/app/api/teams/service'
@@ -28,6 +29,7 @@ export default async function ProposalDetail({
     project: currentProject,
     orgMember,
     role,
+    organization,
   } = await resolveProjectContext(org, projectSlug)
 
   if (!role.authorize({ proposal: ['read'] }).success) {
@@ -55,6 +57,7 @@ export default async function ProposalDetail({
     signatures,
     lineItems,
     signatureMedia,
+    settings,
   ] = await Promise.all([
     threadService.getThreads(currentProject.id, proposal.id),
     canSend ? teamService.getProjectClients(currentProject.id) : [],
@@ -65,6 +68,7 @@ export default async function ProposalDetail({
       currentProject.organizationId,
       orgMember.id
     ),
+    projectsService.getSettings(organization.id, currentProject.id),
   ])
 
   const isRecipient = recipients.some((r) => r.clientMemberId === orgMember.id)
@@ -76,6 +80,7 @@ export default async function ProposalDetail({
       canSend={canSend}
       canSign={isRecipient}
       hasSignedAlready={hasSigned}
+      isClientInvolved={settings.clientInvolvement.proposals === 'on'}
       //   initialExpenseItems={expenseItems.map((item) => ({
       //     description: item.description,
       //     amount: item.amount,

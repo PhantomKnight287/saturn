@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
+import { projectsService } from '@/app/api/projects/service'
 import { proposalsService } from '@/app/api/proposals/service'
 import { createMetadata } from '@/lib/metadata'
 import type { Role } from '@/types'
@@ -40,10 +41,15 @@ export default async function Proposals({
   )
 
   const canCreate = role.authorize({ proposal: ['create'] }).success
+  const settings = await projectsService.getSettings(
+    orgMember.organizationId,
+    currentProject.id
+  )
 
   return (
     <ProposalsClient
       canCreate={canCreate}
+      isClientInvolved={settings.clientInvolvement.proposals === 'on'}
       orgSlug={org}
       projectSlug={projectSlug}
       proposals={proposalList}

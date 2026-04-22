@@ -14,11 +14,13 @@ export default function ProposalCard({
   orgSlug,
   projectSlug,
   role,
+  isClientInvolved,
 }: {
   proposal: Proposal
   orgSlug: string
   projectSlug: string
   role: Role
+  isClientInvolved?: boolean
 }) {
   const symbol =
     currencies.find((c) => c.cc === proposal.currency)?.value ??
@@ -42,7 +44,11 @@ export default function ProposalCard({
     >
       <Card className='flex h-full cursor-pointer flex-col gap-0 p-4 transition-colors hover:border-primary/50'>
         <div className='mb-1.5 flex items-center justify-between gap-2'>
-          <StatusBadge role={role} status={proposal.status} />
+          <StatusBadge
+            isClientInvolved={isClientInvolved}
+            role={role}
+            status={proposal.status}
+          />
           <span className='shrink-0 text-muted-foreground text-xs'>
             {formatDistanceToNow(new Date(proposal.updatedAt), {
               addSuffix: true,

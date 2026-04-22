@@ -97,6 +97,7 @@ interface MilestoneDetailClientProps {
   canComplete: boolean
   canDelete: boolean
   canUpdate: boolean
+  isClientInvolvedInRequirements?: boolean
   linkedRequirements: LinkedRequirement[]
   milestone: Milestone
   orgSlug: string
@@ -114,6 +115,7 @@ export function MilestoneDetailClient({
   canUpdate,
   canComplete,
   canDelete,
+  isClientInvolvedInRequirements,
 }: MilestoneDetailClientProps) {
   const router = useRouter()
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -382,7 +384,10 @@ export function MilestoneDetailClient({
                   {lr.requirementTitle}
                 </Link>
                 <div className='flex shrink-0 items-center gap-2'>
-                  <StatusBadge status={lr.requirementStatus} />
+                  <StatusBadge
+                    isClientInvolved={isClientInvolvedInRequirements}
+                    status={lr.requirementStatus}
+                  />
                   {canUpdate && (
                     <Button
                       className='size-7 p-0 text-muted-foreground hover:text-destructive'

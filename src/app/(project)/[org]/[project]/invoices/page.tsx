@@ -3,6 +3,7 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
 import { invoicesService } from '@/app/api/invoices/service'
+import { projectsService } from '@/app/api/projects/service'
 import { createMetadata } from '@/lib/metadata'
 import type { Role } from '@/types'
 import { InvoicesClient } from './page.client'
@@ -26,6 +27,7 @@ export default async function Invoices({
     project: currentProject,
     role,
     orgMember,
+    organization,
   } = await resolveProjectContext(org, projectSlug)
 
   if (!role.authorize({ invoice: ['read'] }).success) {
@@ -39,11 +41,16 @@ export default async function Invoices({
     await headers()
   )
   const canCreate = role.authorize({ invoice: ['create'] }).success
+  const settings = await projectsService.getSettings(
+    organization.id,
+    currentProject.id
+  )
 
   return (
     <InvoicesClient
       canCreate={canCreate}
       invoices={invoiceList}
+      isClientInvolved={settings.clientInvolvement.invoices === 'on'}
       orgSlug={org}
       projectSlug={projectSlug}
       role={orgMember.role as Role}

@@ -5,10 +5,14 @@ import type { Role } from '@/types'
 
 type Status = (typeof invoiceStatusEnum.enumValues)[number]
 
-const variants: Record<
-  Status,
-  { label: string; clientLabel?: string; className: string }
-> = {
+interface Variant {
+  className: string
+  clientLabel?: string
+  label: string
+  noClientLabel?: string
+}
+
+const variants: Record<Status, Variant> = {
   draft: {
     label: 'Draft',
     className: 'bg-muted text-muted-foreground border-muted',
@@ -21,6 +25,7 @@ const variants: Record<
     label: 'Sent to client',
     className: 'bg-muted text-yellow-500 border-yellow-500',
     clientLabel: 'Pending payment',
+    noClientLabel: 'Awaiting payment',
   },
   cancelled: {
     label: 'Cancelled',
@@ -35,19 +40,27 @@ const variants: Record<
 export default function InvoiceStatusBadge({
   status,
   role,
+  isClientInvolved = true,
 }: {
   status: Status
   role?: Role
+  isClientInvolved?: boolean
 }) {
   const variant = variants[status]
   if (variant === undefined) {
     return null
   }
+
+  let label = variant.label
+  if (!isClientInvolved && variant.noClientLabel) {
+    label = variant.noClientLabel
+  } else if (role === 'client' && variant.clientLabel) {
+    label = variant.clientLabel
+  }
+
   return (
     <Badge className={cn(variant.className)} variant={'outline'}>
-      {role === 'client' && variant.clientLabel
-        ? variant.clientLabel
-        : variant.label}
+      {label}
     </Badge>
   )
 }

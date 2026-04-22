@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm'
 import {
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   text,
@@ -16,12 +17,6 @@ export const timesheetDurationEnum = pgEnum('timesheet_duration', [
   'weekly',
   'biweekly',
   'monthly',
-])
-
-export const clientInvolvementEnum = pgEnum('client_involvement', [
-  'full',
-  'partial',
-  'none',
 ])
 
 export const settings = pgTable(
@@ -44,8 +39,23 @@ export const settings = pgTable(
     timesheetDuration: timesheetDurationEnum('timesheet_duration')
       .default('weekly')
       .notNull(),
-    clientInvolvement: clientInvolvementEnum('client_involvement')
-      .default('full')
+    clientInvolvement: jsonb('client_involvement')
+      .$type<{
+        proposals: 'on' | 'off'
+        requirements: 'on' | 'off'
+        milestones: 'on' | 'off'
+        timesheets: 'on' | 'off'
+        expenses: 'on' | 'off'
+        invoices: 'on' | 'off'
+      }>()
+      .$defaultFn(() => ({
+        proposals: 'on',
+        requirements: 'on',
+        milestones: 'on',
+        timesheets: 'on',
+        expenses: 'on',
+        invoices: 'on',
+      }))
       .notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')

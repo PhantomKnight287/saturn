@@ -30,6 +30,7 @@ export function InvoicesClient({
   projectSlug,
   canCreate,
   role,
+  isClientInvolved,
 }: InvoicesClientProps) {
   const newUrl = `/${orgSlug}/${projectSlug}/invoices/new` as RouteImpl
   const [pickerOpen, setPickerOpen] = useState(false)
@@ -99,6 +100,7 @@ export function InvoicesClient({
           {invoices.map((invoice) => (
             <InvoiceCard
               invoice={invoice}
+              isClientInvolved={isClientInvolved}
               key={invoice.id}
               orgSlug={orgSlug}
               projectSlug={projectSlug}

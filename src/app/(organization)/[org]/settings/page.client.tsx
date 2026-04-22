@@ -2,7 +2,7 @@
 
 import { useRouter } from '@bprogress/next/app'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { AlertTriangle, CreditCard, Hash, Save, Sparkles } from 'lucide-react'
+import { AlertTriangle, CreditCard, Save, Sparkles } from 'lucide-react'
 import { useAction } from 'next-safe-action/hooks'
 import { useCallback, useEffect, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
@@ -38,18 +38,26 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { authClient, useSession } from '@/lib/auth-client'
+import {
+  clientInvolvementEntities,
+  clientInvolvementEntityLabels,
+  type ClientInvolvementValue,
+  defaultClientInvolvement,
+} from '@/app/(project)/[org]/[project]/settings/common'
 import { ApiKeysCard } from './_components/api-keys/card'
 import { InvoiceNumberTemplateInput } from './_components/invoice-number-template-input'
 import {
   deleteOrganizationAction,
   renameOrganizationAction,
   updateInvoiceNumberTemplateAction,
+  updateOrgClientInvolvementAction,
   updateTimesheetDefaultsAction,
 } from './actions'
 import {
   renameOrganizationSchema,
   type TimesheetDuration,
   updateInvoiceNumberTemplateSchema,
+  updateOrgClientInvolvementSchema,
   updateTimesheetDefaultsSchema,
 } from './common'
 
@@ -67,6 +75,7 @@ export function SettingsPageClient({
   defaultTimesheetDuration,
   defaultCurrency,
   invoiceNumberTemplate,
+  clientInvolvement,
 }: {
   organization: { id: string; name: string; slug: string }
   orgSlug: string
@@ -75,6 +84,7 @@ export function SettingsPageClient({
   defaultCurrency: string
   defaultTimesheetDuration: TimesheetDuration
   invoiceNumberTemplate: string
+  clientInvolvement: ClientInvolvementValue
 }) {
   const router = useRouter()
   const session = useSession()
@@ -102,6 +112,16 @@ export function SettingsPageClient({
     defaultValues: {
       organizationId: organization.id,
       invoiceNumberTemplate,
+    },
+  })
+
+  const clientInvolvementForm = useForm<
+    z.infer<typeof updateOrgClientInvolvementSchema>
+  >({
+    resolver: zodResolver(updateOrgClientInvolvementSchema),
+    defaultValues: {
+      organizationId: organization.id,
+      clientInvolvement: clientInvolvement ?? defaultClientInvolvement,
     },
   })
 
@@ -205,6 +225,19 @@ export function SettingsPageClient({
     },
     onError({ error }) {
       toast.error(error.serverError ?? 'Failed to update invoice template')
+    },
+  })
+
+  const {
+    execute: executeClientInvolvement,
+    isPending: isSavingClientInvolvement,
+  } = useAction(updateOrgClientInvolvementAction, {
+    onSuccess() {
+      toast.success('Client approval defaults updated')
+      router.refresh()
+    },
+    onError({ error }) {
+      toast.error(error.serverError ?? 'Failed to update client approval')
     },
   })
 
@@ -486,6 +519,67 @@ export function SettingsPageClient({
               >
                 <Save className='size-4' />
                 Save Template
+              </Button>
+            </CardFooter>
+          </form>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className='flex items-center gap-2'>
+              Client Approval
+            </CardTitle>
+            <CardDescription>
+              Workspace defaults for which parts of the workflow require client
+              approval. Individual projects can override these.
+            </CardDescription>
+          </CardHeader>
+          <form
+            onSubmit={clientInvolvementForm.handleSubmit((values) =>
+              executeClientInvolvement(values)
+            )}
+          >
+            <CardContent>
+              <FieldGroup>
+                {clientInvolvementEntities.map((entity) => (
+                  <Controller
+                    control={clientInvolvementForm.control}
+                    key={entity}
+                    name={`clientInvolvement.${entity}`}
+                    render={({ field }) => (
+                      <Field orientation='horizontal'>
+                        <Checkbox
+                          checked={field.value === 'on'}
+                          id={`org-client-involvement-${entity}`}
+                          onCheckedChange={(checked) =>
+                            field.onChange(checked === true ? 'on' : 'off')
+                          }
+                        />
+                        <div className='flex flex-col gap-0.5'>
+                          <FieldLabel
+                            htmlFor={`org-client-involvement-${entity}`}
+                          >
+                            {clientInvolvementEntityLabels[entity].label}
+                          </FieldLabel>
+                          <FieldDescription>
+                            {clientInvolvementEntityLabels[entity].description}
+                          </FieldDescription>
+                        </div>
+                      </Field>
+                    )}
+                  />
+                ))}
+              </FieldGroup>
+            </CardContent>
+            <CardFooter>
+              <Button
+                className='mt-4'
+                disabled={!clientInvolvementForm.formState.isDirty}
+                loading={isSavingClientInvolvement}
+                type='submit'
+              >
+                <Save className='size-4' />
+                Save Approval Defaults
               </Button>
             </CardFooter>
           </form>

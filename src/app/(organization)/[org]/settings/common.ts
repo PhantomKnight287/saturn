@@ -1,5 +1,21 @@
 import z from 'zod'
 
+const clientInvolvementToggleSchema = z.enum(['on', 'off'])
+
+const orgClientInvolvementValueSchema = z.object({
+  proposals: clientInvolvementToggleSchema,
+  requirements: clientInvolvementToggleSchema,
+  milestones: clientInvolvementToggleSchema,
+  timesheets: clientInvolvementToggleSchema,
+  expenses: clientInvolvementToggleSchema,
+  invoices: clientInvolvementToggleSchema,
+})
+
+export const updateOrgClientInvolvementSchema = z.object({
+  organizationId: z.string().min(1),
+  clientInvolvement: orgClientInvolvementValueSchema,
+})
+
 export const renameOrganizationSchema = z.object({
   organizationId: z.string().min(1),
   name: z.string().min(1, 'Name is required').max(100),

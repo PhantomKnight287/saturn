@@ -93,6 +93,11 @@ export const createTimeEntryAction = authedActionClient
       }
 
       const isAdmin = orgMember.role === 'owner' || orgMember.role === 'admin'
+      const settings = await projectsService.getSettings(
+        orgMember.organizationId,
+        projectId
+      )
+      const clientOff = settings.clientInvolvement.timesheets === 'off'
 
       const [entry] = await db
         .insert(timeEntries)
@@ -104,7 +109,11 @@ export const createTimeEntryAction = authedActionClient
           date: new Date(date),
           durationMinutes,
           billable,
-          status: isAdmin ? 'admin_accepted' : 'draft',
+          status: isAdmin
+            ? clientOff
+              ? 'client_accepted'
+              : 'admin_accepted'
+            : 'draft',
         })
         .returning()
 
@@ -384,9 +393,18 @@ export const approveTimeEntriesAction = authedActionClient
         }
       }
 
+      const approveSettings = await projectsService.getSettings(
+        orgMember.organizationId,
+        projectId
+      )
+      const approvedStatus =
+        approveSettings.clientInvolvement.timesheets === 'off'
+          ? 'client_accepted'
+          : 'admin_accepted'
+
       await db
         .update(timeEntries)
-        .set({ status: 'admin_accepted' })
+        .set({ status: approvedStatus })
         .where(inArray(timeEntries.id, timeEntryIds))
 
       const details = await projectsService.getProjectDetails(projectId)
@@ -691,6 +709,15 @@ export const sendTimesheetToClientAction = authedActionClient
       if (!hasProjectAccess.success) {
         throw new Error('You do not have access to this project')
       }
+      const settings = await projectsService.getSettings(
+        orgMember.organizationId,
+        projectId
+      )
+      if (settings.clientInvolvement.timesheets === 'off') {
+        throw new Error(
+          'Client involvement is disabled for timesheets in this project'
+        )
+      }
 
       const entries = await db
         .select(timeEntryColumns)
@@ -851,6 +878,15 @@ export const respondTimesheetReportAction = authedActionClient
       if (!hasProjectAccess.success) {
         throw new Error('Report not found')
       }
+      const settings = await projectsService.getSettings(
+        orgMember.organizationId,
+        report.projectId
+      )
+      if (settings.clientInvolvement.timesheets === 'off') {
+        throw new Error(
+          'Client involvement is disabled for timesheets in this project'
+        )
+      }
       if (report.status !== 'sent') {
         throw new Error('Only sent reports can be responded to')
       }
@@ -1010,6 +1046,16 @@ export const resendTimesheetReportAction = authedActionClient
         .where(eq(projects.id, report.projectId))
       if (!project || project.organizationId !== orgMember.organizationId) {
         throw new Error('Report not found')
+      }
+
+      const settings = await projectsService.getSettings(
+        orgMember.organizationId,
+        report.projectId
+      )
+      if (settings.clientInvolvement.timesheets === 'off') {
+        throw new Error(
+          'Client involvement is disabled for timesheets in this project'
+        )
       }
 
       if (report.status !== 'disputed') {

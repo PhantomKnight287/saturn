@@ -39,6 +39,7 @@ export default async function NewProposal({
   return (
     <ProposalEditor
       defaultCurrency={settings.currency}
+      isClientInvolved={settings.clientInvolvement.proposals === 'on'}
       mode='create'
       orgSlug={org}
       projectId={currentProject.id}

@@ -35,8 +35,8 @@ function Button({
     },
     {
       enabled: Boolean(kbd) && !disabled && !loading,
-      enableOnFormTags: true,
-      enableOnContentEditable: true,
+      enableOnFormTags: false,
+      enableOnContentEditable: false,
     },
     [kbd, disabled, loading, props.onClick]
   )

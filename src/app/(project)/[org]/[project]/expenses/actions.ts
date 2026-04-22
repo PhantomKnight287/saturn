@@ -95,6 +95,11 @@ export const createExpenseAction = authedActionClient
 
       // Admin/owner expenses are auto-approved — they don't need admin approval
       const isAdmin = orgMember.role === 'owner' || orgMember.role === 'admin'
+      const settings = await projectsService.getSettings(
+        orgMember.organizationId,
+        projectId
+      )
+      const clientOff = settings.clientInvolvement.expenses === 'off'
 
       const [expense] = await db
         .insert(expenses)
@@ -108,7 +113,11 @@ export const createExpenseAction = authedActionClient
           title,
           billable,
           description,
-          status: isAdmin ? 'admin_accepted' : 'draft',
+          status: isAdmin
+            ? clientOff
+              ? 'client_accepted'
+              : 'admin_accepted'
+            : 'draft',
           receiptMediaId,
           milestoneId,
         })
@@ -366,9 +375,18 @@ export const approveExpensesAction = authedActionClient
         }
       }
 
+      const approveSettings = await projectsService.getSettings(
+        orgMember.organizationId,
+        projectId
+      )
+      const approvedStatus =
+        approveSettings.clientInvolvement.expenses === 'off'
+          ? 'client_accepted'
+          : 'admin_accepted'
+
       await db
         .update(expenses)
-        .set({ status: 'admin_accepted' })
+        .set({ status: approvedStatus })
         .where(inArray(expenses.id, expenseIds))
 
       // Notify each submitter
@@ -556,6 +574,16 @@ export const sendExpensesToClientAction = authedActionClient
         throw new Error('No expenses found')
       }
 
+      const settings = await projectsService.getSettings(
+        orgMember.organizationId,
+        projectId
+      )
+      if (settings.clientInvolvement.expenses === 'off') {
+        throw new Error(
+          'Client involvement is disabled for expenses in this project'
+        )
+      }
+
       for (const entry of entries) {
         if (
           entry.status !== 'admin_accepted' &&
@@ -662,6 +690,16 @@ export const clientRespondExpensesAction = authedActionClient
       )
       if (!hasProjectAccess.success) {
         throw new Error('No expenses found')
+      }
+
+      const settings = await projectsService.getSettings(
+        orgMember.organizationId,
+        projectId
+      )
+      if (settings.clientInvolvement.expenses === 'off') {
+        throw new Error(
+          'Client involvement is disabled for expenses in this project'
+        )
       }
 
       for (const entry of entries) {
