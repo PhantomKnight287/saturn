@@ -232,9 +232,7 @@ export default function RequirementEditor(props: RequirementEditorProps) {
       let mediaId: string
 
       if (result.source === 'library') {
-        const match = props.signatureMedia?.find(
-          (m) => m.url === result.dataUrl
-        )
+        const match = props.signatureMedia?.find((m) => m.id === result.dataUrl)
         if (!match) {
           toast.error('Could not find the selected signature')
           return
@@ -373,13 +371,13 @@ export default function RequirementEditor(props: RequirementEditorProps) {
                   className='flex items-center gap-3 rounded-md border bg-muted/30 p-3'
                   key={sig.id}
                 >
-                  {sig.mediaUrl && (
+                  {sig.mediaFileName && (
                     <div className='shrink-0 rounded border bg-white p-1'>
                       <Image
                         alt={`Signature by ${sig.signerName ?? 'Unknown'}`}
                         className='object-contain'
                         height={48}
-                        src={sig.mediaUrl}
+                        src={`/api/files/${props.projectId}/${sig.mediaFileName}`}
                         unoptimized
                         width={96}
                       />
@@ -479,13 +477,7 @@ export default function RequirementEditor(props: RequirementEditorProps) {
         props.requirement?.status === 'submitted_to_client' && (
           <SignatureDialog
             disabled={isSigning || isUploadingSignature}
-            mediaItems={(props.signatureMedia ?? []).map((m) => ({
-              id: m.id,
-              name: m.name,
-              url: m.url,
-              contentType: m.contentType,
-              createdAt: m.createdAt,
-            }))}
+            mediaItems={props.signatureMedia ?? []}
             onConfirm={handleSign}
             onOpenChange={setShowSignatureDialog}
             open={showSignatureDialog}

@@ -74,10 +74,10 @@ export const PdfPreviewPane = memo(function PdfPreviewPane({
       orgSlug,
       projectSlug,
       senderLogo: values.senderLogo
-        ? (mediaItems.find((m) => m.id === values.senderLogo)?.url ?? null)
+        ? (mediaItems.find((m) => m.id === values.senderLogo)?.id ?? null)
         : null,
       senderSignature: values.senderSignature
-        ? (mediaItems.find((m) => m.id === values.senderSignature)?.url ?? null)
+        ? (mediaItems.find((m) => m.id === values.senderSignature)?.id ?? null)
         : null,
       senderName: values.senderName || null,
       senderAddress: values.senderAddress || null,

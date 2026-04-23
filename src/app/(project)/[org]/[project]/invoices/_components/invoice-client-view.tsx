@@ -181,9 +181,9 @@ export function InvoiceClientView({
         orgName,
         orgSlug,
         projectSlug,
-        senderLogo: invoice.senderLogoObject?.url ?? invoice.senderLogo,
+        senderLogo: invoice.senderLogoObject?.id ?? invoice.senderLogo,
         senderSignature:
-          invoice.senderSignatureObject?.url ?? invoice.senderSignature,
+          invoice.senderSignatureObject?.id ?? invoice.senderSignature,
         senderName: invoice.senderName,
         senderAddress: invoice.senderAddress,
         senderCustomFields: invoice.senderCustomFields ?? [],
@@ -270,11 +270,11 @@ export function InvoiceClientView({
         <CardContent className='p-6 sm:p-8'>
           <div className='mb-8 flex items-start justify-between'>
             <div>
-              {invoice.senderLogoObject?.url && (
+              {invoice.senderLogoObject?.id && (
                 <img
                   alt='Company logo'
                   className='mb-3 h-12 object-contain'
-                  src={invoice.senderLogoObject.url}
+                  src={`/api/files/${invoice.senderLogoObject.id}`}
                 />
               )}
               <h1 className='font-semibold text-2xl'>Invoice</h1>
@@ -445,13 +445,13 @@ export function InvoiceClientView({
             </div>
           )}
 
-          {invoice.senderSignatureObject?.url && (
+          {invoice.senderSignatureObject?.id && (
             <div className='mt-8 border-t pt-6'>
               <p className='mb-2 text-muted-foreground text-xs'>Signature</p>
               <img
                 alt='Signature'
                 className='h-16 object-contain'
-                src={invoice.senderSignatureObject?.url ?? ''}
+                src={`/api/files/${invoice.senderSignatureObject?.id ?? ''}`}
               />
             </div>
           )}

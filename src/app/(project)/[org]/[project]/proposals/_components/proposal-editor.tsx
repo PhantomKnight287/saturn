@@ -9,7 +9,6 @@ import {
   Send,
   XCircle,
 } from 'lucide-react'
-import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAction } from 'next-safe-action/hooks'
@@ -302,7 +301,7 @@ export default function ProposalEditor({
       let mediaId: string
 
       if (result.source === 'library') {
-        const match = signatureMedia.find((m) => m.url === result.dataUrl)
+        const match = signatureMedia.find((m) => m.id === result.dataUrl)
         if (!match) {
           toast.error('Could not find the selected signature')
           return
@@ -620,7 +619,7 @@ export default function ProposalEditor({
                   className='flex items-center gap-3 rounded-md border bg-muted/30 p-3'
                   key={sig.id}
                 >
-                  {sig.mediaUrl && (
+                  {/*{sig.mediaUrl && (
                     <div className='shrink-0 rounded border bg-white p-1'>
                       <Image
                         alt={`Signature by ${sig.signerName ?? 'Unknown'}`}
@@ -631,7 +630,7 @@ export default function ProposalEditor({
                         width={96}
                       />
                     </div>
-                  )}
+                  )}*/}
                   <div className='min-w-0'>
                     <p className='truncate font-medium text-sm'>
                       {sig.signerName ?? 'Unknown'}
@@ -673,13 +672,7 @@ export default function ProposalEditor({
         proposal?.status === 'submitted_to_client' && (
           <SignatureDialog
             disabled={isSigning || isUploadingSignature}
-            mediaItems={signatureMedia.map((m) => ({
-              id: m.id,
-              name: m.name,
-              url: m.url,
-              contentType: m.contentType,
-              createdAt: m.createdAt,
-            }))}
+            mediaItems={signatureMedia}
             onConfirm={handleSign}
             onOpenChange={setShowSignatureDialog}
             open={showSignatureDialog}

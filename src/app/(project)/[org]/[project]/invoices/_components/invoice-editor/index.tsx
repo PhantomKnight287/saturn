@@ -184,13 +184,13 @@ export default function InvoiceEditor({
       let mediaUrl: string
 
       if (result.source === 'library') {
-        const match = allMediaItems.find((m) => m.url === result.dataUrl)
+        const match = allMediaItems.find((m) => m.id === result.dataUrl)
         if (!match) {
           toast.error('Could not find the selected signature')
           return
         }
         mediaId = match.id
-        mediaUrl = match.url
+        mediaUrl = match.id
       } else {
         const uploaded = await uploadDataUrl(
           result.dataUrl,
@@ -684,8 +684,8 @@ export default function InvoiceEditor({
                     control={control}
                     name='senderSignature'
                     render={({ field }) => {
-                      const signatureUrl = field.value
-                        ? allMediaItems.find((m) => m.id === field.value)?.url
+                      const signatureId = field.value
+                        ? allMediaItems.find((m) => m.id === field.value)?.id
                         : null
                       return (
                         <div className='flex items-center gap-3'>
@@ -695,12 +695,12 @@ export default function InvoiceEditor({
                             onClick={() => setSignatureDialogOpen(true)}
                             type='button'
                           >
-                            {signatureUrl ? (
+                            {signatureId ? (
                               <Image
                                 alt='Signature'
                                 className='max-h-[54px] object-contain'
                                 height={54}
-                                src={signatureUrl}
+                                src={`/api/files/${signatureId}`}
                                 unoptimized
                                 width={130}
                               />

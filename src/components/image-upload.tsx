@@ -41,9 +41,7 @@ export default function ImageUpload({
   const [localUrlMap, setLocalUrlMap] = useState<Record<string, string>>({})
 
   const displayUrl = value
-    ? (mediaItems.find((m) => m.id === value)?.url ??
-      localUrlMap[value] ??
-      null)
+    ? (mediaItems.find((m) => m.id === value)?.id ?? localUrlMap[value] ?? null)
     : null
 
   const handleFile = async (file: File) => {

@@ -11,18 +11,15 @@ export interface SignatureMedia {
   createdAt: Date
   id: string
   name: string
-  url: string
 }
 
 const getSignatureMediaForMember = async (
-  organizationId: string,
   memberId: string
 ): Promise<SignatureMedia[]> => {
   return await db
     .select({
       id: mediaTable.id,
       name: mediaTable.name,
-      url: mediaTable.url,
       contentType: mediaTable.contentType,
       createdAt: mediaTable.createdAt,
     })
@@ -43,7 +40,6 @@ const getSignatureMediaForMember = async (
     )
     .where(
       and(
-        eq(mediaTable.organizationId, organizationId),
         or(
           isNotNull(requirementSignatures.id),
           isNotNull(proposalSignatures.id)

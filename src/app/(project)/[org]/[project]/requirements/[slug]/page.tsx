@@ -68,10 +68,7 @@ export default async function RequirementDetail({
     requirementsService.getRecipients(requirement.id),
     requirementsService.getSignatures(requirement.id),
     requirementsService.getChangeRequests(requirement.id),
-    signaturesService.getSignatureMediaForMember(
-      currentProject.organizationId,
-      orgMember.id
-    ),
+    signaturesService.getSignatureMediaForMember(orgMember.id),
     projectsService.getSettings(organization.id, currentProject.id),
   ])
 

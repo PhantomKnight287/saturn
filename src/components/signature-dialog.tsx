@@ -1,7 +1,7 @@
 'use client'
 
+// TODO: fix this thing
 import { Eraser, FolderOpen, Pen } from 'lucide-react'
-import Image from 'next/image'
 import { useEffect, useId, useRef, useState } from 'react'
 import type ReactSignatureCanvas from 'react-signature-canvas'
 
@@ -61,7 +61,6 @@ export function SignatureDialog({
   const [isEmpty, setIsEmpty] = useState(true)
   const [saveForLater, setSaveForLater] = useState(false)
   const [libraryOpen, setLibraryOpen] = useState(false)
-  const [selectedMediaUrl, setSelectedMediaUrl] = useState<string | null>(null)
   const [SignatureCanvasComp, setSignatureCanvasComp] = useState<
     typeof ReactSignatureCanvas | null
   >(null)
@@ -93,7 +92,6 @@ export function SignatureDialog({
     setIsEmpty(true)
     setSaveForLater(false)
     setSource('pad')
-    setSelectedMediaUrl(null)
   }
 
   const handleClear = () => {
@@ -106,8 +104,8 @@ export function SignatureDialog({
   }
 
   const handleConfirm = () => {
-    if (source === 'library' && selectedMediaUrl) {
-      onConfirm({ dataUrl: selectedMediaUrl, saveForLater: false, source })
+    if (source === 'library') {
+      // onConfirm({ saveForLater: false, source })
       handleOpenChange(false)
       return
     }
@@ -122,7 +120,6 @@ export function SignatureDialog({
   const handleLibrarySelect = (id: string) => {
     const item = mediaItems.find((m) => m.id === id)
     if (item) {
-      setSelectedMediaUrl(item.url)
       setSource('library')
     }
     setLibraryOpen(false)
@@ -130,11 +127,10 @@ export function SignatureDialog({
 
   const switchToPad = () => {
     setSource('pad')
-    setSelectedMediaUrl(null)
   }
 
   const hasMedia = mediaItems.length > 0
-  const canConfirm = source === 'pad' ? !isEmpty : Boolean(selectedMediaUrl)
+  const canConfirm = source === 'pad' ? !isEmpty : true
 
   return (
     <>
@@ -217,7 +213,7 @@ export function SignatureDialog({
                 className='flex items-center justify-center rounded-md border bg-white p-4'
                 style={{ minHeight: PAD_HEIGHT }}
               >
-                {selectedMediaUrl && (
+                {/*{selectedMediaUrl && (
                   <Image
                     alt='Selected signature'
                     className='max-h-[160px] object-contain'
@@ -226,7 +222,7 @@ export function SignatureDialog({
                     unoptimized
                     width={300}
                   />
-                )}
+                )}*/}
               </div>
 
               <div className='flex justify-end'>

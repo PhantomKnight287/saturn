@@ -169,7 +169,7 @@ const getSignatures = async (requirementId: string) => {
       clientMemberId: requirementSignaturesTable.clientMemberId,
       signedAt: requirementSignaturesTable.signedAt,
       mediaId: requirementSignaturesTable.mediaId,
-      mediaUrl: mediaTable.url,
+      mediaFileName: mediaTable.name,
       signerName: users.name,
       signerImage: users.image,
     })
@@ -235,15 +235,11 @@ export const getThreadById = async (threadId: string, projectId: string) => {
   return thread ?? null
 }
 
-const getSignatureMediaForMember = async (
-  organizationId: string,
-  memberId: string
-) => {
+const getSignatureMediaForMember = async (memberId: string) => {
   return await db
     .select({
       id: mediaTable.id,
       name: mediaTable.name,
-      url: mediaTable.url,
       contentType: mediaTable.contentType,
       createdAt: mediaTable.createdAt,
     })
@@ -252,12 +248,7 @@ const getSignatureMediaForMember = async (
       mediaTable,
       eq(requirementSignaturesTable.mediaId, mediaTable.id)
     )
-    .where(
-      and(
-        eq(requirementSignaturesTable.clientMemberId, memberId),
-        eq(mediaTable.organizationId, organizationId)
-      )
-    )
+    .where(eq(requirementSignaturesTable.clientMemberId, memberId))
     .groupBy(mediaTable.id)
     .orderBy(desc(mediaTable.createdAt))
 }
