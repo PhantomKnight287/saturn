@@ -6,6 +6,7 @@ import {
   pgTable,
   text,
   timestamp,
+  unique,
 } from 'drizzle-orm/pg-core'
 import { members } from './auth'
 import { statusEnum } from './base'
@@ -55,20 +56,34 @@ export const proposalDeliverables = pgTable('proposal_deliverables', {
   unitPrice: numeric('unit_price', { precision: 16, scale: 4 }).notNull(),
   amount: numeric('amount', { precision: 16, scale: 4 }).notNull(),
   sortOrder: integer('sort_order').default(0).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at')
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
 })
 
-export const proposalRecipients = pgTable('proposal_recipients', {
-  id: text('id')
-    .primaryKey()
-    .$defaultFn(() => `pr_${createId()}`),
-  proposalId: text('proposal_id')
-    .references(() => proposals.id, { onDelete: 'cascade' })
-    .notNull(),
-  clientMemberId: text('client_member_id')
-    .references(() => members.id, { onDelete: 'cascade' })
-    .notNull(),
-  sentAt: timestamp('sent_at').defaultNow().notNull(),
-})
+export const proposalRecipients = pgTable(
+  'proposal_recipients',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => `pr_${createId()}`),
+    proposalId: text('proposal_id')
+      .references(() => proposals.id, { onDelete: 'cascade' })
+      .notNull(),
+    clientMemberId: text('client_member_id')
+      .references(() => members.id, { onDelete: 'cascade' })
+      .notNull(),
+    sentAt: timestamp('sent_at').defaultNow().notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (t) => [unique().on(t.clientMemberId, t.proposalId)]
+)
 
 export const proposalSignatures = pgTable('proposal_signatures', {
   id: text('id')
@@ -84,4 +99,9 @@ export const proposalSignatures = pgTable('proposal_signatures', {
     onDelete: 'set null',
   }),
   signedAt: timestamp('signed_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at')
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
 })

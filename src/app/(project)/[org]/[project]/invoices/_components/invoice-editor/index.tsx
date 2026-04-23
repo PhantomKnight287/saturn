@@ -344,8 +344,7 @@ export default function InvoiceEditor({
     {
       onSuccess() {
         toast.success('Invoice deleted')
-        //@ts-expect-error - TODO: fix this
-        router.push(backUrl)
+        router.push(backUrl as Parameters<typeof router.push>[0])
       },
       onError({ error }) {
         toast.error(error.serverError ?? 'Failed to delete invoice')

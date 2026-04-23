@@ -1,7 +1,7 @@
 'use client'
 
-// TODO: fix this thing
 import { Eraser, FolderOpen, Pen } from 'lucide-react'
+import Image from 'next/image'
 import { useEffect, useId, useRef, useState } from 'react'
 import type ReactSignatureCanvas from 'react-signature-canvas'
 
@@ -25,7 +25,6 @@ type SignatureSource = 'pad' | 'library'
 
 export interface SignatureResult {
   dataUrl: string
-  saveForLater: boolean
   source: SignatureSource
 }
 
@@ -56,10 +55,10 @@ export function SignatureDialog({
   children,
 }: SignatureDialogProps) {
   const padRef = useRef<ReactSignatureCanvas | null>(null)
-  const checkboxId = useId()
+
   const [source, setSource] = useState<SignatureSource>('pad')
   const [isEmpty, setIsEmpty] = useState(true)
-  const [saveForLater, setSaveForLater] = useState(false)
+  const [item, setItem] = useState<string | null>(null)
   const [libraryOpen, setLibraryOpen] = useState(false)
   const [SignatureCanvasComp, setSignatureCanvasComp] = useState<
     typeof ReactSignatureCanvas | null
@@ -90,7 +89,7 @@ export function SignatureDialog({
   const resetState = () => {
     padRef.current?.clear()
     setIsEmpty(true)
-    setSaveForLater(false)
+
     setSource('pad')
   }
 
@@ -105,22 +104,23 @@ export function SignatureDialog({
 
   const handleConfirm = () => {
     if (source === 'library') {
-      // onConfirm({ saveForLater: false, source })
+      onConfirm({ dataUrl: item!, source: 'library' })
       handleOpenChange(false)
       return
     }
 
     if (source === 'pad' && padRef.current && !padRef.current.isEmpty()) {
       const dataUrl = padRef.current.getTrimmedCanvas().toDataURL('image/png')
-      onConfirm({ dataUrl, saveForLater, source })
+      onConfirm({ dataUrl, source })
       handleOpenChange(false)
     }
   }
 
   const handleLibrarySelect = (id: string) => {
-    const item = mediaItems.find((m) => m.id === id)
-    if (item) {
+    const mediaItem = mediaItems.find((m) => m.id === id)
+    if (mediaItem) {
       setSource('library')
+      setItem(mediaItem.id)
     }
     setLibraryOpen(false)
   }
@@ -178,22 +178,7 @@ export function SignatureDialog({
                   </Button>
                 )}
               </div>
-
-              <div className='flex items-center justify-between'>
-                <div className='flex items-center gap-2'>
-                  <Checkbox
-                    checked={saveForLater}
-                    id={checkboxId}
-                    onCheckedChange={(v) => setSaveForLater(v === true)}
-                  />
-                  <Label
-                    className='cursor-pointer text-muted-foreground'
-                    htmlFor={checkboxId}
-                  >
-                    Save for later
-                  </Label>
-                </div>
-
+              <div>
                 {hasMedia && (
                   <Button
                     onClick={() => setLibraryOpen(true)}
@@ -213,16 +198,16 @@ export function SignatureDialog({
                 className='flex items-center justify-center rounded-md border bg-white p-4'
                 style={{ minHeight: PAD_HEIGHT }}
               >
-                {/*{selectedMediaUrl && (
+                {item && (
                   <Image
                     alt='Selected signature'
                     className='max-h-[160px] object-contain'
                     height={160}
-                    src={selectedMediaUrl}
+                    src={`/api/files/${item}`}
                     unoptimized
                     width={300}
                   />
-                )}*/}
+                )}
               </div>
 
               <div className='flex justify-end'>

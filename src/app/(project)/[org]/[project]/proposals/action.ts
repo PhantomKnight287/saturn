@@ -289,12 +289,15 @@ export const sendProposalAction = authedActionClient
         }
       })
 
-      await tx.insert(proposalRecipients).values(
-        recipients.map((recipient) => ({
-          proposalId,
-          clientMemberId: recipient,
-        }))
-      )
+      await tx
+        .insert(proposalRecipients)
+        .values(
+          recipients.map((recipient) => ({
+            proposalId,
+            clientMemberId: recipient,
+          }))
+        )
+        .onConflictDoNothing()
     })
 
     return proposal

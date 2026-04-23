@@ -299,6 +299,7 @@ export default function RequirementEditor(props: RequirementEditorProps) {
           )}
           {canSend && props.isClientInvolved && (
             <Button
+              loading={isSendingForSign}
               onClick={() => setShowSendDialog(true)}
               size='sm'
               variant='outline'
@@ -371,13 +372,13 @@ export default function RequirementEditor(props: RequirementEditorProps) {
                   className='flex items-center gap-3 rounded-md border bg-muted/30 p-3'
                   key={sig.id}
                 >
-                  {sig.mediaFileName && (
+                  {sig.mediaId && (
                     <div className='shrink-0 rounded border bg-white p-1'>
                       <Image
                         alt={`Signature by ${sig.signerName ?? 'Unknown'}`}
                         className='object-contain'
                         height={48}
-                        src={`/api/files/${props.projectId}/${sig.mediaFileName}`}
+                        src={`/api/files/${sig.mediaId}`}
                         unoptimized
                         width={96}
                       />

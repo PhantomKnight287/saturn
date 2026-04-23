@@ -60,6 +60,7 @@ import {
   updateProposalAction,
 } from '../action'
 import { proposalFormSchema } from '../common'
+import Image from 'next/image'
 
 type Proposal = typeof proposals.$inferSelect
 
@@ -619,18 +620,18 @@ export default function ProposalEditor({
                   className='flex items-center gap-3 rounded-md border bg-muted/30 p-3'
                   key={sig.id}
                 >
-                  {/*{sig.mediaUrl && (
+                  {sig.mediaId && (
                     <div className='shrink-0 rounded border bg-white p-1'>
                       <Image
                         alt={`Signature by ${sig.signerName ?? 'Unknown'}`}
                         className='object-contain'
                         height={48}
-                        src={sig.mediaUrl}
+                        src={`/api/files/${sig.mediaId}`}
                         unoptimized
                         width={96}
                       />
                     </div>
-                  )}*/}
+                  )}
                   <div className='min-w-0'>
                     <p className='truncate font-medium text-sm'>
                       {sig.signerName ?? 'Unknown'}

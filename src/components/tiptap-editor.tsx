@@ -232,12 +232,12 @@ export default function TiptapEditor({
           return { blobUrl, finalUrl: blobUrl }
         }
 
-        const { url } = await uploadFile(file, projectId)
+        const { id } = await uploadFile(file, projectId)
 
         URL.revokeObjectURL(blobUrl)
         blobFileMap.delete(blobUrl)
 
-        return { blobUrl, finalUrl: url }
+        return { blobUrl, finalUrl: `/api/files/${id}` }
       })
     )
 

@@ -7,6 +7,7 @@ import {
   pgTable,
   text,
   timestamp,
+  unique,
   uniqueIndex,
 } from 'drizzle-orm/pg-core'
 import { members } from './auth'
@@ -70,6 +71,10 @@ export const memberRates = pgTable(
     currency: text('currency').default('USD').notNull(),
     effectiveFrom: timestamp('effective_from').notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
   },
   (table) => [
     uniqueIndex('member_rate_effective_unique').on(
@@ -124,6 +129,12 @@ export const timesheetReportEntries = pgTable(
     timeEntryId: text('time_entry_id')
       .references(() => timeEntries.id, { onDelete: 'cascade' })
       .notNull(),
+
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
   },
   (table) => [
     index('timesheet_report_entries_report_id_idx').on(table.reportId),
@@ -152,9 +163,15 @@ export const timesheetReportRecipients = pgTable(
       .notNull(),
     disputeReason: text('dispute_reason'),
     respondedAt: timestamp('responded_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
   },
   (table) => [
     index('timesheet_report_recipients_report_id_idx').on(table.reportId),
+    unique().on(table.clientMemberId, table.reportId),
   ]
 )
 
@@ -170,6 +187,10 @@ export const pendingMemberRates = pgTable(
     hourlyRate: integer('hourly_rate').notNull(),
     currency: text('currency').default('USD').notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
   },
   (table) => [
     index('pending_member_rates_org_email_idx').on(

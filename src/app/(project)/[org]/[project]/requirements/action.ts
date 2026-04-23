@@ -203,10 +203,13 @@ export const sendForSignAction = authedActionClient
           email: clientMember.users.email,
           name: clientMember.users.name,
         })
-        await tx.insert(requirementRecipients).values({
-          requirementId,
-          clientMemberId: clientMember.members.id,
-        })
+        await tx
+          .insert(requirementRecipients)
+          .values({
+            requirementId,
+            clientMemberId: clientMember.members.id,
+          })
+          .onConflictDoNothing()
       }
 
       await sendEmailsToRecipients(recipientsToSend, async (recipient) => {
@@ -227,12 +230,6 @@ export const sendForSignAction = authedActionClient
           html,
         }
       })
-      await tx.insert(requirementRecipients).values(
-        recipients.map((recipient) => ({
-          requirementId,
-          clientMemberId: recipient,
-        }))
-      )
     })
 
     return requirement

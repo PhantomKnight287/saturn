@@ -33,34 +33,52 @@ export const requirements = pgTable(
   ]
 )
 
-export const requirementRecipients = pgTable('requirement_recipients', {
-  id: text('id')
-    .primaryKey()
-    .$defaultFn(() => `rr_${createId()}`),
-  requirementId: text('requirement_id')
-    .references(() => requirements.id, { onDelete: 'cascade' })
-    .notNull(),
-  clientMemberId: text('client_member_id')
-    .references(() => members.id, { onDelete: 'cascade' })
-    .notNull(),
-  sentAt: timestamp('sent_at').defaultNow().notNull(),
-})
+export const requirementRecipients = pgTable(
+  'requirement_recipients',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => `rr_${createId()}`),
+    requirementId: text('requirement_id')
+      .references(() => requirements.id, { onDelete: 'cascade' })
+      .notNull(),
+    clientMemberId: text('client_member_id')
+      .references(() => members.id, { onDelete: 'cascade' })
+      .notNull(),
+    sentAt: timestamp('sent_at').defaultNow().notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (t) => [unique().on(t.requirementId, t.clientMemberId)]
+)
 
-export const requirementSignatures = pgTable('requirement_signatures', {
-  id: text('id')
-    .primaryKey()
-    .$defaultFn(() => `rs_${createId()}`),
-  requirementId: text('requirement_id')
-    .references(() => requirements.id, { onDelete: 'cascade' })
-    .notNull(),
-  clientMemberId: text('client_member_id')
-    .references(() => members.id, { onDelete: 'cascade' })
-    .notNull(),
-  signedAt: timestamp('signed_at').defaultNow().notNull(),
-  mediaId: text('media_id').references(() => media.id, {
-    onDelete: 'set null',
-  }),
-})
+export const requirementSignatures = pgTable(
+  'requirement_signatures',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => `rs_${createId()}`),
+    requirementId: text('requirement_id')
+      .references(() => requirements.id, { onDelete: 'cascade' })
+      .notNull(),
+    clientMemberId: text('client_member_id')
+      .references(() => members.id, { onDelete: 'cascade' })
+      .notNull(),
+    signedAt: timestamp('signed_at').defaultNow().notNull(),
+    mediaId: text('media_id').references(() => media.id, {
+      onDelete: 'set null',
+    }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (t) => [unique().on(t.requirementId, t.clientMemberId)]
+)
 
 export const requirementChangeRequests = pgTable(
   'requirement_change_requests',
@@ -78,7 +96,11 @@ export const requirementChangeRequests = pgTable(
     description: text('description').notNull(),
     referencedThreadIds: text('referenced_thread_ids').array(),
     status: changeRequestStatusEnum('status').default('pending').notNull(),
-    createdAt: timestamp('created_at').defaultNow().notNull(),
     resolvedAt: timestamp('resolved_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
   }
 )
