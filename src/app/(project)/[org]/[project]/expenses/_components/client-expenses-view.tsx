@@ -41,25 +41,42 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { clientRespondExpensesAction } from '../actions'
 import { formatCurrency } from '../common'
-import type { ExpenseWithDetails } from '../types'
+import type { ExpenseRecipient, ExpenseWithDetails } from '../types'
 
 interface ClientExpensesViewProps {
+  currentMemberId: string
   expenses: ExpenseWithDetails[]
+  recipients: ExpenseRecipient[]
 }
 
-export function ClientExpensesView({ expenses }: ClientExpensesViewProps) {
+export function ClientExpensesView({
+  currentMemberId,
+  expenses,
+  recipients,
+}: ClientExpensesViewProps) {
   const rejectReasonId = useId()
   const router = useRouter()
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [rejectOpen, setRejectOpen] = useState(false)
   const [rejectReason, setRejectReason] = useState('')
 
-  const sentExpenses = expenses.filter(
-    (e) => e.status === 'submitted_to_client'
+  const myRecipientMap = new Map(
+    recipients
+      .filter((r) => r.clientMemberId === currentMemberId)
+      .map((r) => [r.expenseId, r])
   )
-  const respondedExpenses = expenses.filter(
-    (e) => e.status === 'client_accepted' || e.status === 'client_rejected'
-  )
+
+  const sentExpenses = expenses.filter((e) => {
+    const recipient = myRecipientMap.get(e.id)
+    return e.status === 'submitted_to_client' && recipient?.status === 'pending'
+  })
+  const respondedExpenses = expenses.filter((e) => {
+    const recipient = myRecipientMap.get(e.id)
+    return (
+      recipient &&
+      (recipient.status === 'approved' || recipient.status === 'rejected')
+    )
+  })
 
   const respondAction = useAction(clientRespondExpensesAction, {
     onSuccess: ({ input }) => {
@@ -123,6 +140,7 @@ export function ClientExpensesView({ expenses }: ClientExpensesViewProps) {
               </Button>
               <Button
                 disabled={selectedIds.size === 0 || respondAction.isPending}
+                loading={respondAction.isPending}
                 onClick={() =>
                   respondAction.execute({
                     expenseIds: [...selectedIds],
@@ -132,7 +150,7 @@ export function ClientExpensesView({ expenses }: ClientExpensesViewProps) {
                 size='sm'
               >
                 <CheckCircle2 className='size-4' />
-                {respondAction.isPending ? 'Saving...' : 'Approve'}
+                Approve
               </Button>
             </div>
           </div>

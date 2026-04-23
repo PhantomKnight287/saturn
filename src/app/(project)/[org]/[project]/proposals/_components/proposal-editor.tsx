@@ -9,6 +9,7 @@ import {
   Send,
   XCircle,
 } from 'lucide-react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAction } from 'next-safe-action/hooks'
@@ -60,7 +61,6 @@ import {
   updateProposalAction,
 } from '../action'
 import { proposalFormSchema } from '../common'
-import Image from 'next/image'
 
 type Proposal = typeof proposals.$inferSelect
 

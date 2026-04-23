@@ -114,25 +114,21 @@ export default function InvoiceEditor({
     () => [...mediaItems, ...uploadedMedia],
     [mediaItems, uploadedMedia]
   )
-  const handleUploadComplete = useCallback(
-    (item: { id: string; url: string }) => {
-      setUploadedMedia((prev) =>
-        prev.some((m) => m.id === item.id)
-          ? prev
-          : [
-              ...prev,
-              {
-                id: item.id,
-                url: item.url,
-                name: '',
-                contentType: '',
-                createdAt: new Date(),
-              },
-            ]
-      )
-    },
-    []
-  )
+  const handleUploadComplete = useCallback((item: { id: string }) => {
+    setUploadedMedia((prev) =>
+      prev.some((m) => m.id === item.id)
+        ? prev
+        : [
+            ...prev,
+            {
+              id: item.id,
+              name: '',
+              contentType: '',
+              createdAt: new Date(),
+            },
+          ]
+    )
+  }, [])
   const rateMap = new Map(Object.entries(memberRateMap))
   const isEditable =
     mode === 'create' || (canEdit && invoice?.status === 'draft')
@@ -181,7 +177,6 @@ export default function InvoiceEditor({
     try {
       setIsUploadingSignature(true)
       let mediaId: string
-      let mediaUrl: string
 
       if (result.source === 'library') {
         const match = allMediaItems.find((m) => m.id === result.dataUrl)
@@ -190,7 +185,6 @@ export default function InvoiceEditor({
           return
         }
         mediaId = match.id
-        mediaUrl = match.id
       } else {
         const uploaded = await uploadDataUrl(
           result.dataUrl,
@@ -198,8 +192,7 @@ export default function InvoiceEditor({
           'signature.png'
         )
         mediaId = uploaded.id
-        mediaUrl = uploaded.url
-        handleUploadComplete({ id: mediaId, url: mediaUrl })
+        handleUploadComplete({ id: mediaId })
       }
 
       setValue('senderSignature', mediaId)
@@ -1014,13 +1007,38 @@ export default function InvoiceEditor({
                         year: 'numeric',
                       })
                       return (
-                        <div
-                          className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors ${
+                        <button
+                          className={`flex w-full cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors ${
                             isSelected
                               ? 'border-primary/30 bg-primary/5'
                               : 'hover:bg-muted/50'
                           }`}
+                          disabled={!isEditable}
                           key={exp.id}
+                          onClick={() => {
+                            if (isSelected) {
+                              field.onChange(
+                                field.value.filter((id) => id !== exp.id)
+                              )
+                              const items = getValues('items')
+                              const expDesc = `Expense: ${exp.title}`
+                              const itemIndex = items.findIndex(
+                                (item) => item.description === expDesc
+                              )
+                              if (itemIndex !== -1) {
+                                removeItem(itemIndex)
+                              }
+                            } else {
+                              field.onChange([...field.value, exp.id])
+                              appendItem({
+                                description: `Expense: ${exp.title}`,
+                                quantity: '1',
+                                unitPrice: formattedAmount,
+                                amount: formattedAmount,
+                              })
+                            }
+                          }}
+                          type='button'
                         >
                           <Checkbox
                             checked={isSelected}
@@ -1042,7 +1060,7 @@ export default function InvoiceEditor({
                           >
                             {exp.currency} {formattedAmount}
                           </Badge>
-                        </div>
+                        </button>
                       )
                     })}
                   </div>

@@ -2,11 +2,10 @@
 
 import { Eraser, FolderOpen, Pen } from 'lucide-react'
 import Image from 'next/image'
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type ReactSignatureCanvas from 'react-signature-canvas'
 
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -15,7 +14,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
 
 import { type MediaItem, MediaLibraryDialog } from './media-library-dialog'
 

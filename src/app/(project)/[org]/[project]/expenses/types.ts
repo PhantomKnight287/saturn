@@ -10,6 +10,10 @@ export type ExpenseWithDetails = Awaited<
 
 export type ExpenseCategory = typeof expenseCategories.$inferSelect
 
+export type ExpenseRecipient = Awaited<
+  ReturnType<typeof expensesServices.getRecipientsByExpenseIds>
+>[number]
+
 export interface ExpensesClientProps {
   allCategories: ExpenseCategory[]
   canApprove: boolean
@@ -28,4 +32,5 @@ export interface ExpensesClientProps {
   projectId: string
   projectName: string
   projectSlug: string
+  recipients: ExpenseRecipient[]
 }

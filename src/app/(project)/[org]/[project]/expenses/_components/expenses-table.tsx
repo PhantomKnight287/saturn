@@ -43,7 +43,11 @@ import {
 } from '@/components/ui/tooltip'
 import { deleteExpenseAction } from '../actions'
 import { formatCurrency } from '../common'
-import type { ExpenseCategory, ExpenseWithDetails } from '../types'
+import type {
+  ExpenseCategory,
+  ExpenseRecipient,
+  ExpenseWithDetails,
+} from '../types'
 import { ExpenseForm } from './expense-form'
 
 const statusConfig: Record<
@@ -91,6 +95,7 @@ interface ExpensesTableProps {
   onToggleAll: () => void
   onToggleSelect: (id: string) => void
   projectId: string
+  recipients: ExpenseRecipient[]
   selectedIds: Set<string>
 }
 
@@ -105,6 +110,7 @@ export function ExpensesTable({
   onToggleSelect,
   onToggleAll,
   isClientInvolved = true,
+  recipients,
 }: ExpensesTableProps) {
   const router = useRouter()
   const [filterStatus, setFilterStatus] = useState<string>('all')
@@ -369,31 +375,71 @@ export function ExpensesTable({
                           )}
                         </TableCell>
                         <TableCell className='text-center'>
-                          {(expense.status === 'admin_rejected' ||
-                            expense.status === 'client_rejected') &&
-                          expense.rejectReason ? (
-                            <Tooltip>
-                              <TooltipTrigger>
-                                <Badge
-                                  className={`cursor-help text-xs ${cfg!.className}`}
-                                  variant={cfg!.variant}
-                                >
-                                  {cfg!.label}
-                                </Badge>
-                              </TooltipTrigger>
-                              <TooltipContent className='max-w-xs' side='left'>
-                                <p className='font-medium'>Reason:</p>
-                                <p>{expense.rejectReason}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          ) : (
-                            <Badge
-                              className={`text-xs ${cfg!.className}`}
-                              variant={cfg!.variant}
-                            >
-                              {cfg!.label}
-                            </Badge>
-                          )}
+                          {(() => {
+                            const expenseRecips = recipients.filter(
+                              (r) => r.expenseId === expense.id
+                            )
+                            const hasRecipientInfo =
+                              isAdmin &&
+                              expenseRecips.length > 0 &&
+                              (expense.status === 'submitted_to_client' ||
+                                expense.status === 'client_accepted' ||
+                                expense.status === 'client_rejected')
+                            const hasRejectReason =
+                              (expense.status === 'admin_rejected' ||
+                                expense.status === 'client_rejected') &&
+                              expense.rejectReason
+
+                            if (hasRecipientInfo || hasRejectReason) {
+                              return (
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <Badge
+                                      className={`cursor-help text-xs ${cfg!.className}`}
+                                      variant={cfg!.variant}
+                                    >
+                                      {cfg!.label}
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent
+                                    className='max-w-xs'
+                                    side='left'
+                                  >
+                                    {hasRejectReason && (
+                                      <div>
+                                        <p className='font-medium'>Reason:</p>
+                                        <p>{expense.rejectReason}</p>
+                                      </div>
+                                    )}
+                                    {hasRecipientInfo && (
+                                      <div className='space-y-1'>
+                                        <p className='font-medium'>
+                                          Recipients:
+                                        </p>
+                                        {expenseRecips.map((r) => (
+                                          <p className='text-xs' key={r.id}>
+                                            {r.clientName ?? r.clientEmail} —{' '}
+                                            <span className='capitalize'>
+                                              {r.status}
+                                            </span>
+                                          </p>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </TooltipContent>
+                                </Tooltip>
+                              )
+                            }
+
+                            return (
+                              <Badge
+                                className={`text-xs ${cfg!.className}`}
+                                variant={cfg!.variant}
+                              >
+                                {cfg!.label}
+                              </Badge>
+                            )
+                          })()}
                         </TableCell>
                         <TableCell>
                           <div className='flex items-center gap-1'>

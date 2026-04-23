@@ -3,9 +3,11 @@ import {
   boolean,
   index,
   integer,
+  pgEnum,
   pgTable,
   text,
   timestamp,
+  unique,
 } from 'drizzle-orm/pg-core'
 import { members, organizations } from './auth'
 import { statusEnum } from './base'
@@ -73,5 +75,38 @@ export const expenses = pgTable(
   (table) => [
     index('expenses_project_id_status_idx').on(table.projectId, table.status),
     index('expenses_member_id_idx').on(table.memberId),
+  ]
+)
+
+export const expenseRecipientStatusEnum = pgEnum('expense_recipient_status', [
+  'pending',
+  'approved',
+  'rejected',
+])
+
+export const expenseRecipients = pgTable(
+  'expense_recipients',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => `er_${createId()}`),
+    expenseId: text('expense_id')
+      .references(() => expenses.id, { onDelete: 'cascade' })
+      .notNull(),
+    clientMemberId: text('client_member_id')
+      .references(() => members.id, { onDelete: 'cascade' })
+      .notNull(),
+    status: expenseRecipientStatusEnum('status').default('pending').notNull(),
+    rejectReason: text('reject_reason'),
+    respondedAt: timestamp('responded_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    unique().on(table.expenseId, table.clientMemberId),
+    index('expense_recipients_expense_id_idx').on(table.expenseId),
   ]
 )

@@ -2,7 +2,13 @@ import { and, asc, desc, eq, inArray, isNull } from 'drizzle-orm'
 import type { ReadonlyHeaders } from 'next/dist/server/web/spec-extension/adapters/headers'
 import { getCachedActiveOrgMember } from '@/app/(organization)/[org]/cache'
 import { db } from '@/server/db'
-import { expenseCategories, expenses, members, users } from '@/server/db/schema'
+import {
+  expenseCategories,
+  expenseRecipients,
+  expenses,
+  members,
+  users,
+} from '@/server/db/schema'
 import { authService } from '../auth/service'
 
 const listByProject = async (projectId: string, headers: ReadonlyHeaders) => {
@@ -39,6 +45,13 @@ const listByProject = async (projectId: string, headers: ReadonlyHeaders) => {
 
   if (activeMember?.role === 'client') {
     return baseQuery
+      .innerJoin(
+        expenseRecipients,
+        and(
+          eq(expenses.id, expenseRecipients.expenseId),
+          eq(expenseRecipients.clientMemberId, activeMember.id)
+        )
+      )
       .where(
         and(
           eq(expenses.projectId, projectId),
@@ -114,7 +127,29 @@ const listByProjectIds = async (projectIds: string[]) => {
     .orderBy(desc(expenses.date))
 }
 
+const getRecipientsByExpenseIds = async (expenseIds: string[]) => {
+  if (expenseIds.length === 0) {
+    return []
+  }
+  return await db
+    .select({
+      id: expenseRecipients.id,
+      expenseId: expenseRecipients.expenseId,
+      clientMemberId: expenseRecipients.clientMemberId,
+      status: expenseRecipients.status,
+      rejectReason: expenseRecipients.rejectReason,
+      respondedAt: expenseRecipients.respondedAt,
+      clientName: users.name,
+      clientEmail: users.email,
+    })
+    .from(expenseRecipients)
+    .innerJoin(members, eq(expenseRecipients.clientMemberId, members.id))
+    .innerJoin(users, eq(members.userId, users.id))
+    .where(inArray(expenseRecipients.expenseId, expenseIds))
+}
+
 export const expensesServices = {
+  getRecipientsByExpenseIds,
   listByProject,
   listByProjectIds,
   listCategoriesByOrg,

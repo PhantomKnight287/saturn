@@ -1,7 +1,7 @@
 'use server'
 
 import { render } from '@react-email/render'
-import { eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import { authService } from '@/app/api/auth/service'
 import { projectsService } from '@/app/api/projects/service'
 import ExpenseApprovedEmail from '@/emails/templates/expense-approved'
@@ -12,7 +12,13 @@ import { getAdminsAndOwners, sendEmailsToRecipients } from '@/lib/notifications'
 import { authedActionClient } from '@/lib/safe-action'
 import { formatDate } from '@/lib/utils'
 import { db } from '@/server/db'
-import { expenseCategories, expenses, members, users } from '@/server/db/schema'
+import {
+  expenseCategories,
+  expenseRecipients,
+  expenses,
+  members,
+  users,
+} from '@/server/db/schema'
 import {
   approveExpensesSchema,
   archiveExpenseCategorySchema,
@@ -595,11 +601,6 @@ export const sendExpensesToClientAction = authedActionClient
         }
       }
 
-      await db
-        .update(expenses)
-        .set({ status: 'submitted_to_client', rejectReason: null })
-        .where(inArray(expenses.id, expenseIds))
-
       const selectedClients = await db
         .select({
           memberId: members.id,
@@ -627,6 +628,36 @@ export const sendExpensesToClientAction = authedActionClient
           )
         }
       }
+
+      await db.transaction(async (tx) => {
+        await tx
+          .update(expenses)
+          .set({ status: 'submitted_to_client', rejectReason: null })
+          .where(inArray(expenses.id, expenseIds))
+
+        const recipientRows = expenseIds.flatMap((expenseId) =>
+          clientMemberIds.map((clientMemberId) => ({
+            expenseId,
+            clientMemberId,
+            status: 'pending' as const,
+          }))
+        )
+
+        await tx
+          .insert(expenseRecipients)
+          .values(recipientRows)
+          .onConflictDoUpdate({
+            target: [
+              expenseRecipients.expenseId,
+              expenseRecipients.clientMemberId,
+            ],
+            set: {
+              status: 'pending',
+              rejectReason: null,
+              respondedAt: null,
+            },
+          })
+      })
 
       const uniqueRecipients = [
         ...new Map(selectedClients.map((c) => [c.email, c])).values(),
@@ -708,16 +739,140 @@ export const clientRespondExpensesAction = authedActionClient
         }
       }
 
-      const newStatus =
-        action === 'approve' ? 'client_accepted' : 'client_rejected'
+      const recipientStatus = action === 'approve' ? 'approved' : 'rejected'
 
-      await db
-        .update(expenses)
-        .set({
-          status: newStatus,
-          rejectReason: action === 'reject' ? (reason ?? null) : null,
+      await db.transaction(async (tx) => {
+        const recipients = await tx
+          .select({
+            id: expenseRecipients.id,
+            expenseId: expenseRecipients.expenseId,
+            clientMemberId: expenseRecipients.clientMemberId,
+            status: expenseRecipients.status,
+          })
+          .from(expenseRecipients)
+          .where(inArray(expenseRecipients.expenseId, expenseIds))
+
+        for (const expenseId of expenseIds) {
+          const currentRecipient = recipients.find(
+            (r) =>
+              r.expenseId === expenseId && r.clientMemberId === orgMember.id
+          )
+          if (!currentRecipient) {
+            throw new Error(
+              'You are not a recipient of one or more of these expenses'
+            )
+          }
+          if (currentRecipient.status !== 'pending') {
+            throw new Error('You have already responded to this expense')
+          }
+        }
+
+        await tx
+          .update(expenseRecipients)
+          .set({
+            status: recipientStatus,
+            rejectReason: action === 'reject' ? (reason ?? null) : null,
+            respondedAt: new Date(),
+          })
+          .where(
+            and(
+              inArray(expenseRecipients.expenseId, expenseIds),
+              eq(expenseRecipients.clientMemberId, orgMember.id)
+            )
+          )
+
+        for (const expenseId of expenseIds) {
+          const expenseRecips = recipients.filter(
+            (r) => r.expenseId === expenseId
+          )
+
+          if (action === 'reject') {
+            await tx
+              .update(expenses)
+              .set({
+                status: 'client_rejected',
+                rejectReason: reason ?? null,
+              })
+              .where(eq(expenses.id, expenseId))
+          } else {
+            const alreadyApproved = expenseRecips.filter(
+              (r) => r.status === 'approved'
+            ).length
+            const totalApproved = alreadyApproved + 1
+
+            if (totalApproved >= expenseRecips.length) {
+              await tx
+                .update(expenses)
+                .set({
+                  status: 'client_accepted',
+                  rejectReason: null,
+                })
+                .where(eq(expenses.id, expenseId))
+            }
+          }
+        }
+      })
+
+      const details = await projectsService.getProjectDetails(projectId)
+      const adminsAndOwners = await getAdminsAndOwners(orgMember.organizationId)
+
+      const categoryMap = await batchFetchCategoryNames(
+        entries.map((e) => e.categoryId)
+      )
+      const totalCents = entries.reduce((sum, e) => sum + e.amountCents, 0)
+      const currency = entries.at(0)?.currency ?? 'USD'
+      const formattedAmount = formatCurrency(totalCents, currency)
+
+      const firstEntry = entries[0]!
+      const category = categoryMap.get(firstEntry.categoryId) ?? 'Uncategorized'
+      const desc =
+        entries.length === 1 ? firstEntry.title : `${entries.length} expenses`
+
+      if (action === 'approve') {
+        await sendEmailsToRecipients(adminsAndOwners, async (recipient) => {
+          const html = await render(
+            ExpenseApprovedEmail({
+              recipientName: recipient.name ?? 'there',
+              approverName: user.name ?? 'A client',
+              projectName: details.projectName,
+              title: desc,
+              amount: formattedAmount,
+              category,
+              expenseDate: formatDate(firstEntry.date),
+              billable: firstEntry.billable,
+              orgSlug: details.orgSlug ?? '',
+              projectSlug: details.projectSlug,
+            })
+          )
+          return {
+            to: recipient.email,
+            subject: `Expense approved by client — ${formattedAmount}`,
+            html,
+          }
         })
-        .where(inArray(expenses.id, expenseIds))
+      } else {
+        await sendEmailsToRecipients(adminsAndOwners, async (recipient) => {
+          const html = await render(
+            ExpenseRejectedEmail({
+              recipientName: recipient.name ?? 'there',
+              rejectorName: user.name ?? 'A client',
+              projectName: details.projectName,
+              title: desc,
+              amount: formattedAmount,
+              category,
+              expenseDate: formatDate(firstEntry.date),
+              reason: reason ?? '',
+              orgSlug: details.orgSlug ?? '',
+              projectSlug: details.projectSlug,
+            })
+          )
+          return {
+            to: recipient.email,
+            subject: `Expense rejected by client — ${formattedAmount}`,
+            html,
+          }
+        })
+      }
 
       return { success: true }
     }
