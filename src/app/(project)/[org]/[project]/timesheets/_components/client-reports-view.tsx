@@ -35,7 +35,7 @@ import {
 } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
 import { respondTimesheetReportAction } from '../actions'
-import { formatMinutes } from '../common'
+import { formatMinutes, formatShortDate } from '../common'
 import type { ClientReportWithEntries } from '../types'
 
 interface ClientReportsViewProps {
@@ -272,10 +272,7 @@ function TimesheetCard({
           {sorted.map((entry) => (
             <TableRow key={entry.id}>
               <TableCell className='whitespace-nowrap text-sm'>
-                {new Date(entry.date).toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                })}
+                {formatShortDate(entry.date)}
               </TableCell>
               <TableCell className='text-sm'>
                 {entry.memberName ?? 'Team member'}

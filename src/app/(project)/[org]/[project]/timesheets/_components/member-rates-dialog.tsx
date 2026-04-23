@@ -368,8 +368,8 @@ export function MemberRatesDialog({
               </div>
 
               <DialogFooter>
-                <Button disabled={setRateAction.isPending} type='submit'>
-                  {setRateAction.isPending ? 'Saving...' : 'Save Rate'}
+                <Button loading={setRateAction.isPending} type='submit'>
+                  Save Rate
                 </Button>
               </DialogFooter>
             </form>
@@ -420,8 +420,8 @@ export function MemberRatesDialog({
               </div>
 
               <DialogFooter>
-                <Button disabled={setBudgetAction.isPending} type='submit'>
-                  {setBudgetAction.isPending ? 'Saving...' : 'Save Budget'}
+                <Button loading={setBudgetAction.isPending} type='submit'>
+                  Save Budget
                 </Button>
               </DialogFooter>
             </form>

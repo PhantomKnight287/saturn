@@ -3,20 +3,12 @@
 import { useRouter } from '@bprogress/next/app'
 import { CheckCircle2, Pencil, XCircle } from 'lucide-react'
 import { useAction } from 'next-safe-action/hooks'
-import { useId, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import {
   Empty,
   EmptyDescription,
@@ -24,11 +16,11 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
+import { useSetSelection } from '@/hooks/use-set-selection'
 import { approveTimeEntriesAction, rejectTimeEntriesAction } from '../actions'
 import { formatMinutes } from '../common'
 import type { ProjectMember, Requirement, TimeEntry } from '../types'
+import { RejectTimeEntriesDialog } from './reject-time-entries-dialog'
 import { TimeEntryForm } from './time-entry-form'
 
 interface TimesheetApprovalProps {
@@ -44,20 +36,19 @@ export function TimesheetApproval({
   projectId,
   requirements,
 }: TimesheetApprovalProps) {
-  const rejectReasonId = useId()
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const { selectedIds, toggle, toggleAll, clear } = useSetSelection<TimeEntry>(
+    (e) => e.id
+  )
   const [rejectOpen, setRejectOpen] = useState(false)
-  const [rejectReason, setRejectReason] = useState('')
   const [editEntry, setEditEntry] = useState<TimeEntry | null>(null)
   const router = useRouter()
   const approveAction = useAction(approveTimeEntriesAction, {
     onSuccess: () => {
       toast.success('Time entries approved')
-      setSelectedIds(new Set())
+      clear()
       router.refresh()
     },
     onError: ({ error }) => {
-      console.log(error)
       toast.error(error.serverError ?? 'Failed to approve entries')
     },
   })
@@ -65,9 +56,8 @@ export function TimesheetApproval({
   const rejectAction = useAction(rejectTimeEntriesAction, {
     onSuccess: () => {
       toast.success('Time entries rejected')
-      setSelectedIds(new Set())
+      clear()
       setRejectOpen(false)
-      setRejectReason('')
       router.refresh()
     },
     onError: ({ error }) => {
@@ -75,41 +65,18 @@ export function TimesheetApproval({
     },
   })
 
-  const grouped = entries.reduce<Record<string, TimeEntry[]>>((acc, entry) => {
-    const key = entry.memberId
-    if (!acc[key]) {
-      acc[key] = []
-    }
-    acc[key].push(entry)
-    return acc
-  }, {})
-
-  function toggleSelect(id: string) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) {
-        next.delete(id)
-      } else {
-        next.add(id)
-      }
-      return next
-    })
-  }
-
-  function toggleMemberGroup(memberEntries: TimeEntry[]) {
-    const allSelected = memberEntries.every((e) => selectedIds.has(e.id))
-    setSelectedIds((prev) => {
-      const next = new Set(prev)
-      for (const entry of memberEntries) {
-        if (allSelected) {
-          next.delete(entry.id)
-        } else {
-          next.add(entry.id)
+  const grouped = useMemo(
+    () =>
+      entries.reduce<Record<string, TimeEntry[]>>((acc, entry) => {
+        const key = entry.memberId
+        if (!acc[key]) {
+          acc[key] = []
         }
-      }
-      return next
-    })
-  }
+        acc[key].push(entry)
+        return acc
+      }, {}),
+    [entries]
+  )
 
   if (entries.length === 0) {
     return (
@@ -172,7 +139,7 @@ export function TimesheetApproval({
                 <div className='flex items-center gap-3'>
                   <Checkbox
                     checked={allSelected}
-                    onCheckedChange={() => toggleMemberGroup(memberEntries)}
+                    onCheckedChange={() => toggleAll(memberEntries)}
                   />
                   <div>
                     <CardTitle className='text-base'>
@@ -197,7 +164,7 @@ export function TimesheetApproval({
                   >
                     <Checkbox
                       checked={selectedIds.has(entry.id)}
-                      onCheckedChange={() => toggleSelect(entry.id)}
+                      onCheckedChange={() => toggle(entry.id)}
                     />
                     <div className='min-w-0 flex-1'>
                       <p className='truncate text-sm'>{entry.description}</p>
@@ -237,45 +204,17 @@ export function TimesheetApproval({
         )
       })}
 
-      <Dialog onOpenChange={setRejectOpen} open={rejectOpen}>
-        <DialogContent className='sm:max-w-md'>
-          <DialogHeader>
-            <DialogTitle>Reject Time Entries</DialogTitle>
-            <DialogDescription>
-              Provide a reason so the team member can make corrections and
-              resubmit.
-            </DialogDescription>
-          </DialogHeader>
-          <div className='space-y-2'>
-            <Label htmlFor={rejectReasonId}>Reason</Label>
-            <Textarea
-              id={rejectReasonId}
-              onChange={(e) => setRejectReason(e.target.value)}
-              placeholder='Please explain what needs to be corrected...'
-              rows={3}
-              value={rejectReason}
-            />
-          </div>
-          <DialogFooter>
-            <Button onClick={() => setRejectOpen(false)} variant='outline'>
-              Cancel
-            </Button>
-            <Button
-              disabled={!rejectReason.trim() || rejectAction.isPending}
-              loading={rejectAction.isPending}
-              onClick={() =>
-                rejectAction.execute({
-                  timeEntryIds: [...selectedIds],
-                  reason: rejectReason,
-                })
-              }
-              variant='destructive'
-            >
-              Reject
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <RejectTimeEntriesDialog
+        isPending={rejectAction.isPending}
+        onOpenChange={setRejectOpen}
+        onSubmit={(reason) =>
+          rejectAction.execute({
+            timeEntryIds: [...selectedIds],
+            reason,
+          })
+        }
+        open={rejectOpen}
+      />
 
       {editEntry && (
         <TimeEntryForm

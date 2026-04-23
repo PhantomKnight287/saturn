@@ -18,7 +18,6 @@ export interface MediaItem {
   createdAt: Date
   id: string
   name: string
-  url: string
 }
 
 interface MediaLibraryDialogProps {
@@ -76,7 +75,7 @@ export function MediaLibraryDialog({
                   alt={item.name}
                   className='object-contain p-1'
                   fill
-                  src={item.url}
+                  src={`/api/files/${item.id}`}
                   unoptimized
                 />
               </button>

@@ -1,184 +1,150 @@
 import {
-  ClipboardList,
-  Clock,
-  FileSpreadsheet,
+  Briefcase,
+  FileSignature,
   FileText,
-  Milestone,
+  FolderKanban,
+  type LucideIcon,
   Receipt,
+  Timer,
+  Users,
 } from 'lucide-react'
 
-export const capabilities = [
-  {
-    icon: ClipboardList,
-    title: 'Requirements',
-    desc: 'Write detailed project requirements, share them with clients, and collect signatures.',
-  },
-  {
-    icon: FileText,
-    title: 'Proposals',
-    desc: 'Draft and send proposals. Clients review and approve without leaving the platform.',
-  },
-  {
-    icon: Milestone,
-    title: 'Milestones',
-    desc: "Break work into milestones. Track what's done, what's in progress, and what's next.",
-  },
-  {
-    icon: Clock,
-    title: 'Timesheets',
-    desc: 'Log hours against requirements. Weekly, biweekly, or monthly views. Send reports to clients.',
-  },
-  {
-    icon: Receipt,
-    title: 'Expenses',
-    desc: 'Track project expenses by category — hosting, design tools, APIs, and more.',
-  },
-  {
-    icon: FileSpreadsheet,
-    title: 'Invoices',
-    desc: 'Generate invoices with line items pulled from timesheets and expenses. Export as PDF.',
-  },
-]
-
-export const roles = [
-  {
-    role: 'Owner',
-    desc: 'Full control. Manages the workspace, billing, members, and all projects.',
-    permissions: [
-      'Everything',
-      'Org settings',
-      'Delete projects',
-      'Manage roles',
-    ],
-  },
-  {
-    role: 'Admin',
-    desc: 'Day-to-day management. Can create projects, send invoices, and manage team.',
-    permissions: [
-      'Create projects',
-      'Send invoices',
-      'Manage members',
-      'Approve expenses',
-    ],
-  },
-  {
-    role: 'Member',
-    desc: 'Does the work. Logs time, writes requirements, submits expenses.',
-    permissions: [
-      'Log time',
-      'Write requirements',
-      'Submit expenses',
-      'View milestones',
-    ],
-  },
-  {
-    role: 'Client',
-    desc: 'External stakeholder. Reviews work, signs off on requirements, approves invoices.',
-    permissions: [
-      'View progress',
-      'Sign requirements',
-      'Approve timesheets',
-      'Comment on threads',
-    ],
-  },
-]
-
-export const freelancerTypes = [
-  {
-    title: 'Developers',
-    iconName: 'Code' as const,
-    points: [
-      'Track hours across repos and features',
-      'Log hosting, API, and infra expenses',
-      'Send detailed invoices with line items',
-    ],
-  },
-  {
-    title: 'Designers',
-    iconName: 'Palette' as const,
-    points: [
-      'Share proposals and get client sign-off',
-      'Attach deliverables to milestones',
-      'Track tool and asset license costs',
-    ],
-  },
-  {
-    title: 'Content creators',
-    iconName: 'Video' as const,
-    points: [
-      'Manage multi-phase production projects',
-      'Track equipment and software expenses',
-      'Bill per deliverable or per hour',
-    ],
-  },
-  {
-    title: 'Agencies',
-    iconName: 'Users' as const,
-    points: [
-      'Multiple projects, multiple clients',
-      'Role-based access for your whole team',
-      'Per-member billing rates and budgets',
-    ],
-  },
-]
-
-export const clientFeatures = [
-  {
-    iconName: 'Eye' as const,
-    title: 'Progress visibility',
-    desc: 'Clients see milestone status and completed deliverables in real time.',
-  },
-  {
-    iconName: 'PenTool' as const,
-    title: 'Signature workflows',
-    desc: 'Requirements and proposals can be signed digitally without external tools.',
-  },
-  {
-    iconName: 'MessageSquare' as const,
-    title: 'Threaded feedback',
-    desc: 'Clients leave comments on specific parts of a requirement. No email threads.',
-  },
-  {
-    iconName: 'Lock' as const,
-    title: 'Scoped access',
-    desc: "Clients only see projects they're assigned to. Internal data stays internal.",
-  },
-]
-
 export const freePlanFeatures = [
-  '1 workspace',
   '2 projects',
   'Unlimited team members',
-  'Requirements & proposals',
-  'Milestones & timesheets',
-  'Expenses & invoices',
+  'All core modules',
+  'Built-in time tracking',
 ]
 
 export const proPlanFeatures = [
-  'Unlimited workspaces',
-  'Unlimited projects',
+  'Unlimited projects & workspaces',
   'Everything in Free',
-  'API access for automation',
-  'Automate timesheet logging',
-  'Programmatic invoice generation',
-  'Integrate with existing tools',
   'Priority support',
+  'API access (coming soon)',
 ]
 
-export const workflowSteps = [
+export const modules: {
+  name: string
+  blurb: string
+  icon: LucideIcon
+}[] = [
+  {
+    name: 'Projects',
+    blurb: 'Group the work. Track status and due dates.',
+    icon: FolderKanban,
+  },
+  {
+    name: 'Clients',
+    blurb: 'One record per client. Everything tied to it.',
+    icon: Briefcase,
+  },
+  {
+    name: 'Team',
+    blurb: 'Invite collaborators. Assign work. No per-seat fees.',
+    icon: Users,
+  },
+  {
+    name: 'Proposals',
+    blurb: 'Draft, send, and collect signatures in-platform.',
+    icon: FileSignature,
+  },
+  {
+    name: 'Time tracking',
+    blurb: 'A timer that lives where the work does.',
+    icon: Timer,
+  },
+  {
+    name: 'Timesheets',
+    blurb: 'Weekly hours that flow into invoices.',
+    icon: FileText,
+  },
+  {
+    name: 'Expenses',
+    blurb: 'Log costs, tag billable, attach to invoices.',
+    icon: Receipt,
+  },
+  {
+    name: 'Invoices',
+    blurb: 'Pull hours and expenses. Export PDF. Get paid.',
+    icon: FileText,
+  },
+]
+
+export const howItWorks = [
   {
     step: '01',
-    title: 'Set up your workspace',
-    desc: 'Create your workspace, invite your team, and assign roles.',
+    title: 'Spin up a project',
+    body: 'Add the client, scope, and team. Takes under a minute.',
   },
   {
     step: '02',
-    title: 'Run your projects',
-    desc: 'Add requirements, track time, log expenses, and hit milestones.',
+    title: 'Do the work',
+    body: 'Track time, log expenses, and send proposals as you go. Everything sticks to the project.',
   },
   {
     step: '03',
-    title: 'Bill your clients',
-    desc: 'Generate invoices from tracked work. Send, export, get paid.',
+    title: 'Invoice and get paid',
+    body: 'Hours and expenses roll into an invoice in one click. Export a PDF, mark it paid, move on.',
+  },
+]
+
+export const comparison = [
+  {
+    need: 'Projects & clients',
+    stack: 'Notion / Airtable',
+    saturn: 'Built-in',
+  },
+  {
+    need: 'Proposals with signatures',
+    stack: 'DocuSign / PandaDoc',
+    saturn: 'Built-in',
+  },
+  {
+    need: 'Time tracking',
+    stack: 'Toggl / Harvest',
+    saturn: 'Built-in',
+  },
+  {
+    need: 'Timesheets',
+    stack: 'Spreadsheet',
+    saturn: 'Built-in',
+  },
+  {
+    need: 'Expenses',
+    stack: 'Spreadsheet / Expensify',
+    saturn: 'Built-in',
+  },
+  {
+    need: 'Invoicing',
+    stack: 'QuickBooks / Wave',
+    saturn: 'Built-in',
+  },
+  {
+    need: 'Monthly cost',
+    stack: '$40–80+',
+    saturn: '$0–3',
+  },
+]
+
+export const faq = [
+  {
+    q: 'Who is Saturn for?',
+    a: 'Independent freelancers and small agencies running 1–20 active client projects. If you freelance or run a boutique studio, this is built for you.',
+  },
+  {
+    q: 'Do I have to pay per team member or per workspace?',
+    a: 'Neither. Pro is billed per owner — upgrade once and you get unlimited workspaces and unlimited team members across all of them.',
+  },
+  {
+    q: "What's actually free?",
+    a: 'Every module works on the Free plan — projects, clients, proposals, timesheets, expenses, invoices, and time tracking. Free caps you at 2 active projects. Pro removes that cap.',
+  },
+  {
+    q: 'Can I export my data?',
+    a: 'Yes. Invoices and timesheets export to PDF. Project data is yours to take with you.',
+  },
+  {
+    q: 'Does Saturn replace my accounting software?',
+    a: "Saturn handles invoicing and expense logging for your freelance work. It isn't a full double-entry accounting system — you can still hand exported data to your accountant at year-end.",
   },
 ]

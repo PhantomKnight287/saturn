@@ -64,10 +64,7 @@ export default async function ProposalDetail({
     proposalsService.getRecipients(proposal.id),
     proposalsService.getSignatures(proposal.id),
     proposalsService.getDeliverables(proposal.id),
-    signaturesService.getSignatureMediaForMember(
-      currentProject.organizationId,
-      orgMember.id
-    ),
+    signaturesService.getSignatureMediaForMember(orgMember.id),
     projectsService.getSettings(organization.id, currentProject.id),
   ])
 
@@ -81,12 +78,6 @@ export default async function ProposalDetail({
       canSign={isRecipient}
       hasSignedAlready={hasSigned}
       initialDeliverables={lineItems}
-      //   initialExpenseItems={expenseItems.map((item) => ({
-      //     description: item.description,
-      //     amount: item.amount,
-      //     category: item.category ?? '',
-      //     billable: item.billable,
-      //   }))}
       isClientInvolved={settings.clientInvolvement.proposals === 'on'}
       mode='edit'
       orgSlug={org}

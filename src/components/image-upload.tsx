@@ -17,7 +17,7 @@ export interface ImageUploadProps {
   /** Receives the media item ID (not a URL) */
   onChange: (id: string | null) => void
   /** Called after a successful upload with the new media ID and URL */
-  onUploadComplete?: (item: { id: string; url: string }) => void
+  onUploadComplete?: (item: { id: string }) => void
   /** Max width/height for the preview */
   previewSize?: number
   projectId: string
@@ -38,13 +38,8 @@ export default function ImageUpload({
   const inputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [libraryOpen, setLibraryOpen] = useState(false)
-  const [localUrlMap, setLocalUrlMap] = useState<Record<string, string>>({})
 
-  const displayUrl = value
-    ? (mediaItems.find((m) => m.id === value)?.url ??
-      localUrlMap[value] ??
-      null)
-    : null
+  const displayId = value ?? null
 
   const handleFile = async (file: File) => {
     if (!file.type.startsWith('image/')) {
@@ -58,9 +53,8 @@ export default function ImageUpload({
 
     setUploading(true)
     try {
-      const { id, url } = await uploadFile(file, projectId)
-      setLocalUrlMap((prev) => ({ ...prev, [id]: url }))
-      onUploadComplete?.({ id, url })
+      const { id } = await uploadFile(file, projectId)
+      onUploadComplete?.({ id })
       onChange(id)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Upload failed')
@@ -88,7 +82,7 @@ export default function ImageUpload({
         type='file'
       />
 
-      {displayUrl ? (
+      {displayId ? (
         <div
           className='group relative inline-block rounded-md border bg-white'
           style={{ maxWidth: previewSize, maxHeight: previewSize }}
@@ -97,7 +91,7 @@ export default function ImageUpload({
             alt={label}
             className='rounded-md object-contain'
             height={previewSize}
-            src={displayUrl}
+            src={`/api/files/${displayId}`}
             style={{ maxWidth: previewSize, maxHeight: previewSize }}
             unoptimized
             width={previewSize}

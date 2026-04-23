@@ -8,6 +8,7 @@ import {
   pgTable,
   text,
   timestamp,
+  unique,
 } from 'drizzle-orm/pg-core'
 import { members } from './auth'
 import { media } from './media'
@@ -74,17 +75,26 @@ export const invoices = pgTable(
   ]
 )
 
-export const invoiceRecipients = pgTable('invoice_recipients', {
-  id: text('id')
-    .primaryKey()
-    .$defaultFn(() => `ircpt_${createId()}`),
-  invoiceId: text('invoice_id')
-    .references(() => invoices.id, { onDelete: 'cascade' })
-    .notNull(),
-  clientMemberId: text('client_member_id')
-    .references(() => members.id, { onDelete: 'cascade' })
-    .notNull(),
-})
+export const invoiceRecipients = pgTable(
+  'invoice_recipients',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => `ircpt_${createId()}`),
+    invoiceId: text('invoice_id')
+      .references(() => invoices.id, { onDelete: 'cascade' })
+      .notNull(),
+    clientMemberId: text('client_member_id')
+      .references(() => members.id, { onDelete: 'cascade' })
+      .notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (t) => [unique().on(t.clientMemberId, t.invoiceId)]
+)
 
 export const invoiceItems = pgTable('invoice_items', {
   id: text('id')
@@ -98,6 +108,11 @@ export const invoiceItems = pgTable('invoice_items', {
   unitPrice: numeric('unit_price', { precision: 16, scale: 4 }).notNull(),
   amount: numeric('amount', { precision: 16, scale: 4 }).notNull(),
   sortOrder: integer('sort_order').default(0).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at')
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
 })
 
 export const invoiceRequirements = pgTable('invoice_requirements', {
@@ -109,5 +124,10 @@ export const invoiceRequirements = pgTable('invoice_requirements', {
     .notNull(),
   requirementId: text('requirement_id')
     .references(() => requirements.id, { onDelete: 'cascade' })
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at')
+    .defaultNow()
+    .$onUpdate(() => new Date())
     .notNull(),
 })

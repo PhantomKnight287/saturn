@@ -21,23 +21,19 @@ export default async function OrgNavServer({ slug }: { slug: string }) {
     {
       name: 'Projects',
       href: `/${slug}/projects`,
-      visible: ['admin', 'owner', 'client', 'lead', 'member'].includes(
+      visible: ['admin', 'owner', 'client', 'member'].includes(
         member?.role as string
       ),
     },
     {
       name: 'Teams',
       href: `/${slug}/teams`,
-      visible: ['admin', 'owner', 'lead', 'member'].includes(
-        member?.role as string
-      ),
+      visible: ['admin', 'owner', 'member'].includes(member?.role as string),
     },
     {
       name: 'Clients',
       href: `/${slug}/clients`,
-      visible: ['admin', 'owner', 'lead', 'member'].includes(
-        member?.role as string
-      ),
+      visible: ['admin', 'owner', 'member'].includes(member?.role as string),
     },
     {
       name: 'Settings',

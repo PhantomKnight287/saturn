@@ -140,7 +140,6 @@ const getSignatures = async (proposalId: string) => {
       clientMemberId: proposalSignatures.clientMemberId,
       signedAt: proposalSignatures.signedAt,
       mediaId: proposalSignatures.mediaId,
-      mediaUrl: mediaTable.url,
       signerName: users.name,
       signerImage: users.image,
     })
@@ -154,26 +153,17 @@ const getSignatures = async (proposalId: string) => {
     .where(eq(proposalSignatures.proposalId, proposalId))
 }
 
-const getSignatureMediaForMember = async (
-  organizationId: string,
-  memberId: string
-) => {
+const getSignatureMediaForMember = async (memberId: string) => {
   return await db
     .select({
       id: mediaTable.id,
       name: mediaTable.name,
-      url: mediaTable.url,
       contentType: mediaTable.contentType,
       createdAt: mediaTable.createdAt,
     })
     .from(proposalSignatures)
     .innerJoin(mediaTable, eq(proposalSignatures.mediaId, mediaTable.id))
-    .where(
-      and(
-        eq(proposalSignatures.clientMemberId, memberId),
-        eq(mediaTable.organizationId, organizationId)
-      )
-    )
+    .where(eq(proposalSignatures.clientMemberId, memberId))
     .groupBy(mediaTable.id)
     .orderBy(desc(mediaTable.createdAt))
 }

@@ -314,12 +314,8 @@ export function ExpenseForm({
             >
               Cancel
             </Button>
-            <Button disabled={isPending} type='submit'>
-              {isPending
-                ? 'Saving...'
-                : editExpense
-                  ? 'Update Expense'
-                  : 'Log Expense'}
+            <Button loading={isPending} type='submit'>
+              {editExpense ? 'Update Expense' : 'Log Expense'}
             </Button>
           </DialogFooter>
         </form>

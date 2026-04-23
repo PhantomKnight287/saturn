@@ -1,6 +1,7 @@
 /** biome-ignore-all lint/correctness/useUniqueElementIds: Need em to score to the section in home page */
 
 import type { Metadata } from 'next'
+import { getGithubStars } from '@/cache/github'
 import { createMetadata } from '@/lib/metadata'
 import LandingPageClient from './page.client'
 
@@ -15,6 +16,7 @@ export const metadata: Metadata = createMetadata({
   },
 })
 
-export default function LandingPage() {
-  return <LandingPageClient />
+export default async function LandingPage() {
+  const githubStars = await getGithubStars('phantomknight287/saturn')
+  return <LandingPageClient githubStars={githubStars} />
 }

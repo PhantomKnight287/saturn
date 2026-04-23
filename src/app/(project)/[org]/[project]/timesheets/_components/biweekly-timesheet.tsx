@@ -12,9 +12,8 @@ import {
 } from 'lucide-react'
 import { useParams } from 'next/navigation'
 import { useAction } from 'next-safe-action/hooks'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import StatusBadge from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -29,12 +28,13 @@ import {
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { useSetSelection } from '@/hooks/use-set-selection'
 import { deleteTimeEntryAction, submitTimesheetAction } from '../actions'
-import { formatMinutes } from '../common'
+import { canDeleteTimeEntry, canEditTimeEntry, formatMinutes } from '../common'
 import type { Requirement, TimeEntry } from '../types'
+import { StatusBadgeWithReason } from './status-badge-with-reason'
 import { TimeEntryForm } from './time-entry-form'
 
 interface BiweeklyTimesheetProps {
@@ -60,46 +60,58 @@ export function BiweeklyTimesheet({
   isClientInvolved,
 }: BiweeklyTimesheetProps) {
   const [periodOffset, setPeriodOffset] = useState(0)
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const { selectedIds, toggle, toggleAll, clear } = useSetSelection<TimeEntry>(
+    (e) => e.id
+  )
   const [editEntry, setEditEntry] = useState<TimeEntry | null>(null)
   const params = useParams()
   const router = useRouter()
 
-  const periodStart = addWeeks(
-    startOfWeek(new Date(), { weekStartsOn: 1 }),
-    periodOffset * 2
+  const { periodStart, periodEnd, week1Days, week2Days } = useMemo(() => {
+    const start = addWeeks(
+      startOfWeek(new Date(), { weekStartsOn: 1 }),
+      periodOffset * 2
+    )
+    const end = endOfWeek(addWeeks(start, 1), { weekStartsOn: 1 })
+    const w1 = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(start)
+      d.setDate(d.getDate() + i)
+      return d
+    })
+    const w2 = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(start)
+      d.setDate(d.getDate() + 7 + i)
+      return d
+    })
+    return { periodStart: start, periodEnd: end, week1Days: w1, week2Days: w2 }
+  }, [periodOffset])
+
+  const periodEntries = useMemo(
+    () =>
+      entries.filter((e) => {
+        const d = new Date(e.date)
+        return d >= periodStart && d <= periodEnd
+      }),
+    [entries, periodStart, periodEnd]
   )
-  const periodEnd = endOfWeek(addWeeks(periodStart, 1), { weekStartsOn: 1 })
 
-  const week1Days = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(periodStart)
-    d.setDate(d.getDate() + i)
-    return d
-  })
-  const week2Days = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(periodStart)
-    d.setDate(d.getDate() + 7 + i)
-    return d
-  })
-
-  const periodEntries = entries.filter((e) => {
-    const d = new Date(e.date)
-    return d >= periodStart && d <= periodEnd
-  })
-
-  const submittableEntries = periodEntries.filter(
-    (e) => e.status === 'draft' && e.memberId === currentMemberId
+  const submittableEntries = useMemo(
+    () =>
+      periodEntries.filter(
+        (e) => e.status === 'draft' && e.memberId === currentMemberId
+      ),
+    [periodEntries, currentMemberId]
   )
 
-  const periodTotal = periodEntries.reduce(
-    (sum, e) => sum + e.durationMinutes,
-    0
+  const periodTotal = useMemo(
+    () => periodEntries.reduce((sum, e) => sum + e.durationMinutes, 0),
+    [periodEntries]
   )
 
   const submitAction = useAction(submitTimesheetAction, {
     onSuccess: () => {
       toast.success('Timesheet submitted for approval')
-      setSelectedIds(new Set())
+      clear()
       router.refresh()
     },
     onError: ({ error }) =>
@@ -115,48 +127,12 @@ export function BiweeklyTimesheet({
       toast.error(error.serverError ?? 'Failed to delete entry'),
   })
 
-  function toggleSelect(id: string) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      return next
-    })
-  }
-
-  function toggleSelectAll() {
-    setSelectedIds(
-      selectedIds.size === submittableEntries.length
-        ? new Set()
-        : new Set(submittableEntries.map((e) => e.id))
-    )
-  }
-
   function handleSubmit() {
     if (selectedIds.size === 0) {
       toast.error('Select at least one draft entry to submit')
       return
     }
     submitAction.execute({ timeEntryIds: [...selectedIds] })
-  }
-
-  function canEdit(entry: TimeEntry): boolean {
-    if (isAdmin) {
-      return true
-    }
-    if (entry.memberId !== currentMemberId) {
-      return false
-    }
-    return entry.status === 'draft' || entry.status === 'admin_rejected'
-  }
-
-  function canDelete(entry: TimeEntry): boolean {
-    if (isAdmin) {
-      return true
-    }
-    if (entry.memberId !== currentMemberId) {
-      return false
-    }
-    return entry.status === 'draft'
   }
 
   const showActions = !isTeamView || isAdmin
@@ -196,7 +172,7 @@ export function BiweeklyTimesheet({
                       submittableEntries.length > 0 &&
                       selectedIds.size === submittableEntries.length
                     }
-                    onCheckedChange={toggleSelectAll}
+                    onCheckedChange={() => toggleAll(submittableEntries)}
                   />
                 </TableHead>
               )}
@@ -239,7 +215,7 @@ export function BiweeklyTimesheet({
                         {isDraft && (
                           <Checkbox
                             checked={selectedIds.has(entry.id)}
-                            onCheckedChange={() => toggleSelect(entry.id)}
+                            onCheckedChange={() => toggle(entry.id)}
                           />
                         )}
                       </TableCell>
@@ -255,14 +231,12 @@ export function BiweeklyTimesheet({
                           {entry.description}
                         </span>
                         {entry.billable && (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger>
-                                <DollarSign className='size-3 text-primary' />
-                              </TooltipTrigger>
-                              <TooltipContent>Billable</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <DollarSign className='size-3 text-primary' />
+                            </TooltipTrigger>
+                            <TooltipContent>Billable</TooltipContent>
+                          </Tooltip>
                         )}
                       </div>
                     </TableCell>
@@ -291,33 +265,19 @@ export function BiweeklyTimesheet({
                       {formatMinutes(entry.durationMinutes)}
                     </TableCell>
                     <TableCell className='text-center'>
-                      {entry.status === 'admin_rejected' &&
-                      entry.rejectReason ? (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger>
-                              <StatusBadge
-                                isClientInvolved={isClientInvolved}
-                                status={entry.status}
-                              />
-                            </TooltipTrigger>
-                            <TooltipContent className='max-w-xs' side='left'>
-                              <p className='font-medium'>Reason:</p>
-                              <p>{entry.rejectReason}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      ) : (
-                        <StatusBadge
-                          isClientInvolved={isClientInvolved}
-                          status={entry.status}
-                        />
-                      )}
+                      <StatusBadgeWithReason
+                        entry={entry}
+                        isClientInvolved={isClientInvolved}
+                      />
                     </TableCell>
                     {showActions && (
                       <TableCell>
                         <div className='flex items-center gap-1'>
-                          {canEdit(entry) && (
+                          {canEditTimeEntry(
+                            entry,
+                            currentMemberId,
+                            isAdmin
+                          ) && (
                             <Button
                               className='size-7'
                               onClick={() => setEditEntry(entry)}
@@ -327,7 +287,11 @@ export function BiweeklyTimesheet({
                               <Pencil className='size-3.5' />
                             </Button>
                           )}
-                          {canDelete(entry) && (
+                          {canDeleteTimeEntry(
+                            entry,
+                            currentMemberId,
+                            isAdmin
+                          ) && (
                             <Button
                               className='size-7 text-destructive'
                               onClick={() =>

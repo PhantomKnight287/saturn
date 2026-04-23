@@ -1,4 +1,5 @@
 import z from 'zod'
+import type { TimeEntry } from './types'
 
 /**
  * Format minutes as human-readable hours and minutes.
@@ -14,6 +15,41 @@ export function formatMinutes(minutes: number): string {
     return `${h}h`
   }
   return `${h}h ${m}m`
+}
+
+export function formatShortDate(
+  date: string | Date,
+  options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' }
+): string {
+  return new Date(date).toLocaleDateString('en-US', options)
+}
+
+export function canEditTimeEntry(
+  entry: TimeEntry,
+  currentMemberId: string,
+  isAdmin: boolean
+): boolean {
+  if (isAdmin) {
+    return true
+  }
+  if (entry.memberId !== currentMemberId) {
+    return false
+  }
+  return entry.status === 'draft' || entry.status === 'admin_rejected'
+}
+
+export function canDeleteTimeEntry(
+  entry: TimeEntry,
+  currentMemberId: string,
+  isAdmin: boolean
+): boolean {
+  if (isAdmin) {
+    return true
+  }
+  if (entry.memberId !== currentMemberId) {
+    return false
+  }
+  return entry.status === 'draft'
 }
 
 export const createTimeEntrySchema = z.object({

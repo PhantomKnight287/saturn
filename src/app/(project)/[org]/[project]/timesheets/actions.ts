@@ -785,13 +785,16 @@ export const sendTimesheetToClientAction = authedActionClient
           throw new Error('Failed to create timesheet report')
         }
 
-        await tx.insert(timesheetReportRecipients).values(
-          clientMemberIds.map((clientMemberId) => ({
-            reportId: r.id,
-            clientMemberId,
-            status: 'pending' as const,
-          }))
-        )
+        await tx
+          .insert(timesheetReportRecipients)
+          .values(
+            clientMemberIds.map((clientMemberId) => ({
+              reportId: r.id,
+              clientMemberId,
+              status: 'pending' as const,
+            }))
+          )
+          .onConflictDoNothing()
 
         await tx.insert(timesheetReportEntries).values(
           timeEntryIds.map((teId) => ({

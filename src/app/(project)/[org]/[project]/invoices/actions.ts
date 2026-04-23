@@ -381,12 +381,15 @@ export const sendInvoiceAction = authedActionClient
         .delete(invoiceRecipients)
         .where(eq(invoiceRecipients.invoiceId, invoiceId))
 
-      await db.insert(invoiceRecipients).values(
-        clientMemberIds.map((clientMemberId) => ({
-          invoiceId,
-          clientMemberId,
-        }))
-      )
+      await db
+        .insert(invoiceRecipients)
+        .values(
+          clientMemberIds.map((clientMemberId) => ({
+            invoiceId,
+            clientMemberId,
+          }))
+        )
+        .onConflictDoNothing()
 
       // Load recipients for email
       const recipients = await db

@@ -1,59 +1,57 @@
+/** biome-ignore-all lint/correctness/useUniqueElementIds: anchor ids for in-page nav */
+
 'use client'
-import {
-  ArrowRight,
-  Check,
-  Code,
-  Eye,
-  Lock,
-  MessageSquare,
-  Palette,
-  Pen,
-  PenTool,
-  Send,
-  Users,
-  Video,
-} from 'lucide-react'
+import { ArrowDown, ArrowRight, Check, Github, Minus } from 'lucide-react'
 import Link from 'next/link'
 
 import { SaturnLogo } from '@/components/icons/saturn-logo'
 import { buttonVariants } from '@/components/ui/button'
 import {
-  capabilities,
-  clientFeatures,
-  freelancerTypes,
+  comparison,
+  faq,
   freePlanFeatures,
+  howItWorks,
+  modules,
   proPlanFeatures,
-  roles,
-  workflowSteps,
 } from './_landing/data'
-import { DotPattern } from './_landing/dot-pattern'
 import { LandingNav } from './_landing/landing-nav'
+import { MockAnalytics } from './_landing/mock-analytics'
 import { MockAppUI } from './_landing/mock-app-ui'
-import { MockInvoiceUI } from './_landing/mock-invoice-ui'
-import { MockRequirementUI } from './_landing/mock-requirement-ui'
-import { MockTimesheetUI } from './_landing/mock-timesheet-ui'
+import { MockExpenseCard } from './_landing/mock-expense-card'
+import { MockInvoiceCard } from './_landing/mock-invoice-card'
+import { MockProposalCard } from './_landing/mock-proposal-card'
+import { MockTimer } from './_landing/mock-timer'
+import { MockTimesheetCard } from './_landing/mock-timesheet-card'
 
-const freelancerIcons = { Code, Palette, Video, Users } as const
-const clientIcons = { Eye, PenTool, MessageSquare, Lock } as const
-
-export default function LandingPageClient() {
+export default function LandingPageClient({
+  githubStars,
+}: {
+  githubStars: number | null
+}) {
   return (
     <div className='min-h-svh w-full bg-background text-foreground'>
-      <LandingNav />
+      <LandingNav githubStars={githubStars} />
 
-      <section className='relative overflow-hidden'>
-        <DotPattern className='pointer-events-none absolute inset-0 opacity-40' />
-        <div className='relative mx-auto grid max-w-7xl gap-16 px-6 pt-20 pb-20 lg:grid-cols-2 lg:gap-12 lg:pt-28'>
-          <div className='flex flex-col justify-center'>
-            <h1 className='text-center font-bold text-4xl tracking-tight md:text-left lg:text-5xl'>
-              The operating system for your freelance business
+      {/* HERO */}
+      <section className='relative overflow-hidden border-border/60 border-b'>
+        <div className='relative mx-auto max-w-6xl px-6 pt-24 pb-10 sm:pt-32'>
+          <div className='max-w-3xl'>
+            <div className='mb-6 inline-flex items-center gap-2 font-mono text-[11px] text-muted-foreground uppercase tracking-[0.18em]'>
+              <span className='h-px w-6 bg-muted-foreground/40' />
+              Saturn — for freelancers & small agencies
+            </div>
+            <h1 className='font-semibold text-5xl text-foreground leading-[0.98] tracking-[-0.04em] sm:text-6xl'>
+              Run your freelance business
+              <br />
+              <span className='text-muted-foreground/80 italic'>
+                from one tab.
+              </span>
             </h1>
-            <p className='mt-5 max-w-lg text-center text-lg text-muted-foreground leading-relaxed md:text-left'>
-              Saturn brings projects, timesheets, invoices, and client
-              management into one place. No more spreadsheets. No more chasing
-              emails. Just open Saturn and get to work.
+            <p className='mt-8 max-w-xl text-lg text-muted-foreground leading-relaxed'>
+              Projects, clients, proposals, time tracking, timesheets, expenses,
+              and invoices — one login instead of seven subscriptions.
             </p>
-            <div className='mt-8 flex items-center justify-center gap-3 md:justify-start'>
+            <div className='mt-10 flex items-center gap-3'>
               <Link
                 className={buttonVariants({ size: 'lg' })}
                 href='/auth/sign-up'
@@ -62,68 +60,76 @@ export default function LandingPageClient() {
                 <ArrowRight className='size-4' />
               </Link>
               <Link
-                className={buttonVariants({ variant: 'outline', size: 'lg' })}
-                href='#how-it-works'
+                className='inline-flex items-center gap-1.5 text-foreground/80 text-sm hover:text-foreground'
+                href='#features'
               >
-                See how it works
+                Features
+                <ArrowDown className='size-3.5' />
               </Link>
             </div>
-          </div>
-          <div className='relative lg:pt-4'>
-            <MockAppUI />
-          </div>
-        </div>
-      </section>
 
-      <section className='border-border border-y bg-secondary/40'>
-        <div className='mx-auto max-w-7xl px-6 py-24'>
-          <div className='mb-14'>
-            <h2 className='font-bold text-3xl tracking-tight'>
-              What you can do with Saturn
-            </h2>
-            <p className='mt-2 max-w-lg text-muted-foreground'>
-              Six modules that cover the full lifecycle of a freelance project.
-            </p>
-          </div>
-          <div className='grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-2 lg:grid-cols-3'>
-            {capabilities.map((cap) => (
-              <div className='bg-card p-6' key={cap.title}>
-                <cap.icon className='mb-3 size-5 text-primary' />
-                <h3 className='mb-1.5 font-semibold'>{cap.title}</h3>
-                <p className='text-muted-foreground text-sm leading-relaxed'>
-                  {cap.desc}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className='relative' id='how-it-works'>
-        <DotPattern className='pointer-events-none absolute inset-0 opacity-30' />
-        <div className='relative mx-auto max-w-7xl px-6 py-24'>
-          <div className='mb-14'>
-            <h2 className='font-bold text-3xl tracking-tight'>
-              From tracked hours to paid invoices
-            </h2>
-            <p className='mt-2 max-w-lg text-muted-foreground'>
-              Log time against requirements. Generate invoices from that data.
-              Send them to clients. Done.
-            </p>
-          </div>
-          <div className='grid gap-10 lg:grid-cols-2 lg:gap-16'>
-            <MockTimesheetUI />
-            <MockInvoiceUI />
-          </div>
-          <div className='mt-12 grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-3'>
-            {workflowSteps.map((s) => (
-              <div className='bg-card p-6' key={s.step}>
-                <span className='mb-3 inline-block font-mono text-primary text-xs'>
-                  {s.step}
+            <div className='mt-12 flex flex-wrap items-center gap-x-2 gap-y-2 font-mono text-[11px] text-muted-foreground uppercase tracking-[0.14em]'>
+              {[
+                'Projects',
+                'Clients',
+                'Team',
+                'Proposals',
+                'Time',
+                'Timesheets',
+                'Expenses',
+                'Invoices',
+              ].map((chip, i) => (
+                <span className='flex items-center gap-2' key={chip}>
+                  {i > 0 && (
+                    <span className='h-1 w-1 rounded-full bg-muted-foreground/40' />
+                  )}
+                  {chip}
                 </span>
-                <h3 className='mb-1.5 font-semibold'>{s.title}</h3>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* product shot */}
+        <div className='relative mx-auto max-w-6xl px-6 pb-0'>
+          <div className='relative'>
+            <div
+              aria-hidden
+              className='pointer-events-none absolute top-10 left-1/2 -z-10 h-64 w-[90%] -translate-x-1/2 rounded-full bg-primary/20 blur-3xl'
+            />
+            <MockAppUI />
+            <div
+              aria-hidden
+              className='pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-b from-transparent to-background'
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* MODULES OVERVIEW */}
+      <section className='border-border/60 border-b'>
+        <div className='mx-auto max-w-6xl px-6 py-20 sm:py-24'>
+          <div className='mb-12 max-w-2xl'>
+            <div className='font-mono text-[11px] text-muted-foreground uppercase tracking-[0.18em]'>
+              / everything inside
+            </div>
+            <h2 className='mt-3 font-semibold text-3xl leading-[1.05] tracking-[-0.03em] sm:text-4xl'>
+              Eight modules.{' '}
+              <span className='text-muted-foreground/70'>One workspace.</span>
+            </h2>
+          </div>
+          <div className='grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-4'>
+            {modules.map((m) => (
+              <div
+                className='flex flex-col gap-2 border-border/60 border-t pt-5'
+                key={m.name}
+              >
+                <m.icon className='size-4 text-primary' strokeWidth={1.75} />
+                <div className='mt-1 font-medium text-foreground text-sm tracking-tight'>
+                  {m.name}
+                </div>
                 <p className='text-muted-foreground text-sm leading-relaxed'>
-                  {s.desc}
+                  {m.blurb}
                 </p>
               </div>
             ))}
@@ -131,267 +137,361 @@ export default function LandingPageClient() {
         </div>
       </section>
 
-      <section className='border-border border-y bg-secondary/40'>
-        <div className='mx-auto max-w-7xl px-6 py-24'>
-          <div className='grid gap-16 lg:grid-cols-2'>
-            <div>
-              <h2 className='font-bold text-3xl tracking-tight'>
-                Write requirements. Get them signed.
-              </h2>
-              <p className='mt-3 max-w-md text-muted-foreground'>
-                Saturn has a full rich-text editor for writing project
-                requirements. When they&apos;re ready, send them to your client
-                for review. Clients can request changes, leave threaded
-                comments, or sign off with a digital signature — all without
-                leaving Saturn.
-              </p>
-              <div className='mt-8 space-y-4'>
-                {[
-                  {
-                    icon: Pen,
-                    text: 'Write requirements with a rich-text editor — images, code blocks, and all',
-                  },
-                  {
-                    icon: Send,
-                    text: "Send to clients for review when you're ready",
-                  },
-                  {
-                    icon: MessageSquare,
-                    text: 'Clients leave threaded comments or request changes inline',
-                  },
-                  {
-                    icon: PenTool,
-                    text: 'Collect digital signatures once requirements are approved',
-                  },
-                ].map((item) => (
-                  <div className='flex gap-3' key={item.text}>
-                    <item.icon className='mt-0.5 size-4 shrink-0 text-primary' />
-                    <span className='text-muted-foreground text-sm'>
-                      {item.text}
-                    </span>
-                  </div>
-                ))}
-              </div>
+      {/* BENTO */}
+      <section
+        className='mx-auto max-w-6xl px-6 pt-24 pb-24 sm:pt-32'
+        id='features'
+      >
+        <div className='mb-14 flex items-end justify-between gap-6'>
+          <div>
+            <div className='font-mono text-[11px] text-muted-foreground uppercase tracking-[0.18em]'>
+              / a closer look
             </div>
-            <MockRequirementUI />
+            <h2 className='mt-3 max-w-2xl font-semibold text-4xl text-foreground leading-[1.02] tracking-[-0.03em] sm:text-5xl'>
+              A tab each for the work
+              <br />
+              <span className='text-muted-foreground/70'>
+                you used to do in seven.
+              </span>
+            </h2>
           </div>
+        </div>
+
+        <div className='grid grid-cols-1 gap-3 md:grid-cols-6'>
+          {/* Proposals — large */}
+          <BentoCard
+            className='md:col-span-4 md:row-span-2'
+            description='Draft proposals inside Saturn, send them to clients, and collect signatures without a separate DocuSign tab.'
+            title='Write it. Send it. Get it signed.'
+          >
+            <div className='relative mt-6 h-[250px] overflow-hidden rounded-lg border border-border/60 bg-card/60 p-6'>
+              <MockProposalCard />
+            </div>
+          </BentoCard>
+
+          {/* Timer */}
+          <BentoCard
+            className='md:col-span-2'
+            description='Time tracked inside the platform, auto-attached to the right project.'
+            title='Press record.'
+          >
+            <MockTimer />
+          </BentoCard>
+
+          {/* Analytics */}
+          <BentoCard
+            className='md:col-span-2'
+            description='Revenue, hours, and overdue invoices the moment you log in.'
+            title='Know the month at a glance.'
+          >
+            <MockAnalytics />
+          </BentoCard>
+
+          {/* Timesheet */}
+          <BentoCard
+            className='md:col-span-2'
+            description='Log weekly or let the timer do it. Export reports when clients ask.'
+            title='Hours that become invoice lines.'
+          >
+            <MockTimesheetCard />
+          </BentoCard>
+
+          {/* Expenses */}
+          <BentoCard
+            className='md:col-span-2'
+            description='Log what you spent, tag it billable, and attach it to the next invoice.'
+            title='Expenses that bill themselves.'
+          >
+            <MockExpenseCard />
+          </BentoCard>
+
+          {/* Invoice */}
+          <BentoCard
+            className='md:col-span-2'
+            description='Lines pull from timesheets and expenses. Export PDF. Track paid status.'
+            title='One click from hours to paid.'
+          >
+            <MockInvoiceCard />
+          </BentoCard>
         </div>
       </section>
 
-      <section>
-        <div className='mx-auto max-w-7xl px-6 py-24'>
-          <h2 className='font-bold text-3xl tracking-tight'>
-            Roles that match how teams actually work
-          </h2>
-          <p className='mt-3 max-w-lg text-muted-foreground'>
-            Four roles with fine-grained permissions. Your team sees exactly
-            what they need — nothing more. Clients register on the same platform
-            with scoped access to their assigned projects.
-          </p>
-          <div className='mt-12 grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-2 lg:grid-cols-4'>
-            {roles.map((r) => (
-              <div className='bg-card p-6' key={r.role}>
-                <div className='mb-1 font-semibold'>{r.role}</div>
-                <p className='text-muted-foreground text-sm'>{r.desc}</p>
-                <div className='mt-4 space-y-1.5'>
-                  {r.permissions.map((p) => (
-                    <div
-                      className='flex items-center gap-2 text-muted-foreground text-xs'
-                      key={p}
-                    >
-                      <Check className='size-3 text-primary' />
-                      {p}
-                    </div>
-                  ))}
+      {/* HOW IT WORKS */}
+      <section className='border-border/60 border-y bg-secondary/20'>
+        <div className='mx-auto max-w-6xl px-6 py-24 sm:py-28'>
+          <div className='mb-14 max-w-2xl'>
+            <div className='font-mono text-[11px] text-muted-foreground uppercase tracking-[0.18em]'>
+              / how it works
+            </div>
+            <h2 className='mt-3 font-semibold text-4xl leading-[1.02] tracking-[-0.03em] sm:text-5xl'>
+              Three steps,{' '}
+              <span className='text-muted-foreground/70 italic'>
+                start to paid.
+              </span>
+            </h2>
+          </div>
+          <div className='grid grid-cols-1 gap-3 md:grid-cols-3'>
+            {howItWorks.map((s) => (
+              <div
+                className='flex flex-col rounded-2xl border border-border/60 bg-card p-7'
+                key={s.step}
+              >
+                <div className='font-mono text-[11px] text-muted-foreground uppercase tracking-[0.18em]'>
+                  {s.step}
                 </div>
+                <h3 className='mt-6 font-medium text-foreground text-xl tracking-[-0.02em]'>
+                  {s.title}
+                </h3>
+                <p className='mt-2 text-muted-foreground text-sm leading-relaxed'>
+                  {s.body}
+                </p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section className='relative border-border border-y bg-secondary/40'>
-        <DotPattern className='pointer-events-none absolute inset-0 opacity-30' />
-        <div className='relative mx-auto max-w-7xl px-6 py-24'>
-          <h2 className='font-bold text-3xl tracking-tight'>
-            Built for every kind of freelancer
-          </h2>
-          <p className='mt-3 max-w-lg text-muted-foreground'>
-            Whether you&apos;re a solo developer or a design agency with 20
-            people, Saturn adapts to how you work.
-          </p>
-          <div className='mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4'>
-            {freelancerTypes.map((cat) => {
-              const Icon = freelancerIcons[cat.iconName]
-              return (
-                <div
-                  className='rounded-xl border border-border bg-card p-5'
-                  key={cat.title}
-                >
-                  <Icon className='mb-3 size-5 text-primary' />
-                  <h3 className='mb-3 font-semibold'>{cat.title}</h3>
-                  <ul className='space-y-2'>
-                    {cat.points.map((point) => (
-                      <li
-                        className='flex gap-2 text-muted-foreground text-sm'
-                        key={point}
-                      >
-                        <span className='mt-1.5 size-1 shrink-0 rounded-full bg-primary' />
-                        {point}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )
-            })}
+      {/* COMPARISON */}
+      <section className='mx-auto max-w-5xl px-6 py-24 sm:py-28'>
+        <div className='mb-12 max-w-2xl'>
+          <div className='font-mono text-[11px] text-muted-foreground uppercase tracking-[0.18em]'>
+            / vs. the stack
           </div>
+          <h2 className='mt-3 font-semibold text-4xl leading-[1.02] tracking-[-0.03em] sm:text-5xl'>
+            Seven tools,{' '}
+            <span className='text-muted-foreground/70 italic'>
+              or just this one.
+            </span>
+          </h2>
+        </div>
+        <div className='overflow-hidden rounded-2xl border border-border/60'>
+          <div className='grid grid-cols-[1.2fr_1fr_1fr] items-center bg-muted/30 px-5 py-3 font-mono text-[11px] text-muted-foreground uppercase tracking-[0.14em]'>
+            <span>What you need</span>
+            <span className='flex items-center gap-1.5'>
+              <Minus className='size-3' />
+              Stitching it together
+            </span>
+            <span className='flex items-center gap-1.5 text-primary'>
+              <SaturnLogo className='size-3' />
+              Saturn
+            </span>
+          </div>
+          {comparison.map((row, i) => (
+            <div
+              className={`grid grid-cols-[1.2fr_1fr_1fr] items-center px-5 py-4 text-sm ${
+                i !== comparison.length - 1 ? 'border-border/60 border-b' : ''
+              }`}
+              key={row.need}
+            >
+              <span className='font-medium text-foreground'>{row.need}</span>
+              <span className='text-muted-foreground'>{row.stack}</span>
+              <span className='flex items-center gap-1.5 text-foreground'>
+                <Check className='size-3.5 text-primary' />
+                {row.saturn}
+              </span>
+            </div>
+          ))}
         </div>
       </section>
 
-      <section>
-        <div className='mx-auto max-w-7xl px-6 py-24'>
-          <h2 className='font-bold text-3xl tracking-tight'>
-            Your clients use the same platform
-          </h2>
-          <p className='mt-3 max-w-lg text-muted-foreground'>
-            No separate portal. Clients register on Saturn and get invited to
-            your projects. Their role scopes what they can see — milestone
-            progress, requirements to sign, invoices to review — while your
-            internal timesheets and team rates stay private.
-          </p>
-          <div className='mt-12 grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-2 lg:grid-cols-4'>
-            {clientFeatures.map((item) => {
-              const Icon = clientIcons[item.iconName]
-              return (
-                <div className='bg-card p-5' key={item.title}>
-                  <Icon className='mb-2 size-4 text-primary' />
-                  <div className='mb-1 font-semibold text-sm'>{item.title}</div>
-                  <p className='text-muted-foreground text-xs leading-relaxed'>
-                    {item.desc}
-                  </p>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      </section>
-
+      {/* PRICING */}
       <section
-        className='relative border-border border-y bg-secondary/40'
+        className='relative border-border/60 border-y bg-secondary/20'
         id='pricing'
       >
-        <DotPattern className='pointer-events-none absolute inset-0 opacity-30' />
-        <div className='relative mx-auto max-w-4xl px-6 py-24'>
-          <div className='mb-14 text-center'>
-            <h2 className='font-bold text-3xl tracking-tight'>
-              Simple pricing. No per-seat nonsense.
+        <div className='mx-auto max-w-5xl px-6 py-24 sm:py-28'>
+          <div className='mb-14 max-w-xl'>
+            <div className='font-mono text-[11px] text-muted-foreground uppercase tracking-[0.18em]'>
+              / pricing
+            </div>
+            <h2 className='mt-3 font-semibold text-4xl leading-[1.02] tracking-[-0.03em] sm:text-5xl'>
+              Three dollars, no seats.
             </h2>
-            <p className='mt-3 text-muted-foreground'>
-              Every feature works on Free. Pro removes limits and adds API
-              access for teams that want to automate.
+            <p className='mt-4 text-lg text-muted-foreground'>
+              Every feature works on Free. Pro removes the limits.
             </p>
           </div>
-          <div className='grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-2'>
-            <div className='flex flex-col bg-card p-8'>
-              <div className='mb-1 font-semibold text-lg'>Free</div>
-              <div className='mb-4 flex items-baseline gap-1'>
-                <span className='font-bold text-3xl tracking-tight'>$0</span>
-                <span className='text-muted-foreground text-sm'>/ forever</span>
-              </div>
-              <p className='mb-6 text-muted-foreground text-sm'>
-                Everything you need to manage a small freelance practice.
-              </p>
-              <div className='mb-8 space-y-3'>
-                {freePlanFeatures.map((f) => (
-                  <div className='flex items-center gap-2.5 text-sm' key={f}>
-                    <Check className='size-3.5 shrink-0 text-primary' />
-                    {f}
-                  </div>
-                ))}
-              </div>
-              <div className='mt-auto'>
-                <Link
-                  className={buttonVariants({
-                    variant: 'outline',
-                    size: 'lg',
-                    className: 'w-full',
-                  })}
-                  href='/auth/sign-up'
-                >
-                  Get started
-                </Link>
-              </div>
-            </div>
-            <div className='flex flex-col bg-card p-8'>
-              <div className='mb-1 flex items-center gap-2'>
-                <span className='font-semibold text-lg'>Pro</span>
-                <span className='rounded-md bg-primary/10 px-2 py-0.5 font-medium text-primary text-xs'>
-                  Recommended
-                </span>
-              </div>
-              <div className='mb-4 flex items-baseline gap-1'>
-                <span className='font-bold text-3xl tracking-tight'>$3</span>
-                <span className='text-muted-foreground text-sm'>/ month</span>
-              </div>
-              <p className='mb-6 text-muted-foreground text-sm'>
-                For freelancers and agencies that need room to grow.
-              </p>
-              <div className='mb-8 space-y-3'>
-                {proPlanFeatures.map((f) => (
-                  <div className='flex items-center gap-2.5 text-sm' key={f}>
-                    <Check className='size-3.5 shrink-0 text-primary' />
-                    {f}
-                  </div>
-                ))}
-              </div>
-              <div className='mt-auto'>
-                <Link
-                  className={buttonVariants({
-                    size: 'lg',
-                    className: 'w-full',
-                  })}
-                  href='/auth/sign-up'
-                >
-                  Start with Pro
-                </Link>
-              </div>
-            </div>
+          <div className='grid gap-3 sm:grid-cols-2'>
+            <PricingCard
+              cta='Get started'
+              ctaVariant='outline'
+              description='Enough to run a small practice.'
+              features={freePlanFeatures}
+              name='Free'
+              price='$0'
+              suffix='forever'
+            />
+            <PricingCard
+              badge='Recommended'
+              cta='Start with Pro'
+              description='For when projects and clients start stacking up.'
+              features={proPlanFeatures}
+              name='Pro'
+              price='$3'
+              suffix='/ month'
+            />
           </div>
-          <p className='mt-6 text-center text-muted-foreground text-sm'>
-            No credit card required. No feature gates on core functionality.
+          <p className='mt-6 font-mono text-[11px] text-muted-foreground uppercase tracking-[0.18em]'>
+            No credit card required
           </p>
         </div>
       </section>
 
-      <section className='mx-auto max-w-2xl px-6 py-24 text-center'>
-        <h2 className='font-bold text-3xl tracking-tight'>
-          Stop juggling tools.
+      {/* FAQ */}
+      <section className='mx-auto max-w-3xl px-6 py-24 sm:py-28' id='faq'>
+        <div className='mb-12'>
+          <div className='font-mono text-[11px] text-muted-foreground uppercase tracking-[0.18em]'>
+            / faq
+          </div>
+          <h2 className='mt-3 font-semibold text-4xl leading-[1.02] tracking-[-0.03em] sm:text-5xl'>
+            Questions,{' '}
+            <span className='text-muted-foreground/70 italic'>answered.</span>
+          </h2>
+        </div>
+        <div className='divide-y divide-border/60 border-border/60 border-y'>
+          {faq.map((item) => (
+            <details className='group py-5' key={item.q}>
+              <summary className='flex cursor-pointer items-center justify-between gap-6 font-medium text-base text-foreground tracking-tight'>
+                {item.q}
+                <span className='font-mono text-muted-foreground text-xs transition-transform group-open:rotate-45'>
+                  +
+                </span>
+              </summary>
+              <p className='mt-3 text-muted-foreground text-sm leading-relaxed'>
+                {item.a}
+              </p>
+            </details>
+          ))}
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className='mx-auto max-w-3xl px-6 py-28 text-center sm:py-36'>
+        <h2 className='font-semibold text-4xl leading-[1.02] tracking-[-0.04em] sm:text-6xl'>
+          Two minutes to
           <br />
-          Start running your business.
+          <span className='text-muted-foreground/80 italic'>
+            your first project.
+          </span>
         </h2>
-        <p className='mt-4 text-lg text-muted-foreground'>
-          Saturn is free to get started. Set up your first project in under two
-          minutes.
-        </p>
-        <div className='mt-8'>
+        <div className='mt-10 flex items-center justify-center gap-3'>
           <Link className={buttonVariants({ size: 'lg' })} href='/auth/sign-up'>
-            Get started for free
+            Start for free
             <ArrowRight className='size-4' />
           </Link>
         </div>
       </section>
 
-      <footer className='border-border border-t bg-secondary/40'>
-        <div className='mx-auto flex max-w-7xl items-center justify-between px-6 py-6'>
+      <footer className='border-border/60 border-t'>
+        <div className='mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-6'>
           <div className='flex items-center gap-2'>
             <SaturnLogo className='size-4 text-muted-foreground' />
             <span className='text-muted-foreground text-sm'>Saturn</span>
           </div>
-          <p className='text-muted-foreground text-xs'>
-            &copy; {new Date().getFullYear()} Saturn
-          </p>
+          <div className='flex items-center gap-5'>
+            <a
+              className='inline-flex items-center gap-1.5 text-muted-foreground text-sm transition-colors hover:text-foreground'
+              href='https://github.com/phantomknight287/saturn'
+              rel='noreferrer noopener'
+              target='_blank'
+            >
+              <Github className='size-3.5' />
+              GitHub
+            </a>
+            <p className='font-mono text-[11px] text-muted-foreground uppercase tracking-[0.18em]'>
+              &copy; {new Date().getFullYear()}
+            </p>
+          </div>
         </div>
       </footer>
+    </div>
+  )
+}
+
+function BentoCard({
+  className,
+  title,
+  description,
+  children,
+}: {
+  className?: string
+  title: string
+  description: string
+  children: React.ReactNode
+}) {
+  return (
+    <div
+      className={`group relative flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-card p-7 transition-colors hover:border-border ${className ?? ''}`}
+    >
+      <h3 className='font-medium text-foreground text-xl tracking-[-0.02em]'>
+        {title}
+      </h3>
+      <p className='mt-2 max-w-md text-muted-foreground text-sm leading-relaxed'>
+        {description}
+      </p>
+      <div className='mt-6 flex-1'>{children}</div>
+    </div>
+  )
+}
+
+function PricingCard({
+  name,
+  price,
+  suffix,
+  description,
+  features,
+  cta,
+  ctaVariant = 'default',
+  badge,
+}: {
+  name: string
+  price: string
+  suffix: string
+  description: string
+  features: readonly string[]
+  cta: string
+  ctaVariant?: 'default' | 'outline'
+  badge?: string
+}) {
+  return (
+    <div className='flex flex-col rounded-2xl border border-border/60 bg-card p-7'>
+      <div className='flex items-center gap-2'>
+        <span className='font-medium text-base tracking-tight'>{name}</span>
+        {badge && (
+          <span className='rounded-full bg-primary/10 px-2 py-0.5 font-mono text-[10px] text-primary uppercase tracking-wider'>
+            {badge}
+          </span>
+        )}
+      </div>
+      <div className='mt-4 flex items-baseline gap-1.5'>
+        <span className='font-semibold text-5xl tracking-[-0.04em]'>
+          {price}
+        </span>
+        <span className='text-muted-foreground text-sm'>{suffix}</span>
+      </div>
+      <p className='mt-3 text-muted-foreground text-sm'>{description}</p>
+      <div className='mt-6 space-y-2.5 border-border/60 border-t pt-6'>
+        {features.map((f) => (
+          <div
+            className='flex items-center gap-2.5 text-foreground/80 text-sm'
+            key={f}
+          >
+            <Check className='size-3.5 shrink-0 text-primary' />
+            {f}
+          </div>
+        ))}
+      </div>
+      <div className='mt-8'>
+        <Link
+          className={buttonVariants({
+            variant: ctaVariant,
+            className: 'w-full',
+          })}
+          href='/auth/sign-up'
+        >
+          {cta}
+        </Link>
+      </div>
     </div>
   )
 }

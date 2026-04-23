@@ -115,7 +115,7 @@ export default function InvoiceEditor({
     [mediaItems, uploadedMedia]
   )
   const handleUploadComplete = useCallback(
-    (item: { id: string; url: string }) => {
+    (item: { id: string; name?: string; contentType?: string }) => {
       setUploadedMedia((prev) =>
         prev.some((m) => m.id === item.id)
           ? prev
@@ -123,9 +123,8 @@ export default function InvoiceEditor({
               ...prev,
               {
                 id: item.id,
-                url: item.url,
-                name: '',
-                contentType: '',
+                name: item.name ?? '',
+                contentType: item.contentType ?? '',
                 createdAt: new Date(),
               },
             ]
@@ -181,16 +180,14 @@ export default function InvoiceEditor({
     try {
       setIsUploadingSignature(true)
       let mediaId: string
-      let mediaUrl: string
 
       if (result.source === 'library') {
-        const match = allMediaItems.find((m) => m.url === result.dataUrl)
+        const match = allMediaItems.find((m) => m.id === result.dataUrl)
         if (!match) {
           toast.error('Could not find the selected signature')
           return
         }
         mediaId = match.id
-        mediaUrl = match.url
       } else {
         const uploaded = await uploadDataUrl(
           result.dataUrl,
@@ -198,8 +195,7 @@ export default function InvoiceEditor({
           'signature.png'
         )
         mediaId = uploaded.id
-        mediaUrl = uploaded.url
-        handleUploadComplete({ id: mediaId, url: mediaUrl })
+        handleUploadComplete({ id: mediaId })
       }
 
       setValue('senderSignature', mediaId)
@@ -344,8 +340,7 @@ export default function InvoiceEditor({
     {
       onSuccess() {
         toast.success('Invoice deleted')
-        //@ts-expect-error - TODO: fix this
-        router.push(backUrl)
+        router.push(backUrl as Parameters<typeof router.push>[0])
       },
       onError({ error }) {
         toast.error(error.serverError ?? 'Failed to delete invoice')
@@ -684,8 +679,8 @@ export default function InvoiceEditor({
                     control={control}
                     name='senderSignature'
                     render={({ field }) => {
-                      const signatureUrl = field.value
-                        ? allMediaItems.find((m) => m.id === field.value)?.url
+                      const signatureId = field.value
+                        ? allMediaItems.find((m) => m.id === field.value)?.id
                         : null
                       return (
                         <div className='flex items-center gap-3'>
@@ -695,12 +690,12 @@ export default function InvoiceEditor({
                             onClick={() => setSignatureDialogOpen(true)}
                             type='button'
                           >
-                            {signatureUrl ? (
+                            {signatureId ? (
                               <Image
                                 alt='Signature'
                                 className='max-h-[54px] object-contain'
                                 height={54}
-                                src={signatureUrl}
+                                src={`/api/files/${signatureId}`}
                                 unoptimized
                                 width={130}
                               />
@@ -1015,13 +1010,38 @@ export default function InvoiceEditor({
                         year: 'numeric',
                       })
                       return (
-                        <div
-                          className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors ${
+                        <button
+                          className={`flex w-full cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors ${
                             isSelected
                               ? 'border-primary/30 bg-primary/5'
                               : 'hover:bg-muted/50'
                           }`}
+                          disabled={!isEditable}
                           key={exp.id}
+                          onClick={() => {
+                            if (isSelected) {
+                              field.onChange(
+                                field.value.filter((id) => id !== exp.id)
+                              )
+                              const items = getValues('items')
+                              const expDesc = `Expense: ${exp.title}`
+                              const itemIndex = items.findIndex(
+                                (item) => item.description === expDesc
+                              )
+                              if (itemIndex !== -1) {
+                                removeItem(itemIndex)
+                              }
+                            } else {
+                              field.onChange([...field.value, exp.id])
+                              appendItem({
+                                description: `Expense: ${exp.title}`,
+                                quantity: '1',
+                                unitPrice: formattedAmount,
+                                amount: formattedAmount,
+                              })
+                            }
+                          }}
+                          type='button'
                         >
                           <Checkbox
                             checked={isSelected}
@@ -1043,7 +1063,7 @@ export default function InvoiceEditor({
                           >
                             {exp.currency} {formattedAmount}
                           </Badge>
-                        </div>
+                        </button>
                       )
                     })}
                   </div>

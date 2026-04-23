@@ -51,33 +51,56 @@ export function FloatingTimer() {
   }
 
   return (
-    <div className='fixed right-4 bottom-4 z-50 flex items-center gap-3 rounded-lg border bg-background px-3 py-2 shadow-lg'>
-      <div className='flex flex-col'>
-        <span className='text-muted-foreground text-xs'>
-          {context.projectName}
-          {isRunning ? '' : ' · Paused'}
+    <div className='fixed right-4 bottom-4 z-50 flex flex-col gap-3 rounded-xl border border-border/70 bg-card/95 p-3 shadow-xl backdrop-blur'>
+      <div className='flex items-center gap-2 text-muted-foreground text-xs'>
+        {isRunning ? (
+          <span className='relative flex size-1.5'>
+            <span className='absolute inline-flex h-full w-full animate-ping rounded-full bg-primary/60 opacity-75' />
+            <span className='relative inline-flex size-1.5 rounded-full bg-primary' />
+          </span>
+        ) : (
+          <span className='inline-flex size-1.5 rounded-full bg-muted-foreground/50' />
+        )}
+        <span className='font-mono uppercase tracking-wider'>
+          {isRunning ? 'Recording' : 'Paused'}
         </span>
-        <span className='font-mono font-semibold text-sm tabular-nums'>
-          {formatElapsedMs(elapsedMs)}
+        <span className='text-muted-foreground/50'>·</span>
+        <span className='max-w-[12rem] truncate font-mono text-muted-foreground/80'>
+          {context.projectName}
         </span>
       </div>
-      {isRunning ? (
-        <Button onClick={pause} size='sm' variant='outline'>
-          <Pause className='size-4' />
-          Pause
-        </Button>
-      ) : (
-        <>
-          <Button onClick={resume} size='sm' variant='outline'>
-            <Play className='size-4' />
-            Resume
+      <div className='font-semibold text-3xl text-foreground tabular-nums tracking-[-0.04em]'>
+        {formatElapsedMs(elapsedMs)}
+      </div>
+      <div className='flex items-center gap-2'>
+        {isRunning ? (
+          <Button
+            className='flex-1'
+            onClick={pause}
+            size='sm'
+            variant='outline'
+          >
+            <Pause className='size-3.5' />
+            Pause
           </Button>
-          <Button onClick={handleLog} size='sm'>
-            <Check className='size-4' />
-            Log Time
-          </Button>
-        </>
-      )}
+        ) : (
+          <>
+            <Button
+              className='flex-1'
+              onClick={resume}
+              size='sm'
+              variant='outline'
+            >
+              <Play className='size-3.5' />
+              Resume
+            </Button>
+            <Button className='flex-1' onClick={handleLog} size='sm'>
+              <Check className='size-3.5' />
+              Log time
+            </Button>
+          </>
+        )}
+      </div>
     </div>
   )
 }

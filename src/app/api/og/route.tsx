@@ -145,7 +145,7 @@ export async function GET(request: NextRequest) {
             style={{ letterSpacing: '3px', textTransform: 'uppercase' }}
             tw='text-[14px] text-white/20'
           >
-            saturn.app
+            saturn.procrastinator.fyi
           </span>
         </div>
       </div>

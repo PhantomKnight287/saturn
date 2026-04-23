@@ -43,12 +43,14 @@ function DueDateBadge({ dueDate }: { dueDate: Date }) {
 export default function ProjectCard({
   project,
   orgSlug,
+  inert = false,
 }: {
   project: typeof projects.$inferSelect
   orgSlug: string
+  inert?: boolean
 }) {
   return (
-    <Link className='h-full' href={`/${orgSlug}/${project.slug}`}>
+    <Link className='h-full' href={`/${orgSlug}/${project.slug}`} inert={inert}>
       <Card className='flex h-full cursor-pointer flex-col gap-0 overflow-hidden py-0 transition-colors hover:border-primary/50'>
         <ProjectBanner seed={project.id} />
         <div className='flex flex-1 flex-col p-4'>

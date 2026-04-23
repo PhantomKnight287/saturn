@@ -3,9 +3,8 @@
 import { Clock, DollarSign, Filter, Pencil, Trash2 } from 'lucide-react'
 import { useParams } from 'next/navigation'
 import { useAction } from 'next-safe-action/hooks'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import StatusBadge from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -34,12 +33,12 @@ import {
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { deleteTimeEntryAction } from '../actions'
-import { formatMinutes } from '../common'
+import { formatMinutes, formatShortDate } from '../common'
 import type { ProjectMember, Requirement, TimeEntry } from '../types'
+import { StatusBadgeWithReason } from './status-badge-with-reason'
 import { TimeEntryForm } from './time-entry-form'
 
 interface TeamEntriesTableProps {
@@ -75,36 +74,44 @@ export function TeamEntriesTable({
       toast.error(error.serverError ?? 'Failed to delete entry'),
   })
 
-  const filtered = entries.filter((e) => {
-    if (filterMember !== 'all' && e.memberId !== filterMember) {
-      return false
-    }
-    if (filterStatus !== 'all' && e.status !== filterStatus) {
-      return false
-    }
-    if (filterRequirement !== 'all') {
-      if (filterRequirement === 'general' && e.requirementId !== null) {
-        return false
-      }
-      if (
-        filterRequirement !== 'general' &&
-        e.requirementId !== filterRequirement
-      ) {
-        return false
-      }
-    }
-    return true
-  })
+  const filtered = useMemo(
+    () =>
+      entries.filter((e) => {
+        if (filterMember !== 'all' && e.memberId !== filterMember) {
+          return false
+        }
+        if (filterStatus !== 'all' && e.status !== filterStatus) {
+          return false
+        }
+        if (filterRequirement !== 'all') {
+          if (filterRequirement === 'general' && e.requirementId !== null) {
+            return false
+          }
+          if (
+            filterRequirement !== 'general' &&
+            e.requirementId !== filterRequirement
+          ) {
+            return false
+          }
+        }
+        return true
+      }),
+    [entries, filterMember, filterStatus, filterRequirement]
+  )
 
-  const totalMinutes = filtered.reduce((sum, e) => sum + e.durationMinutes, 0)
+  const totalMinutes = useMemo(
+    () => filtered.reduce((sum, e) => sum + e.durationMinutes, 0),
+    [filtered]
+  )
 
   const hasActiveFilters =
     filterMember !== 'all' ||
     filterStatus !== 'all' ||
     filterRequirement !== 'all'
 
-  const selectableEntries = filtered.filter(
-    (e) => e.status === 'admin_accepted' && !e.invoiceId
+  const selectableEntries = useMemo(
+    () => filtered.filter((e) => e.status === 'admin_accepted' && !e.invoiceId),
+    [filtered]
   )
 
   const toggleEntry = (id: string) => {
@@ -276,14 +283,12 @@ export function TeamEntriesTable({
                               {entry.description}
                             </span>
                             {entry.billable && (
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger>
-                                    <DollarSign className='size-3 text-primary' />
-                                  </TooltipTrigger>
-                                  <TooltipContent>Billable</TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <DollarSign className='size-3 text-primary' />
+                                </TooltipTrigger>
+                                <TooltipContent>Billable</TooltipContent>
+                              </Tooltip>
                             )}
                           </div>
                         </TableCell>
@@ -303,40 +308,16 @@ export function TeamEntriesTable({
                           </span>
                         </TableCell>
                         <TableCell className='whitespace-nowrap text-sm'>
-                          {new Date(entry.date).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                          })}
+                          {formatShortDate(entry.date)}
                         </TableCell>
                         <TableCell className='text-right font-medium text-sm'>
                           {formatMinutes(entry.durationMinutes)}
                         </TableCell>
                         <TableCell className='text-center'>
-                          {entry.status === 'admin_rejected' &&
-                          entry.rejectReason ? (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger>
-                                  <StatusBadge
-                                    isClientInvolved={isClientInvolved}
-                                    status={entry.status}
-                                  />
-                                </TooltipTrigger>
-                                <TooltipContent
-                                  className='max-w-xs'
-                                  side='left'
-                                >
-                                  <p className='font-medium'>Reason:</p>
-                                  <p>{entry.rejectReason}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          ) : (
-                            <StatusBadge
-                              isClientInvolved={isClientInvolved}
-                              status={entry.status}
-                            />
-                          )}
+                          <StatusBadgeWithReason
+                            entry={entry}
+                            isClientInvolved={isClientInvolved}
+                          />
                         </TableCell>
                         <TableCell>
                           <div className='flex items-center gap-1'>

@@ -49,7 +49,6 @@ export interface MediaItem {
   createdAt: Date
   id: string
   name: string
-  url: string
 }
 
 export interface ImageUploadProps {

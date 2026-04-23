@@ -41,7 +41,7 @@ export default async function Expenses({
   const isAdmin = orgMember.role === 'owner' || orgMember.role === 'admin'
   const isClient = orgMember.role === 'client'
 
-  const [expenses, categories, clients, settings] = await Promise.all([
+  const [allExpenses, categories, clients, settings] = await Promise.all([
     expensesServices.listByProject(currentProject.id, h),
     expensesServices.listCategoriesByOrg(organization.id),
     isAdmin
@@ -49,6 +49,19 @@ export default async function Expenses({
       : Promise.resolve([]),
     projectsService.getSettings(organization.id, currentProject.id),
   ])
+
+  const clientFacingExpenseIds = allExpenses
+    .filter(
+      (e) =>
+        e.status === 'submitted_to_client' ||
+        e.status === 'client_accepted' ||
+        e.status === 'client_rejected'
+    )
+    .map((e) => e.id)
+
+  const recipients = await expensesServices.getRecipientsByExpenseIds(
+    clientFacingExpenseIds
+  )
 
   const canCreate = role.authorize({ expense: ['create'] }).success
   const canApprove = role.authorize({ expense: ['approve'] }).success
@@ -64,7 +77,7 @@ export default async function Expenses({
       clients={clients}
       currentMemberId={orgMember.id}
       defaultCurrency={settings.currency}
-      expenses={expenses}
+      expenses={allExpenses}
       isAdmin={isAdmin}
       isClient={isClient}
       isClientInvolved={settings.clientInvolvement.expenses === 'on'}
@@ -73,6 +86,7 @@ export default async function Expenses({
       projectId={currentProject.id}
       projectName={currentProject.name}
       projectSlug={projectSlug}
+      recipients={recipients}
     />
   )
 }

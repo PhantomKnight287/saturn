@@ -37,6 +37,7 @@ export default function ExpensesClient({
   defaultCurrency,
   currentMemberId,
   isClientInvolved,
+  recipients,
 }: ExpensesClientProps) {
   const [formOpen, setFormOpen] = useState(false)
   const [categoriesOpen, setCategoriesOpen] = useState(false)
@@ -107,7 +108,11 @@ export default function ExpensesClient({
         <div className='mb-6 flex items-center justify-between'>
           <h1 className='font-semibold text-2xl'>Expenses</h1>
         </div>
-        <ClientExpensesView expenses={expenses} />
+        <ClientExpensesView
+          currentMemberId={currentMemberId}
+          expenses={expenses}
+          recipients={recipients}
+        />
       </div>
     )
   }
@@ -199,6 +204,7 @@ export default function ExpensesClient({
               onToggleAll={toggleAll}
               onToggleSelect={toggleSelect}
               projectId={projectId}
+              recipients={recipients}
               selectedIds={selectedIds}
             />
           </TabsContent>

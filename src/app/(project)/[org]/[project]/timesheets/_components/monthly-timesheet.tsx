@@ -23,9 +23,8 @@ import {
 } from 'lucide-react'
 import { useParams } from 'next/navigation'
 import { useAction } from 'next-safe-action/hooks'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import StatusBadge from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -46,13 +45,14 @@ import {
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { useSetSelection } from '@/hooks/use-set-selection'
 import { cn } from '@/lib/utils'
 import { deleteTimeEntryAction, submitTimesheetAction } from '../actions'
-import { formatMinutes } from '../common'
+import { canDeleteTimeEntry, canEditTimeEntry, formatMinutes } from '../common'
 import type { Requirement, TimeEntry } from '../types'
+import { StatusBadgeWithReason } from './status-badge-with-reason'
 import { TimeEntryForm } from './time-entry-form'
 
 interface MonthlyTimesheetProps {
@@ -79,45 +79,61 @@ export function MonthlyTimesheet({
   onAddEntry,
 }: MonthlyTimesheetProps) {
   const [monthOffset, setMonthOffset] = useState(0)
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const { selectedIds, toggle, clear } = useSetSelection<TimeEntry>((e) => e.id)
   const [selectedDay, setSelectedDay] = useState<Date | null>(null)
   const [editEntry, setEditEntry] = useState<TimeEntry | null>(null)
   const params = useParams()
   const router = useRouter()
 
-  const currentMonth = addMonths(startOfMonth(new Date()), monthOffset)
-  const monthStart = startOfMonth(currentMonth)
-  const monthEnd = endOfMonth(currentMonth)
+  const { currentMonth, monthStart, monthEnd, weeks } = useMemo(() => {
+    const month = addMonths(startOfMonth(new Date()), monthOffset)
+    const start = startOfMonth(month)
+    const end = endOfMonth(month)
+    const calendarStart = startOfWeek(start, { weekStartsOn: 1 })
+    const lastDayOfWeek = getDay(end)
+    const calendarEnd = new Date(end)
+    if (lastDayOfWeek !== 0) {
+      calendarEnd.setDate(calendarEnd.getDate() + (7 - lastDayOfWeek))
+    }
+    const days = eachDayOfInterval({ start: calendarStart, end: calendarEnd })
+    const grid: Date[][] = []
+    for (let i = 0; i < days.length; i += 7) {
+      grid.push(days.slice(i, i + 7))
+    }
+    return {
+      currentMonth: month,
+      monthStart: start,
+      monthEnd: end,
+      weeks: grid,
+    }
+  }, [monthOffset])
 
-  // Build calendar grid: start from Monday of the week containing the 1st
-  const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 })
-  // End on Sunday after the last day of the month
-  const lastDay = endOfMonth(currentMonth)
-  const lastDayOfWeek = getDay(lastDay)
-  const calendarEnd = new Date(lastDay)
-  if (lastDayOfWeek !== 0) {
-    calendarEnd.setDate(calendarEnd.getDate() + (7 - lastDayOfWeek))
-  }
-  const calendarDays = eachDayOfInterval({
-    start: calendarStart,
-    end: calendarEnd,
-  })
-
-  const monthEntries = entries.filter((e) => {
-    const d = new Date(e.date)
-    return d >= monthStart && d <= monthEnd
-  })
-
-  const submittableEntries = monthEntries.filter(
-    (e) => e.status === 'draft' && e.memberId === currentMemberId
+  const monthEntries = useMemo(
+    () =>
+      entries.filter((e) => {
+        const d = new Date(e.date)
+        return d >= monthStart && d <= monthEnd
+      }),
+    [entries, monthStart, monthEnd]
   )
 
-  const monthTotal = monthEntries.reduce((sum, e) => sum + e.durationMinutes, 0)
+  const submittableEntries = useMemo(
+    () =>
+      monthEntries.filter(
+        (e) => e.status === 'draft' && e.memberId === currentMemberId
+      ),
+    [monthEntries, currentMemberId]
+  )
+
+  const monthTotal = useMemo(
+    () => monthEntries.reduce((sum, e) => sum + e.durationMinutes, 0),
+    [monthEntries]
+  )
 
   const submitAction = useAction(submitTimesheetAction, {
     onSuccess: () => {
       toast.success('Timesheet submitted for approval')
-      setSelectedIds(new Set())
+      clear()
       router.refresh()
     },
     onError: ({ error }) =>
@@ -133,40 +149,12 @@ export function MonthlyTimesheet({
       toast.error(error.serverError ?? 'Failed to delete entry'),
   })
 
-  function toggleSelect(id: string) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      return next
-    })
-  }
-
   function handleSubmit() {
     if (selectedIds.size === 0) {
       toast.error('Select at least one draft entry to submit')
       return
     }
     submitAction.execute({ timeEntryIds: [...selectedIds] })
-  }
-
-  function canEdit(entry: TimeEntry): boolean {
-    if (isAdmin) {
-      return true
-    }
-    if (entry.memberId !== currentMemberId) {
-      return false
-    }
-    return entry.status === 'draft'
-  }
-
-  function canDelete(entry: TimeEntry): boolean {
-    if (isAdmin) {
-      return true
-    }
-    if (entry.memberId !== currentMemberId) {
-      return false
-    }
-    return entry.status === 'draft'
   }
 
   function getEntriesForDay(day: Date) {
@@ -180,13 +168,7 @@ export function MonthlyTimesheet({
   const showActions = !isTeamView || isAdmin
   const showCheckboxes = !isTeamView && submittableEntries.length > 0
 
-  // Entries for the selected day detail view
   const dayEntries = selectedDay ? getEntriesForDay(selectedDay) : []
-
-  const weeks: Date[][] = []
-  for (let i = 0; i < calendarDays.length; i += 7) {
-    weeks.push(calendarDays.slice(i, i + 7))
-  }
 
   return (
     <div className='space-y-4'>
@@ -365,7 +347,7 @@ export function MonthlyTimesheet({
                           {isDraft && (
                             <Checkbox
                               checked={selectedIds.has(entry.id)}
-                              onCheckedChange={() => toggleSelect(entry.id)}
+                              onCheckedChange={() => toggle(entry.id)}
                             />
                           )}
                         </TableCell>
@@ -379,14 +361,12 @@ export function MonthlyTimesheet({
                         <div className='flex items-center gap-1'>
                           <span className='text-sm'>{entry.description}</span>
                           {entry.billable && (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger>
-                                  <DollarSign className='size-3 text-primary' />
-                                </TooltipTrigger>
-                                <TooltipContent>Billable</TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <DollarSign className='size-3 text-primary' />
+                              </TooltipTrigger>
+                              <TooltipContent>Billable</TooltipContent>
+                            </Tooltip>
                           )}
                         </div>
                       </TableCell>
@@ -403,33 +383,19 @@ export function MonthlyTimesheet({
                         {formatMinutes(entry.durationMinutes)}
                       </TableCell>
                       <TableCell className='text-center'>
-                        {entry.status === 'admin_rejected' &&
-                        entry.rejectReason ? (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger>
-                                <StatusBadge
-                                  isClientInvolved={isClientInvolved}
-                                  status={entry.status}
-                                />
-                              </TooltipTrigger>
-                              <TooltipContent className='max-w-xs' side='left'>
-                                <p className='font-medium'>Reason:</p>
-                                <p>{entry.rejectReason}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        ) : (
-                          <StatusBadge
-                            isClientInvolved={isClientInvolved}
-                            status={entry.status}
-                          />
-                        )}
+                        <StatusBadgeWithReason
+                          entry={entry}
+                          isClientInvolved={isClientInvolved}
+                        />
                       </TableCell>
                       {showActions && (
                         <TableCell>
                           <div className='flex items-center gap-1'>
-                            {canEdit(entry) && (
+                            {canEditTimeEntry(
+                              entry,
+                              currentMemberId,
+                              isAdmin
+                            ) && (
                               <Button
                                 className='size-7'
                                 onClick={() => {
@@ -442,7 +408,11 @@ export function MonthlyTimesheet({
                                 <Pencil className='size-3.5' />
                               </Button>
                             )}
-                            {canDelete(entry) && (
+                            {canDeleteTimeEntry(
+                              entry,
+                              currentMemberId,
+                              isAdmin
+                            ) && (
                               <Button
                                 className='size-7 text-destructive'
                                 onClick={() =>

@@ -97,8 +97,6 @@ export const createProposalAction = authedActionClient
         })
         .returning()
 
-      console.log(deliverables)
-
       if (deliverables && deliverables.length > 0) {
         await tx.insert(proposalDeliverables).values(
           deliverables.map((d, i) => ({
@@ -185,7 +183,6 @@ export const updateProposalAction = authedActionClient
         await tx
           .delete(proposalDeliverables)
           .where(eq(proposalDeliverables.proposalId, proposalId))
-        console.log(deliverables)
         if (deliverables.length > 0) {
           await tx.insert(proposalDeliverables).values(
             deliverables.map((d, i) => ({
@@ -292,12 +289,15 @@ export const sendProposalAction = authedActionClient
         }
       })
 
-      await tx.insert(proposalRecipients).values(
-        recipients.map((recipient) => ({
-          proposalId,
-          clientMemberId: recipient,
-        }))
-      )
+      await tx
+        .insert(proposalRecipients)
+        .values(
+          recipients.map((recipient) => ({
+            proposalId,
+            clientMemberId: recipient,
+          }))
+        )
+        .onConflictDoNothing()
     })
 
     return proposal

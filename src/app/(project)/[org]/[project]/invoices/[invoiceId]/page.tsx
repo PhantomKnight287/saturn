@@ -4,12 +4,12 @@ import { redirect } from 'next/navigation'
 import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
 import { expensesServices } from '@/app/api/expenses/service'
 import { invoicesService } from '@/app/api/invoices/service'
-import { mediaService } from '@/app/api/media/service'
 import { projectsService } from '@/app/api/projects/service'
 import { requirementsService } from '@/app/api/requirements/service'
 import { teamService } from '@/app/api/teams/service'
 import { threadService } from '@/app/api/threads/service'
 import { timesheetService } from '@/app/api/timesheets/service'
+import { usersService } from '@/app/api/users/service'
 import { createMetadata } from '@/lib/metadata'
 import type { Role } from '@/types'
 import { InvoiceClientView } from '../_components/invoice-client-view'
@@ -106,11 +106,11 @@ export default async function InvoiceDetail({
 
   const h = await headers()
 
-  const [clients, requirementList, orgMedia, billableEntries, unpaidExpenses] =
+  const [clients, requirementList, userMedia, billableEntries, unpaidExpenses] =
     await Promise.all([
       teamService.getProjectClients(currentProject.id),
       requirementsService.listByProject(currentProject.id, h),
-      mediaService.listImagesByOrganization(organization.id),
+      usersService.getMedias(orgMember.userId),
       timesheetService.getBillableSummary(currentProject.id),
       expensesServices.listUnpaidExpensesByProject(
         organization.id,
@@ -162,7 +162,7 @@ export default async function InvoiceDetail({
       }}
       isClientInvolved={isClientInvolved}
       linkedRequirements={linkedReqs}
-      mediaItems={orgMedia}
+      mediaItems={userMedia}
       memberRateMap={memberRateMap}
       mode='edit'
       orgName={organization.name}

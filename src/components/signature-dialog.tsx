@@ -2,11 +2,10 @@
 
 import { Eraser, FolderOpen, Pen } from 'lucide-react'
 import Image from 'next/image'
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type ReactSignatureCanvas from 'react-signature-canvas'
 
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -15,7 +14,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
 
 import { type MediaItem, MediaLibraryDialog } from './media-library-dialog'
 
@@ -25,7 +23,6 @@ type SignatureSource = 'pad' | 'library'
 
 export interface SignatureResult {
   dataUrl: string
-  saveForLater: boolean
   source: SignatureSource
 }
 
@@ -56,12 +53,11 @@ export function SignatureDialog({
   children,
 }: SignatureDialogProps) {
   const padRef = useRef<ReactSignatureCanvas | null>(null)
-  const checkboxId = useId()
+
   const [source, setSource] = useState<SignatureSource>('pad')
   const [isEmpty, setIsEmpty] = useState(true)
-  const [saveForLater, setSaveForLater] = useState(false)
+  const [item, setItem] = useState<string | null>(null)
   const [libraryOpen, setLibraryOpen] = useState(false)
-  const [selectedMediaUrl, setSelectedMediaUrl] = useState<string | null>(null)
   const [SignatureCanvasComp, setSignatureCanvasComp] = useState<
     typeof ReactSignatureCanvas | null
   >(null)
@@ -91,9 +87,8 @@ export function SignatureDialog({
   const resetState = () => {
     padRef.current?.clear()
     setIsEmpty(true)
-    setSaveForLater(false)
+
     setSource('pad')
-    setSelectedMediaUrl(null)
   }
 
   const handleClear = () => {
@@ -106,35 +101,34 @@ export function SignatureDialog({
   }
 
   const handleConfirm = () => {
-    if (source === 'library' && selectedMediaUrl) {
-      onConfirm({ dataUrl: selectedMediaUrl, saveForLater: false, source })
+    if (source === 'library') {
+      onConfirm({ dataUrl: item!, source: 'library' })
       handleOpenChange(false)
       return
     }
 
     if (source === 'pad' && padRef.current && !padRef.current.isEmpty()) {
       const dataUrl = padRef.current.getTrimmedCanvas().toDataURL('image/png')
-      onConfirm({ dataUrl, saveForLater, source })
+      onConfirm({ dataUrl, source })
       handleOpenChange(false)
     }
   }
 
   const handleLibrarySelect = (id: string) => {
-    const item = mediaItems.find((m) => m.id === id)
-    if (item) {
-      setSelectedMediaUrl(item.url)
+    const mediaItem = mediaItems.find((m) => m.id === id)
+    if (mediaItem) {
       setSource('library')
+      setItem(mediaItem.id)
     }
     setLibraryOpen(false)
   }
 
   const switchToPad = () => {
     setSource('pad')
-    setSelectedMediaUrl(null)
   }
 
   const hasMedia = mediaItems.length > 0
-  const canConfirm = source === 'pad' ? !isEmpty : Boolean(selectedMediaUrl)
+  const canConfirm = source === 'pad' ? !isEmpty : true
 
   return (
     <>
@@ -182,22 +176,7 @@ export function SignatureDialog({
                   </Button>
                 )}
               </div>
-
-              <div className='flex items-center justify-between'>
-                <div className='flex items-center gap-2'>
-                  <Checkbox
-                    checked={saveForLater}
-                    id={checkboxId}
-                    onCheckedChange={(v) => setSaveForLater(v === true)}
-                  />
-                  <Label
-                    className='cursor-pointer text-muted-foreground'
-                    htmlFor={checkboxId}
-                  >
-                    Save for later
-                  </Label>
-                </div>
-
+              <div>
                 {hasMedia && (
                   <Button
                     onClick={() => setLibraryOpen(true)}
@@ -217,12 +196,12 @@ export function SignatureDialog({
                 className='flex items-center justify-center rounded-md border bg-white p-4'
                 style={{ minHeight: PAD_HEIGHT }}
               >
-                {selectedMediaUrl && (
+                {item && (
                   <Image
                     alt='Selected signature'
                     className='max-h-[160px] object-contain'
                     height={160}
-                    src={selectedMediaUrl}
+                    src={`/api/files/${item}`}
                     unoptimized
                     width={300}
                   />

@@ -162,6 +162,41 @@
       "when": 1776694989858,
       "tag": "0022_majestic_vulcan",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1776877125653,
+      "tag": "0023_tense_daimon_hellstrom",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1776877613515,
+      "tag": "0024_damp_boomerang",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1776877991589,
+      "tag": "0025_yummy_midnight",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1776932787832,
+      "tag": "0026_harsh_gwen_stacy",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1776949896766,
+      "tag": "0027_absurd_scorpion",
+      "breakpoints": true
     }
   ]
 }

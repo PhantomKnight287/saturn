@@ -1,6 +1,5 @@
 export interface UploadResult {
   id: string
-  url: string
 }
 
 export class UploadError extends Error {

@@ -20,6 +20,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty'
+import { useSetSelection } from '@/hooks/use-set-selection'
 
 interface BillableEntry {
   date: Date
@@ -72,15 +73,16 @@ export function ImportTimeEntriesDialog({
   rates,
   onImport,
 }: ImportTimeEntriesDialogProps) {
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const { selectedIds, toggle, toggleAll, clear } =
+    useSetSelection<BillableEntry>((e) => e.id)
   const [importIndividually, setImportIndividually] = useState(false)
   const id = useId()
   useEffect(() => {
     if (open) {
-      setSelectedIds(new Set())
+      clear()
       setImportIndividually(false)
     }
-  }, [open])
+  }, [open, clear])
 
   const grouped = billableEntries.reduce<
     Record<string, { name: string; entries: BillableEntry[] }>
@@ -95,26 +97,6 @@ export function ImportTimeEntriesDialog({
     acc[key].entries.push(entry)
     return acc
   }, {})
-
-  function toggleSelect(id: string) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) {
-        next.delete(id)
-      } else {
-        next.add(id)
-      }
-      return next
-    })
-  }
-
-  function toggleAll() {
-    if (selectedIds.size === billableEntries.length) {
-      setSelectedIds(new Set())
-    } else {
-      setSelectedIds(new Set(billableEntries.map((e) => e.id)))
-    }
-  }
 
   function handleImport() {
     const selected = billableEntries.filter((e) => selectedIds.has(e.id))
@@ -240,7 +222,7 @@ export function ImportTimeEntriesDialog({
               <div className='flex items-center gap-2'>
                 <Checkbox
                   checked={selectedIds.size === billableEntries.length}
-                  onCheckedChange={toggleAll}
+                  onCheckedChange={() => toggleAll(billableEntries)}
                 />
                 <span className='text-muted-foreground text-sm'>
                   Select all ({billableEntries.length} entries)
@@ -274,7 +256,7 @@ export function ImportTimeEntriesDialog({
                         >
                           <Checkbox
                             checked={selectedIds.has(entry.id)}
-                            onCheckedChange={() => toggleSelect(entry.id)}
+                            onCheckedChange={() => toggle(entry.id)}
                           />
                           <div className='min-w-0 flex-1'>
                             <p className='truncate text-sm'>

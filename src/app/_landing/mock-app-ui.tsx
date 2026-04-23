@@ -1,15 +1,15 @@
 import {
   Briefcase,
   ChevronDown,
-  Clock,
-  FileSpreadsheet,
   Folder,
   LayoutDashboard,
+  Settings,
   Users,
 } from 'lucide-react'
 import Image from 'next/image'
-import ProjectBanner from '@/app/(organization)/[org]/projects/_components/project-banner'
+import ProjectCard from '@/app/(organization)/[org]/projects/_components/project-card'
 import { SaturnLogo } from '@/components/icons/saturn-logo'
+import type { projects } from '@/server/db/schema'
 
 function MockNav() {
   const tabs = [
@@ -17,7 +17,7 @@ function MockNav() {
     { name: 'Projects', icon: Folder, active: true },
     { name: 'Teams', icon: Users, active: false },
     { name: 'Clients', icon: Briefcase, active: false },
-    { name: 'Invoices', icon: FileSpreadsheet, active: false },
+    { name: 'Settings', icon: Settings, active: false },
   ]
 
   return (
@@ -57,42 +57,47 @@ function MockNav() {
   )
 }
 
-function MockProjectCard({
-  name,
-  slug,
-  desc,
-  due,
-}: {
-  name: string
-  slug: string
-  desc: string
-  due?: string
-}) {
-  return (
-    <div className='overflow-hidden rounded-xl border border-border bg-muted/30 transition-colors'>
-      <ProjectBanner className='h-24 w-full rounded-t-xl' seed={name} />
-      <div className='p-3.5'>
-        <div className='flex items-center justify-between gap-2'>
-          <span className='truncate font-semibold text-foreground text-sm'>
-            {name}
-          </span>
-          <span className='shrink-0 font-mono text-[10px] text-muted-foreground/60'>
-            {slug}
-          </span>
-        </div>
-        <p className='mt-1 line-clamp-2 text-muted-foreground text-xs'>
-          {desc}
-        </p>
-        {due && (
-          <div className='mt-2.5 inline-flex items-center gap-1 rounded-md bg-muted/60 px-1.5 py-0.5 text-[10px] text-muted-foreground'>
-            <Clock className='size-2.5' />
-            Due {due}
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
+type MockProject = typeof projects.$inferSelect
+
+const now = new Date()
+const daysFromNow = (days: number) =>
+  new Date(now.getTime() + days * 24 * 60 * 60 * 1000)
+
+const mockProjects: MockProject[] = [
+  {
+    id: 'id-1',
+    name: 'Website Redesign',
+    description: 'Complete overhaul of the company website with new branding.',
+    slug: 'web-rdsn',
+    organizationId: 'org_mock',
+    status: 'in-progress',
+    dueDate: daysFromNow(5),
+    createdAt: now,
+    updatedAt: now,
+  },
+  {
+    id: 'another-id-2',
+    name: 'Mobile App MVP',
+    description: 'Cross-platform mobile application for the client portal.',
+    slug: 'mob-mvp',
+    organizationId: 'org_mock',
+    status: 'in-progress',
+    dueDate: daysFromNow(21),
+    createdAt: now,
+    updatedAt: now,
+  },
+  {
+    id: 'mock-id-3',
+    name: 'Brand Identity',
+    description: 'Logo system, typography, and guidelines for launch.',
+    slug: 'brand-id',
+    organizationId: 'org_mock',
+    status: 'planning',
+    dueDate: daysFromNow(40),
+    createdAt: now,
+    updatedAt: now,
+  },
+]
 
 export function MockAppUI() {
   return (
@@ -107,19 +112,14 @@ export function MockAppUI() {
             + New Project
           </span>
         </div>
-        <div className='grid grid-cols-2 gap-3'>
-          <MockProjectCard
-            desc='Complete overhaul of the company website with new branding'
-            due='Apr 18'
-            name='Website Redesign'
-            slug='web-rdsn'
-          />
-          <MockProjectCard
-            desc='Cross-platform mobile application for client portal'
-            due='May 2'
-            name='Mobile App MVP'
-            slug='mob-mvp'
-          />
+        <div
+          aria-hidden
+          className='pointer-events-none grid grid-cols-2 gap-3 lg:grid-cols-3 [&_a]:cursor-default'
+          inert
+        >
+          {mockProjects.map((project) => (
+            <ProjectCard key={project.id} orgSlug='acme' project={project} />
+          ))}
         </div>
       </div>
     </div>
