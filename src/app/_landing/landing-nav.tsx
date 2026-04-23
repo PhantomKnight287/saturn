@@ -1,13 +1,20 @@
 'use client'
 
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, Star } from 'lucide-react'
 import Link from 'next/link'
 
 import { SaturnLogo } from '@/components/icons/saturn-logo'
 import { buttonVariants } from '@/components/ui/button'
 import { useSession } from '@/lib/auth-client'
 
-export function LandingNav() {
+function formatStars(n: number) {
+  if (n >= 1000) {
+    return `${(n / 1000).toFixed(n >= 10_000 ? 0 : 1)}k`
+  }
+  return n.toString()
+}
+
+export function LandingNav({ githubStars }: { githubStars: number | null }) {
   const { data: session } = useSession()
 
   return (
@@ -18,6 +25,20 @@ export function LandingNav() {
           <span className='font-semibold text-lg tracking-tight'>Saturn</span>
         </Link>
         <div className='flex items-center gap-1 sm:gap-2'>
+          <a
+            className='group mr-1 hidden items-center gap-1.5 rounded-md border border-border/60 px-2.5 py-1 text-foreground/80 text-xs transition-colors hover:border-border hover:text-foreground sm:inline-flex'
+            href='https://github.com/phantomknight287/saturn'
+            rel='noreferrer noopener'
+            target='_blank'
+          >
+            <Star className='size-3 text-muted-foreground group-hover:text-foreground' />
+            <span className='font-medium'>Star</span>
+            {githubStars !== null && (
+              <span className='border-border/60 border-l pl-1.5 font-mono text-muted-foreground tabular-nums'>
+                {formatStars(githubStars)}
+              </span>
+            )}
+          </a>
           {session?.user ? (
             <Link className={buttonVariants({ size: 'sm' })} href='/dashboard'>
               Dashboard

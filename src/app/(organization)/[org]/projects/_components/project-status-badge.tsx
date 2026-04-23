@@ -41,7 +41,7 @@ export default function ProjectStatusBadge({
   const variant = PROJECT_STATUS_VARIANTS[status]
 
   return (
-    <Badge className={cn(variant.className)} variant='outline'>
+    <Badge className={cn('rounded-md', variant.className)} variant='outline'>
       {variant.label}
     </Badge>
   )
