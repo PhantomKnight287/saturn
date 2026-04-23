@@ -1,12 +1,12 @@
 export function MockAnalytics() {
   const bars = [
-    { h: 32, label: 'M' },
-    { h: 54, label: 'T' },
-    { h: 44, label: 'W' },
-    { h: 68, label: 'T' },
-    { h: 82, label: 'F' },
-    { h: 22, label: 'S' },
-    { h: 12, label: 'S' },
+    { id: 'mon', h: 32, label: 'M' },
+    { id: 'tue', h: 54, label: 'T' },
+    { id: 'wed', h: 44, label: 'W' },
+    { id: 'thu', h: 68, label: 'T' },
+    { id: 'fri', h: 82, label: 'F' },
+    { id: 'sat', h: 22, label: 'S' },
+    { id: 'sun', h: 12, label: 'S' },
   ]
   return (
     <div className='flex h-full flex-col justify-end'>
@@ -21,8 +21,8 @@ export function MockAnalytics() {
         </div>
       </div>
       <div className='mt-5 flex h-14 items-end gap-1.5'>
-        {bars.map((b, i) => (
-          <div className='flex flex-1 flex-col items-center gap-1.5' key={i}>
+        {bars.map((b) => (
+          <div className='flex flex-1 flex-col items-center gap-1.5' key={b.id}>
             <div
               className='w-full rounded-sm bg-linear-to-b from-primary to-primary/60'
               style={{ height: `${b.h}%` }}

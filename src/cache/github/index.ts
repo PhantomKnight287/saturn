@@ -3,14 +3,28 @@ import { GithubCacheKeys } from './keys'
 
 export const getGithubStars = memoize(
   async (repo: string) => {
-    const res = await fetch(`https://api.github.com/repos/${repo}`, {
-      headers: { Accept: 'application/vnd.github+json' },
-    })
-    if (!res.ok) {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 3000)
+
+    try {
+      const res = await fetch(`https://api.github.com/repos/${repo}`, {
+        headers: { Accept: 'application/vnd.github+json' },
+        signal: controller.signal,
+      })
+
+      if (!res.ok) {
+        return null
+      }
+
+      const data = (await res.json()) as { stargazers_count?: number }
+      return typeof data.stargazers_count === 'number'
+        ? data.stargazers_count
+        : null
+    } catch {
       return null
+    } finally {
+      clearTimeout(timeout)
     }
-    const data = (await res.json()) as { stargazers_count?: number }
-    return data.stargazers_count ?? null
   },
   {
     /// 1 hr

@@ -278,82 +278,84 @@ export function ClientExpensesView({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {respondedExpenses.map((expense) => (
-                    <TableRow key={expense.id}>
-                      <TableCell className='text-sm'>
-                        {expense.description ? (
-                          <HoverCard openDelay={0}>
-                            <HoverCardTrigger asChild>
-                              <span className='cursor-help underline decoration-muted-foreground/40 decoration-dashed underline-offset-4'>
-                                {expense.title}
-                              </span>
-                            </HoverCardTrigger>
-                            <HoverCardContent
-                              align='start'
-                              className='w-80'
-                              side='bottom'
-                            >
-                              <div className='space-y-1'>
-                                <p className='font-medium text-sm'>
+                  {respondedExpenses.map((expense) => {
+                    const recipient = myRecipientMap.get(expense.id)
+                    const isApproved = recipient?.status === 'approved'
+
+                    return (
+                      <TableRow key={expense.id}>
+                        <TableCell className='text-sm'>
+                          {expense.description ? (
+                            <HoverCard openDelay={0}>
+                              <HoverCardTrigger asChild>
+                                <span className='cursor-help underline decoration-muted-foreground/40 decoration-dashed underline-offset-4'>
                                   {expense.title}
-                                </p>
-                                <p className='whitespace-pre-wrap text-muted-foreground text-sm'>
-                                  {expense.description}
-                                </p>
-                              </div>
-                            </HoverCardContent>
-                          </HoverCard>
-                        ) : (
-                          expense.title
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {expense.categoryName && (
+                                </span>
+                              </HoverCardTrigger>
+                              <HoverCardContent
+                                align='start'
+                                className='w-80'
+                                side='bottom'
+                              >
+                                <div className='space-y-1'>
+                                  <p className='font-medium text-sm'>
+                                    {expense.title}
+                                  </p>
+                                  <p className='whitespace-pre-wrap text-muted-foreground text-sm'>
+                                    {expense.description}
+                                  </p>
+                                </div>
+                              </HoverCardContent>
+                            </HoverCard>
+                          ) : (
+                            expense.title
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {expense.categoryName && (
+                            <Badge
+                              className='text-xs'
+                              style={
+                                expense.categoryColor
+                                  ? {
+                                      borderColor: expense.categoryColor,
+                                      color: expense.categoryColor,
+                                    }
+                                  : undefined
+                              }
+                              variant='outline'
+                            >
+                              {expense.categoryName}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className='text-sm'>
+                          {new Date(expense.date).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                          })}
+                        </TableCell>
+                        <TableCell className='text-right font-medium text-sm'>
+                          {formatCurrency(
+                            expense.amountCents,
+                            expense.currency
+                          )}
+                        </TableCell>
+                        <TableCell className='text-center'>
                           <Badge
-                            className='text-xs'
-                            style={
-                              expense.categoryColor
-                                ? {
-                                    borderColor: expense.categoryColor,
-                                    color: expense.categoryColor,
-                                  }
-                                : undefined
+                            className={
+                              isApproved
+                                ? 'bg-emerald-100 text-emerald-800 text-xs dark:bg-emerald-900 dark:text-emerald-300'
+                                : 'text-xs'
                             }
-                            variant='outline'
+                            variant={isApproved ? 'default' : 'destructive'}
                           >
-                            {expense.categoryName}
+                            {isApproved ? 'Approved' : 'Rejected'}
                           </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className='text-sm'>
-                        {new Date(expense.date).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                        })}
-                      </TableCell>
-                      <TableCell className='text-right font-medium text-sm'>
-                        {formatCurrency(expense.amountCents, expense.currency)}
-                      </TableCell>
-                      <TableCell className='text-center'>
-                        <Badge
-                          className={
-                            expense.status === 'client_accepted'
-                              ? 'bg-emerald-100 text-emerald-800 text-xs dark:bg-emerald-900 dark:text-emerald-300'
-                              : 'text-xs'
-                          }
-                          variant={
-                            expense.status === 'client_accepted'
-                              ? 'default'
-                              : 'destructive'
-                          }
-                        >
-                          {expense.status === 'client_accepted'
-                            ? 'Approved'
-                            : 'Rejected'}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
                 </TableBody>
               </Table>
             </CardContent>

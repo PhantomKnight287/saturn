@@ -161,6 +161,10 @@ export function InvoiceClientView({
     canCreateThread &&
     (invoice.status === 'sent' || invoice.status === 'disputed')
 
+  const senderLogoFileId = invoice.senderLogoObject?.id ?? invoice.senderLogo
+  const senderSignatureFileId =
+    invoice.senderSignatureObject?.id ?? invoice.senderSignature
+
   const subtotal = items.reduce((sum, item) => sum + Number(item.amount), 0)
   const discount = invoice.discountAmount ? Number(invoice.discountAmount) : 0
   const total = subtotal - discount
@@ -181,9 +185,8 @@ export function InvoiceClientView({
         orgName,
         orgSlug,
         projectSlug,
-        senderLogo: invoice.senderLogoObject?.id ?? invoice.senderLogo,
-        senderSignature:
-          invoice.senderSignatureObject?.id ?? invoice.senderSignature,
+        senderLogo: senderLogoFileId,
+        senderSignature: senderSignatureFileId,
         senderName: invoice.senderName,
         senderAddress: invoice.senderAddress,
         senderCustomFields: invoice.senderCustomFields ?? [],
@@ -221,6 +224,8 @@ export function InvoiceClientView({
     orgName,
     orgSlug,
     projectSlug,
+    senderLogoFileId,
+    senderSignatureFileId,
   ])
 
   return (
@@ -270,11 +275,11 @@ export function InvoiceClientView({
         <CardContent className='p-6 sm:p-8'>
           <div className='mb-8 flex items-start justify-between'>
             <div>
-              {invoice.senderLogoObject?.id && (
+              {senderLogoFileId && (
                 <img
                   alt='Company logo'
                   className='mb-3 h-12 object-contain'
-                  src={`/api/files/${invoice.senderLogoObject.id}`}
+                  src={`/api/files/${senderLogoFileId}`}
                 />
               )}
               <h1 className='font-semibold text-2xl'>Invoice</h1>
@@ -445,13 +450,13 @@ export function InvoiceClientView({
             </div>
           )}
 
-          {invoice.senderSignatureObject?.id && (
+          {senderSignatureFileId && (
             <div className='mt-8 border-t pt-6'>
               <p className='mb-2 text-muted-foreground text-xs'>Signature</p>
               <img
                 alt='Signature'
                 className='h-16 object-contain'
-                src={`/api/files/${invoice.senderSignatureObject?.id ?? ''}`}
+                src={`/api/files/${senderSignatureFileId}`}
               />
             </div>
           )}

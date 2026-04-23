@@ -240,7 +240,7 @@ export function WeeklyTimesheet({
                   <TableRow>
                     <TableCell
                       className='h-24 text-center text-muted-foreground'
-                      colSpan={isTeamView ? 12 : 12}
+                      colSpan={12}
                     >
                       No time entries this week.
                       {onAddEntry && (

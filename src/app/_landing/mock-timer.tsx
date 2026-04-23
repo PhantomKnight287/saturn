@@ -21,7 +21,9 @@ export function MockTimer() {
           disabled
           type='button'
         >
-          <Square className='size-3 fill-current' />
+          <Square className='size-3 fill-current'>
+            <title>Stop timer</title>
+          </Square>
           Stop & log
         </button>
       </div>

@@ -20,7 +20,7 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "email:dev": "email dev --dir ./src/emails/templates",
-    "postbuild": "drizzle-kit migrate"
+    "migrate": "drizzle-kit migrate"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1010.0",

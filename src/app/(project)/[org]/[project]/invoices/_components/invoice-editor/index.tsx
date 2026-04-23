@@ -114,21 +114,24 @@ export default function InvoiceEditor({
     () => [...mediaItems, ...uploadedMedia],
     [mediaItems, uploadedMedia]
   )
-  const handleUploadComplete = useCallback((item: { id: string }) => {
-    setUploadedMedia((prev) =>
-      prev.some((m) => m.id === item.id)
-        ? prev
-        : [
-            ...prev,
-            {
-              id: item.id,
-              name: '',
-              contentType: '',
-              createdAt: new Date(),
-            },
-          ]
-    )
-  }, [])
+  const handleUploadComplete = useCallback(
+    (item: { id: string; name?: string; contentType?: string }) => {
+      setUploadedMedia((prev) =>
+        prev.some((m) => m.id === item.id)
+          ? prev
+          : [
+              ...prev,
+              {
+                id: item.id,
+                name: item.name ?? '',
+                contentType: item.contentType ?? '',
+                createdAt: new Date(),
+              },
+            ]
+      )
+    },
+    []
+  )
   const rateMap = new Map(Object.entries(memberRateMap))
   const isEditable =
     mode === 'create' || (canEdit && invoice?.status === 'draft')

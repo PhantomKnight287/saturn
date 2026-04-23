@@ -115,6 +115,7 @@ export function MockAppUI() {
         <div
           aria-hidden
           className='pointer-events-none grid grid-cols-2 gap-3 lg:grid-cols-3 [&_a]:cursor-default'
+          inert
         >
           {mockProjects.map((project) => (
             <ProjectCard key={project.id} orgSlug='acme' project={project} />

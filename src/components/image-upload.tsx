@@ -39,7 +39,7 @@ export default function ImageUpload({
   const [uploading, setUploading] = useState(false)
   const [libraryOpen, setLibraryOpen] = useState(false)
 
-  const displayId = value ? mediaItems.find((m) => m.id === value)?.id : null
+  const displayId = value ?? null
 
   const handleFile = async (file: File) => {
     if (!file.type.startsWith('image/')) {

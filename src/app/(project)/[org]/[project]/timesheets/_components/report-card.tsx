@@ -68,12 +68,12 @@ export function ReportCard({
 
   return (
     <div className='overflow-hidden rounded-lg border'>
-      <button
-        className='flex w-full items-center justify-between px-4 py-3 text-left hover:bg-muted/30'
-        onClick={onToggle}
-        type='button'
-      >
-        <div className='flex items-center gap-3'>
+      <div className='flex w-full items-center justify-between px-4 py-3 hover:bg-muted/30'>
+        <button
+          className='flex flex-1 items-center gap-3 text-left'
+          onClick={onToggle}
+          type='button'
+        >
           {expanded ? (
             <ChevronDown className='size-4 text-muted-foreground' />
           ) : (
@@ -99,11 +99,11 @@ export function ReportCard({
               {report.sentAt && <span>{formatShortDate(report.sentAt)}</span>}
             </div>
           </div>
-        </div>
+        </button>
         <div className='flex items-center gap-2'>
           <TimesheetStatusBadge status={report.status} />
           {invoiceUrl && (
-            <a href={invoiceUrl} onClick={(e) => e.stopPropagation()}>
+            <a href={invoiceUrl}>
               <Button className='h-7 text-xs' size='sm' variant='outline'>
                 <Receipt className='size-3' />
                 Create Invoice
@@ -111,7 +111,7 @@ export function ReportCard({
             </a>
           )}
         </div>
-      </button>
+      </div>
 
       {report.status === 'disputed' && (
         <div className='border-destructive/30 border-t bg-destructive/5 px-4 py-3'>

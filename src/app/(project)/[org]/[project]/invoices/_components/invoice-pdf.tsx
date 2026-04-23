@@ -413,7 +413,10 @@ export default function InvoicePDF({ data }: { data: InvoicePDFData }) {
           <View style={s.header}>
             <View style={s.senderBlock}>
               {data.senderLogo && (
-                <Image src={`/api/files/${data.senderLogo}`} style={s.logo} />
+                <Image
+                  src={`${baseUrl}/api/files/${data.senderLogo}`}
+                  style={s.logo}
+                />
               )}
               <Text style={s.senderName}>{fromName}</Text>
               {data.senderAddress && (
@@ -619,7 +622,7 @@ export default function InvoicePDF({ data }: { data: InvoicePDFData }) {
             <View style={s.sigBlock}>
               <Text style={s.sigLabel}>Authorized Signature</Text>
               <Image
-                src={`/api/files/${data.senderSignature}`}
+                src={`${baseUrl}/api/files/${data.senderSignature}`}
                 style={s.sigImg}
               />
               <View style={s.sigLine}>

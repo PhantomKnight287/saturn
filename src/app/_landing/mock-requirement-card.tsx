@@ -36,7 +36,9 @@ export function MockRequirementCard() {
                 <span className='font-medium text-foreground/90 text-xs'>
                   Client
                 </span>
-                <MessageSquare className='size-3 text-muted-foreground/60' />
+                <MessageSquare className='size-3 text-muted-foreground/60'>
+                  <title>Comment</title>
+                </MessageSquare>
               </div>
               <p className='mt-0.5 text-[11px] text-muted-foreground leading-relaxed'>
                 Can we match the brand purple on the CTA?

@@ -782,10 +782,6 @@ export const clientRespondExpensesAction = authedActionClient
           )
 
         for (const expenseId of expenseIds) {
-          const expenseRecips = recipients.filter(
-            (r) => r.expenseId === expenseId
-          )
-
           if (action === 'reject') {
             await tx
               .update(expenses)
@@ -795,12 +791,14 @@ export const clientRespondExpensesAction = authedActionClient
               })
               .where(eq(expenses.id, expenseId))
           } else {
-            const alreadyApproved = expenseRecips.filter(
-              (r) => r.status === 'approved'
-            ).length
-            const totalApproved = alreadyApproved + 1
-
-            if (totalApproved >= expenseRecips.length) {
+            const freshRecips = await tx
+              .select({ status: expenseRecipients.status })
+              .from(expenseRecipients)
+              .where(eq(expenseRecipients.expenseId, expenseId))
+            const allApproved =
+              freshRecips.length > 0 &&
+              freshRecips.every((r) => r.status === 'approved')
+            if (allApproved) {
               await tx
                 .update(expenses)
                 .set({
