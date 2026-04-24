@@ -53,7 +53,7 @@ export default async function TimeTracking({
 
   if (!(canReadTimeEntries || canReadReports)) {
     redirect(
-      `/error?message=${encodeURIComponent('You do not have permission to view timesheets')}`
+      `/error/403?message=${encodeURIComponent('You do not have permission to view timesheets')}`
     )
   }
 

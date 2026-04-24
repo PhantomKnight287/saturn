@@ -28,12 +28,12 @@ export default async function OrgNavServer({ slug }: { slug: string }) {
     {
       name: 'Teams',
       href: `/${slug}/teams`,
-      visible: ['admin', 'owner', 'member'].includes(member?.role as string),
+      visible: ['admin', 'owner'].includes(member?.role as string),
     },
     {
       name: 'Clients',
       href: `/${slug}/clients`,
-      visible: ['admin', 'owner', 'member'].includes(member?.role as string),
+      visible: ['admin', 'owner'].includes(member?.role as string),
     },
     {
       name: 'Settings',

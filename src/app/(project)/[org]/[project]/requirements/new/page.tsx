@@ -28,7 +28,7 @@ export default async function NewRequirement({
 
   if (!role.authorize({ requirement: ['create'] }).success) {
     redirect(
-      `/error?message=${encodeURIComponent('You do not have permission to create requirements')}`
+      `/error/403?message=${encodeURIComponent('You do not have permission to create requirements')}`
     )
   }
 

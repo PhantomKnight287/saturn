@@ -43,7 +43,7 @@ export default async function NewInvoice({
 
   if (!role.authorize({ invoice: ['create'] }).success) {
     redirect(
-      `/error?message=${encodeURIComponent('You do not have permission to create invoices')}`
+      `/error/403?message=${encodeURIComponent('You do not have permission to create invoices')}`
     )
   }
 

@@ -39,7 +39,7 @@ export default async function InvoiceDetail({
 
   if (!role.authorize({ invoice: ['read'] }).success) {
     redirect(
-      `/error?message=${encodeURIComponent('You do not have permission to view invoices')}`
+      `/error/403?message=${encodeURIComponent('You do not have permission to view invoices')}`
     )
   }
 
@@ -50,7 +50,7 @@ export default async function InvoiceDetail({
   })
 
   if (!invoice) {
-    redirect(`/error?message=${encodeURIComponent('Invoice not found')}`)
+    redirect(`/error/404?message=${encodeURIComponent('Invoice not found')}`)
   }
 
   const isClient = orgMember.role === 'client'

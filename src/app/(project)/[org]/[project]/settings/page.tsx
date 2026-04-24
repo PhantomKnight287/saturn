@@ -28,7 +28,7 @@ export default async function ProjectSettingsPage({
 
   if (!role.authorize({ organization: ['update'] }).success) {
     redirect(
-      `/error?message=${encodeURIComponent('You do not have permission to view settings')}`
+      `/error/403?message=${encodeURIComponent('You do not have permission to view settings')}`
     )
   }
 

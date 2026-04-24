@@ -26,13 +26,15 @@ export default async function ProjectLayout({
 
   const organization = await getCachedOrganization(org, await headers())
   if (!organization) {
-    return redirect(`/onboarding?redirectTo=/${org}`)
+    return redirect(
+      `/error/404?message=${encodeURIComponent('Workspace not found')}`
+    )
   }
 
   const orgMember = await getCachedActiveOrgMember(await headers())
   if (!orgMember) {
     return redirect(
-      `/error?message=${encodeURIComponent('You are not a member of this workspace')}`
+      `/error/403?message=${encodeURIComponent('You are not a member of this workspace')}`
     )
   }
 
@@ -43,7 +45,9 @@ export default async function ProjectLayout({
   ])
 
   if (!currentProject) {
-    return redirect(`/error?message=${encodeURIComponent('Project not found')}`)
+    return redirect(
+      `/error/404?message=${encodeURIComponent('Project not found')}`
+    )
   }
 
   return (

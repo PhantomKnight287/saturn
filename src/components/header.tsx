@@ -1,37 +1,22 @@
 'use client'
 
-import { GitHubIcon, UserButton } from 'better-auth-ui'
 import Link from 'next/link'
-import { APP_NAME, logo } from '@/lib/constants'
-import { ModeToggle } from './mode-toggle'
-import { Button } from './ui/button'
+import { SaturnLogo } from '@/components/icons/saturn-logo'
+import { APP_NAME } from '@/lib/constants'
+import { NavUser } from './nav-user'
 
 export function Header() {
   return (
-    <header className='sticky top-0 z-50 flex h-12 justify-between border-b bg-background/60 px-safe-or-4 backdrop-blur md:h-14 md:px-safe-or-6'>
-      <Link className='flex items-center gap-2 font-bold' href='/'>
-        {logo}
-        {APP_NAME}
-      </Link>
+    <header className='sticky top-0 z-50 border-border/50 border-b bg-background/80 backdrop-blur-xl'>
+      <div className='mx-auto flex h-14 max-w-7xl items-center justify-between w-full px-safe-or-4 sm:px-safe-or-6'>
+        <Link className='flex items-center gap-2' href='/'>
+          <SaturnLogo className='size-6 text-foreground' />
+          <span className='font-semibold text-lg tracking-tight'>
+            {APP_NAME}
+          </span>
+        </Link>
 
-      <div className='flex items-center gap-2'>
-        <Button
-          asChild
-          className='size-8 rounded-full'
-          size='icon'
-          variant='outline'
-        >
-          <Link
-            href='https://github.com/techwithanirudh/better-auth-nextjs-starter'
-            rel='noopener noreferrer'
-            target='_blank'
-          >
-            <GitHubIcon />
-          </Link>
-        </Button>
-
-        <ModeToggle />
-        <UserButton align='end' size='icon' />
+        <NavUser   />
       </div>
     </header>
   )

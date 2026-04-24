@@ -1,8 +1,7 @@
 import type { Metadata } from 'next'
-import { redirect } from 'next/navigation'
 import { projectsService } from '@/app/api/projects/service'
 import { createMetadata } from '@/lib/metadata'
-import { resolveOrgContext } from '../cache'
+import { requirePermission, resolveOrgContext } from '../cache'
 import { SettingsPageClient } from './page.client'
 
 export const metadata: Metadata = createMetadata({
@@ -22,11 +21,11 @@ export default async function SettingsPage({
   const { org } = await params
   const { organization, role } = await resolveOrgContext(org)
 
-  if (!role.authorize({ organization: ['update'] }).success) {
-    redirect(
-      `/error?message=${encodeURIComponent('You do not have permission to view settings')}`
-    )
-  }
+  requirePermission(
+    role,
+    { organization: ['update'] },
+    'You do not have permission to view settings'
+  )
 
   const canDelete = role.authorize({ organization: ['delete'] }).success
 

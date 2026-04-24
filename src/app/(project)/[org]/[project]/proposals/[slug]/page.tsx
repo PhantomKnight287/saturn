@@ -34,14 +34,14 @@ export default async function ProposalDetail({
 
   if (!role.authorize({ proposal: ['read'] }).success) {
     redirect(
-      `/error?message=${encodeURIComponent('You do not have permission to view proposals')}`
+      `/error/403?message=${encodeURIComponent('You do not have permission to view proposals')}`
     )
   }
 
   const proposal = await proposalsService.getBySlug(currentProject.id, slug)
 
   if (!proposal) {
-    redirect(`/error?message=${encodeURIComponent('Proposal not found')}`)
+    redirect(`/error/404?message=${encodeURIComponent('Proposal not found')}`)
   }
 
   const canEdit =

@@ -31,7 +31,7 @@ export default async function Requirements({
 
   if (!role.authorize({ requirement: ['read'] }).success) {
     redirect(
-      `/error?message=${encodeURIComponent('You do not have permission to view requirements')}`
+      `/error/403?message=${encodeURIComponent('You do not have permission to view requirements')}`
     )
   }
 

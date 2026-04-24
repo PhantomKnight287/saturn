@@ -31,7 +31,7 @@ export default async function TeamsPage({ params }: PageProps<'/[org]/teams'>) {
     )
   ) {
     redirect(
-      `/error?message=${encodeURIComponent('You do not have permission to view teams')}`
+      `/error/403?message=${encodeURIComponent('You do not have permission to view teams')}`
     )
   }
 
