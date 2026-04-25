@@ -72,9 +72,12 @@ export const env = createEnv({
     S3_ACCESS_KEY_ID: z.string().min(1),
     S3_SECRET_ACCESS_KEY: z.string().min(1),
     S3_BUCKET: z.string().min(1),
+    // Featurebase
+    FEATUREBASE_JWT_SECRET: z.string().min(1).optional(),
   },
   client: {
     NEXT_PUBLIC_BASE_URL: z.url(),
+    NEXT_PUBLIC_FEATUREBASE_ORG: z.string().min(1).optional(),
   },
   experimental__runtimeEnv: {
     NEXT_PUBLIC_BASE_URL:
@@ -82,5 +85,6 @@ export const env = createEnv({
       (process.env.VERCEL_PROJECT_PRODUCTION_URL
         ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
         : undefined),
+    NEXT_PUBLIC_FEATUREBASE_ORG: process.env.NEXT_PUBLIC_FEATUREBASE_ORG,
   },
 })

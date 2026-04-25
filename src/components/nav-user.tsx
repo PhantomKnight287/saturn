@@ -5,6 +5,7 @@ import {
   Laptop,
   LogIn,
   LogOut,
+  MessageSquare,
   Moon,
   Sun,
   User as UserIcon,
@@ -108,6 +109,12 @@ export function NavUser() {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {themeMenu}
+                <DropdownMenuItem asChild>
+                  <a href='/api/featurebase/sso' rel='noopener' target='_blank'>
+                    <MessageSquare />
+                    Feedback
+                  </a>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={async () => {

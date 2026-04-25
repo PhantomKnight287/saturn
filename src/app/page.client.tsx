@@ -389,6 +389,18 @@ export default function LandingPageClient({
             <span className='text-muted-foreground text-sm'>Saturn</span>
           </div>
           <div className='flex items-center gap-5'>
+            <Link
+              className='text-muted-foreground text-sm transition-colors hover:text-foreground'
+              href='/terms'
+            >
+              Terms
+            </Link>
+            <Link
+              className='text-muted-foreground text-sm transition-colors hover:text-foreground'
+              href='/privacy'
+            >
+              Privacy
+            </Link>
             <a
               className='inline-flex items-center gap-1.5 text-muted-foreground text-sm transition-colors hover:text-foreground'
               href='https://github.com/phantomknight287/saturn'
