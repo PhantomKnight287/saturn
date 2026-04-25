@@ -20,6 +20,17 @@ const bodySchema = z
         memberRate: z.number().int().min(0).optional(),
         currency: z.string().length(3).optional(),
         timesheetDuration: z.enum(['weekly', 'biweekly', 'monthly']).optional(),
+        invoiceNumberTemplate: z.string().optional(),
+        clientInvolvement: z
+          .object({
+            expenses: z.enum(['on', 'off']),
+            invoices: z.enum(['on', 'off']),
+            proposals: z.enum(['on', 'off']),
+            milestones: z.enum(['on', 'off']),
+            timesheets: z.enum(['on', 'off']),
+            requirements: z.enum(['on', 'off']),
+          })
+          .optional(),
       })
       .optional(),
   })
@@ -30,7 +41,9 @@ const bodySchema = z
       (data.settings &&
         (data.settings.memberRate !== undefined ||
           data.settings.currency !== undefined ||
-          data.settings.timesheetDuration !== undefined)),
+          data.settings.timesheetDuration !== undefined ||
+          data.settings.invoiceNumberTemplate !== undefined ||
+          data.settings.clientInvolvement !== undefined)),
     { message: 'At least one field must be provided' }
   )
 
@@ -59,13 +72,20 @@ const route = createRoute({
             name: z.string(),
             slug: z.string(),
             settings: z.object({
-              defaultMemberRate: z.number(),
-              defaultCurrency: z.string(),
-              defaultTimesheetDuration: z.enum([
-                'weekly',
-                'biweekly',
-                'monthly',
-              ]),
+              memberRate: z.number(),
+              currency: z.string(),
+              timesheetDuration: z.enum(['weekly', 'biweekly', 'monthly']),
+              invoiceNumberTemplate: z.string().nullable(),
+              clientInvolvement: z
+                .object({
+                  expenses: z.enum(['on', 'off']),
+                  invoices: z.enum(['on', 'off']),
+                  proposals: z.enum(['on', 'off']),
+                  milestones: z.enum(['on', 'off']),
+                  timesheets: z.enum(['on', 'off']),
+                  requirements: z.enum(['on', 'off']),
+                })
+                .nullable(),
             }),
           }),
         },
@@ -125,6 +145,12 @@ export const handler = (hono: typeof app) => {
         if (body.settings.timesheetDuration !== undefined) {
           settingsUpdate.timesheetDuration = body.settings.timesheetDuration
         }
+        if (body.settings.invoiceNumberTemplate !== undefined) {
+          settingsUpdate.invoiceNumberTemplate = body.settings.invoiceNumberTemplate
+        }
+        if (body.settings.clientInvolvement !== undefined) {
+          settingsUpdate.clientInvolvement = body.settings.clientInvolvement
+        }
         if (Object.keys(settingsUpdate).length > 0) {
           const [existing] = await tx
             .select({ id: settings.id })
@@ -158,6 +184,8 @@ export const handler = (hono: typeof app) => {
         defaultMemberRate: settings.memberRate,
         defaultCurrency: settings.currency,
         defaultTimesheetDuration: settings.timesheetDuration,
+        invoiceNumberTemplate: settings.invoiceNumberTemplate,
+        clientInvolvement: settings.clientInvolvement,
       })
       .from(organizations)
       .where(eq(organizations.id, key.organizationId))
@@ -177,10 +205,11 @@ export const handler = (hono: typeof app) => {
         name: organization.name,
         slug: organization.slug,
         settings: {
-          defaultMemberRate: organization.defaultMemberRate ?? 0,
-          defaultCurrency: organization.defaultCurrency ?? 'USD',
-          defaultTimesheetDuration:
-            organization.defaultTimesheetDuration ?? 'weekly',
+          memberRate: organization.defaultMemberRate ?? 0,
+          currency: organization.defaultCurrency ?? 'USD',
+          timesheetDuration: organization.defaultTimesheetDuration ?? 'weekly',
+          invoiceNumberTemplate: organization.invoiceNumberTemplate,
+          clientInvolvement: organization.clientInvolvement,
         },
       },
       200

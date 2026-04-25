@@ -29,6 +29,17 @@ const route = createRoute({
               timesheetDuration: z
                 .enum(['weekly', 'biweekly', 'monthly'])
                 .nullable(),
+              invoiceNumberTemplate: z.string().nullable(),
+              clientInvolvement: z
+                .object({
+                  expenses: z.enum(['on', 'off']),
+                  invoices: z.enum(['on', 'off']),
+                  proposals: z.enum(['on', 'off']),
+                  milestones: z.enum(['on', 'off']),
+                  timesheets: z.enum(['on', 'off']),
+                  requirements: z.enum(['on', 'off']),
+                })
+                .nullable(),
             }),
           }),
         },
@@ -56,6 +67,8 @@ export const handler = (hono: typeof app) => {
         memberRate: settings.memberRate,
         currency: settings.currency,
         timesheetDuration: settings.timesheetDuration,
+        invoiceNumberTemplate: settings.invoiceNumberTemplate,
+        clientInvolvement: settings.clientInvolvement,
       })
       .from(organizations)
       .where(eq(organizations.id, key.organizationId))
@@ -78,6 +91,8 @@ export const handler = (hono: typeof app) => {
           memberRate: organization?.memberRate,
           currency: organization?.currency,
           timesheetDuration: organization?.timesheetDuration,
+          invoiceNumberTemplate: organization?.invoiceNumberTemplate,
+          clientInvolvement: organization?.clientInvolvement,
         },
       },
       200

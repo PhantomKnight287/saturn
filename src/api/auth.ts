@@ -18,7 +18,7 @@ export interface VerifiedApiKey {
 const ACTIVE_STATUSES = new Set(['active', 'trialing'])
 
 export function throwHttp(
-  status: 401 | 402 | 403 | 404 | 409 | 429,
+  status: 401 | 402 | 403 | 404 | 409 | 429 | 500,
   message: string,
   headers?: Record<string, string>
 ): never {
