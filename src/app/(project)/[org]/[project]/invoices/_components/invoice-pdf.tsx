@@ -348,7 +348,6 @@ function formatAmount(amount: string | number, currencyCode: string): string {
 export default function InvoicePDF({ data }: { data: InvoicePDFData }) {
   const fromName = data.senderName || data.orgName
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
-  const projectUrl = `${baseUrl}/${data.orgSlug}/${data.projectSlug}`
 
   // Compute totals
   const subtotal = data.items.reduce(

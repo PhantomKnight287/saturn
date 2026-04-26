@@ -3,9 +3,9 @@
 import { and, count, eq } from 'drizzle-orm'
 // import { PROJECTS_CACHE_TAG } from '@/api/projects/service'
 import { getUserBillingStatus } from '@/cache/billing'
-import { FREE_PLAN_LIMITS } from '@/limits'
 import { authedActionClient } from '@/lib/safe-action'
 import { titleToSlug } from '@/lib/utils'
+import { FREE_PLAN_LIMITS } from '@/limits'
 import { db } from '@/server/db'
 import { members, projects, requirements } from '@/server/db/schema'
 import { createProjectSchema } from './common'
@@ -49,7 +49,10 @@ export const createProjectAction = authedActionClient
           const [projectCountRow] = await tx
             .select({ value: count() })
             .from(projects)
-            .innerJoin(members, eq(members.organizationId, projects.organizationId))
+            .innerJoin(
+              members,
+              eq(members.organizationId, projects.organizationId)
+            )
             .where(
               and(
                 eq(members.userId, ownerRow.ownerId),
