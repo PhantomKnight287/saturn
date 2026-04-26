@@ -52,6 +52,7 @@ import { cn } from '@/lib/utils'
 import { deleteTimeEntryAction, submitTimesheetAction } from '../actions'
 import { canDeleteTimeEntry, canEditTimeEntry, formatMinutes } from '../common'
 import type { Requirement, TimeEntry } from '../types'
+import { exportTimeEntries } from './export-time-entries'
 import { StatusBadgeWithReason } from './status-badge-with-reason'
 import { TimeEntryForm } from './time-entry-form'
 
@@ -213,6 +214,20 @@ export function MonthlyTimesheet({
                   {formatMinutes(monthTotal)}
                 </span>
               </span>
+              <Button
+                disabled={monthEntries.length === 0}
+                kbd='e'
+                onClick={() =>
+                  exportTimeEntries(
+                    monthEntries,
+                    `time-entries-${format(currentMonth, 'yyyy-MM')}.xlsx`
+                  )
+                }
+                size='sm'
+                variant='secondary'
+              >
+                Export
+              </Button>
               {!isTeamView && submittableEntries.length > 0 && (
                 <Button
                   disabled={selectedIds.size === 0 || submitAction.isPending}

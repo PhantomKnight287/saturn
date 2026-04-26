@@ -34,6 +34,7 @@ import { useSetSelection } from '@/hooks/use-set-selection'
 import { deleteTimeEntryAction, submitTimesheetAction } from '../actions'
 import { canDeleteTimeEntry, canEditTimeEntry, formatMinutes } from '../common'
 import type { Requirement, TimeEntry } from '../types'
+import { exportTimeEntries } from './export-time-entries'
 import { StatusBadgeWithReason } from './status-badge-with-reason'
 import { TimeEntryForm } from './time-entry-form'
 
@@ -380,6 +381,20 @@ export function BiweeklyTimesheet({
                   {formatMinutes(periodTotal)}
                 </span>
               </span>
+              <Button
+                disabled={periodEntries.length === 0}
+                kbd='e'
+                onClick={() =>
+                  exportTimeEntries(
+                    periodEntries,
+                    `time-entries-${format(periodStart, 'yyyy-MM-dd')}.xlsx`
+                  )
+                }
+                size='sm'
+                variant='secondary'
+              >
+                Export
+              </Button>
               {!isTeamView && submittableEntries.length > 0 && (
                 <Button
                   disabled={selectedIds.size === 0 || submitAction.isPending}
