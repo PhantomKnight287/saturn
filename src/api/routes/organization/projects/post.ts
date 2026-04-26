@@ -2,10 +2,10 @@ import { createRoute, z } from '@hono/zod-openapi'
 import { eq } from 'drizzle-orm'
 import type { app } from '@/api/app'
 import { requireApiKey, throwHttp } from '@/api/auth'
+import { ProjectEntity } from '@/api/entities'
 import { errorResponse } from '@/api/schema'
 import { db } from '@/server/db'
-import { projects, projectStatus } from '@/server/db/schema'
-import { ProjectEntity } from '@/api/entities'
+import { projectStatus, projects } from '@/server/db/schema'
 
 const bodySchema = z.object({
   name: z.string().min(1).max(255),

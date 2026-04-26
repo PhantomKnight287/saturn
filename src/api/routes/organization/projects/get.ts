@@ -1,11 +1,11 @@
+import { createRoute, z } from '@hono/zod-openapi'
+import { eq, getTableColumns } from 'drizzle-orm'
 import type { app } from '@/api/app'
 import { requireApiKey } from '@/api/auth'
 import { ProjectEntity } from '@/api/entities'
 import { errorResponse } from '@/api/schema'
 import { db } from '@/server/db'
 import { projects } from '@/server/db/schema'
-import { createRoute, z } from '@hono/zod-openapi'
-import { eq, getTableColumns } from 'drizzle-orm'
 
 const route = createRoute({
   method: 'get',

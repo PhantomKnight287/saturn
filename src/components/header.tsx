@@ -8,7 +8,7 @@ import { NavUser } from './nav-user'
 export function Header() {
   return (
     <header className='sticky top-0 z-50 border-border/50 border-b bg-background/80 backdrop-blur-xl'>
-      <div className='mx-auto flex h-14 max-w-7xl items-center justify-between w-full px-safe-or-4 sm:px-safe-or-6'>
+      <div className='mx-auto flex h-14 w-full max-w-7xl items-center justify-between px-safe-or-4 sm:px-safe-or-6'>
         <Link className='flex items-center gap-2' href='/'>
           <SaturnLogo className='size-6 text-foreground' />
           <span className='font-semibold text-lg tracking-tight'>
@@ -16,7 +16,7 @@ export function Header() {
           </span>
         </Link>
 
-        <NavUser   />
+        <NavUser />
       </div>
     </header>
   )

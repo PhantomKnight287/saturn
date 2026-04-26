@@ -1,5 +1,5 @@
-import { projectStatus } from '@/server/db/schema'
 import z from 'zod'
+import { projectStatus } from '@/server/db/schema'
 
 export const ProjectEntity = z
   .object({

@@ -44,7 +44,9 @@ export default async function RequirementDetail({
   )
 
   if (!requirement) {
-    redirect(`/error/404?message=${encodeURIComponent('Requirement not found')}`)
+    redirect(
+      `/error/404?message=${encodeURIComponent('Requirement not found')}`
+    )
   }
 
   const canEdit =

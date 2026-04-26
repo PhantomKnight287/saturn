@@ -146,7 +146,8 @@ export const handler = (hono: typeof app) => {
           settingsUpdate.timesheetDuration = body.settings.timesheetDuration
         }
         if (body.settings.invoiceNumberTemplate !== undefined) {
-          settingsUpdate.invoiceNumberTemplate = body.settings.invoiceNumberTemplate
+          settingsUpdate.invoiceNumberTemplate =
+            body.settings.invoiceNumberTemplate
         }
         if (body.settings.clientInvolvement !== undefined) {
           settingsUpdate.clientInvolvement = body.settings.clientInvolvement

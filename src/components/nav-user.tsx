@@ -11,8 +11,8 @@ import {
   User as UserIcon,
   UserPlus,
 } from 'lucide-react'
-import { useTheme } from 'next-themes'
 import Link from 'next/link'
+import { useTheme } from 'next-themes'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
@@ -42,7 +42,7 @@ export function NavUser() {
     <DropdownMenuSub>
       <DropdownMenuSubTrigger>
         <Sun className='mr-2 size-4 scale-100 dark:scale-0' />
-        <Moon className='-ml-6 mr-2 size-4 scale-0 dark:scale-100' />
+        <Moon className='mr-2 -ml-6 size-4 scale-0 dark:scale-100' />
         Theme
       </DropdownMenuSubTrigger>
       <DropdownMenuSubContent>

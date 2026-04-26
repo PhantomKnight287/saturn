@@ -32,7 +32,9 @@ export default async function InvitePage({
       query: { id: invitationId },
     })
     if (!result) {
-      redirect(`/error/404?message=${encodeURIComponent('Invitation not found')}`)
+      redirect(
+        `/error/404?message=${encodeURIComponent('Invitation not found')}`
+      )
     }
     invitation = result as typeof invitation
   } catch (e) {

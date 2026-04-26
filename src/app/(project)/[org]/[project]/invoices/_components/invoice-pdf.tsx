@@ -11,7 +11,6 @@ import {
 import { currencies } from '@/data/currencies'
 import type { InvoicePDFData } from '../types'
 
-// ── Palette ──
 const INK = '#1e1b4b'
 const ACCENT = '#4f46e5'
 const ACCENT_LIGHT = '#eef2ff'
@@ -32,7 +31,6 @@ const s = StyleSheet.create({
     color: TEXT,
   },
 
-  // ── Top accent bar ──
   accentBar: {
     height: 6,
     backgroundColor: ACCENT,
@@ -43,7 +41,6 @@ const s = StyleSheet.create({
     paddingTop: 32,
   },
 
-  // ── Header ──
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -86,7 +83,6 @@ const s = StyleSheet.create({
     marginTop: 2,
   },
 
-  // ── Details + Bill To ──
   middleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -144,7 +140,6 @@ const s = StyleSheet.create({
     flex: 1,
   },
 
-  // ── Items table ──
   table: {
     marginBottom: 0,
   },
@@ -178,7 +173,6 @@ const s = StyleSheet.create({
   colPrice: { width: 88, textAlign: 'right' as const },
   colAmt: { width: 88, textAlign: 'right' as const },
 
-  // ── Totals ──
   totalsWrap: {
     alignItems: 'flex-end',
     marginTop: 6,
@@ -219,7 +213,6 @@ const s = StyleSheet.create({
     color: ACCENT,
   },
 
-  // ── Requirements ──
   reqSection: {
     marginTop: 22,
   },
@@ -239,7 +232,6 @@ const s = StyleSheet.create({
     textDecoration: 'underline',
   },
 
-  // ── Payment info ──
   paymentSection: {
     marginTop: 22,
     padding: 14,
@@ -263,7 +255,6 @@ const s = StyleSheet.create({
     fontFamily: 'Courier',
   },
 
-  // ── Notes / Terms ──
   noteBlock: {
     marginTop: 16,
     paddingLeft: 12,
@@ -284,7 +275,6 @@ const s = StyleSheet.create({
     lineHeight: 1.6,
   },
 
-  // ── Signature ──
   sigBlock: {
     marginTop: 36,
     alignItems: 'flex-end',
@@ -314,7 +304,6 @@ const s = StyleSheet.create({
     textAlign: 'center',
   },
 
-  // ── Footer ──
   footer: {
     position: 'absolute',
     bottom: 24,
@@ -334,8 +323,6 @@ const s = StyleSheet.create({
     textDecoration: 'none',
   },
 })
-
-// ── Helpers ──
 
 function getCurrencySymbol(cc: string): string {
   const found = currencies.find((c) => c.cc === cc)
@@ -357,8 +344,6 @@ function formatAmount(amount: string | number, currencyCode: string): string {
         })
   return `${symbol} ${formatted}`
 }
-
-// ── Component ──
 
 export default function InvoicePDF({ data }: { data: InvoicePDFData }) {
   const fromName = data.senderName || data.orgName
@@ -630,16 +615,6 @@ export default function InvoicePDF({ data }: { data: InvoicePDFData }) {
               </View>
             </View>
           )}
-        </View>
-
-        {/* ── Footer ── */}
-        <View fixed style={s.footer}>
-          <Text style={s.footerLeft}>
-            {data.invoiceNumber} {'\u00B7'} {data.projectName}
-          </Text>
-          <Link src={projectUrl} style={s.footerLink}>
-            {projectUrl.replace(/^https?:\/\//, '')}
-          </Link>
         </View>
       </Page>
     </Document>
