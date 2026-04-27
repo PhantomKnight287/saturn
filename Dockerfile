@@ -87,8 +87,8 @@ RUN \
   elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm build; \
   fi
 
-# Compile migration script to plain JS
-RUN npx esbuild src/server/db/migrate.ts --bundle --platform=node --format=esm --outfile=migrate.mjs --packages=external
+#  Compile migration script to a self-contained CJS bundle (drizzle-orm/pg are not in the standalone output's node_modules)
+RUN npx esbuild src/server/db/migrate.ts --bundle --platform=node --format=cjs --outfile=migrate.cjs
 
 # Production image
 FROM base AS runner
@@ -108,7 +108,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 # Drizzle migrations
 COPY --from=builder --chown=nextjs:nodejs /app/drizzle ./drizzle
-COPY --from=builder --chown=nextjs:nodejs /app/migrate.mjs ./migrate.mjs
+COPY --from=builder --chown=nextjs:nodejs /app/migrate.cjs ./migrate.cjs
 
 USER nextjs
 
