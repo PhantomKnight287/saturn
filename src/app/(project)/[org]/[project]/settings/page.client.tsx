@@ -12,6 +12,7 @@ import { InvoiceNumberTemplateInput } from '@/app/(organization)/[org]/settings/
 import { updateInvoiceNumberTemplateAction } from '@/app/(organization)/[org]/settings/actions'
 import { updateInvoiceNumberTemplateSchema } from '@/app/(organization)/[org]/settings/common'
 import type { projectsService } from '@/app/api/projects/service'
+import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -25,13 +26,6 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { CurrencySelect } from '@/components/ui/currency-selector'
 import DatePicker from '@/components/ui/date-picker'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
   Field,
   FieldDescription,
   FieldError,
@@ -39,7 +33,6 @@ import {
   FieldLabel,
 } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -107,7 +100,7 @@ export function ProjectSettingsPageClient({
     },
   })
 
-  const deleteForm = useForm<DeleteFormValues>({
+  const _deleteForm = useForm<DeleteFormValues>({
     resolver: zodResolver(deleteProjectSchema),
     defaultValues: {
       projectId: project.id,
@@ -224,10 +217,6 @@ export function ProjectSettingsPageClient({
 
   function handleTimesheetSubmit(data: TimesheetFormValues) {
     executeTimesheetDefaults(data)
-  }
-
-  function handleDeleteSubmit(data: DeleteFormValues) {
-    executeDelete(data)
   }
 
   function handleInvoiceTemplateSubmit(data: InvoiceTemplateFormValues) {
@@ -575,7 +564,11 @@ export function ProjectSettingsPageClient({
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button onClick={() => setDeleteOpen(true)} variant='destructive'>
+              <Button
+                loading={isDeleting}
+                onClick={() => setDeleteOpen(true)}
+                variant='destructive'
+              >
                 <AlertTriangle className='size-4' />
                 Delete Project
               </Button>
@@ -584,59 +577,29 @@ export function ProjectSettingsPageClient({
         )}
       </div>
 
-      <Dialog onOpenChange={setDeleteOpen} open={deleteOpen}>
-        <DialogContent className='sm:max-w-md'>
-          <DialogHeader>
-            <DialogTitle>Delete Project</DialogTitle>
-            <DialogDescription>
-              This will permanently delete{' '}
-              <span className='font-semibold text-foreground'>
-                "{project.name}"
-              </span>{' '}
-              and all associated data including timesheets, invoices, and
-              milestones. This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={deleteForm.handleSubmit(handleDeleteSubmit)}>
-            <div className='space-y-4'>
-              <Controller
-                control={deleteForm.control}
-                name='confirmName'
-                render={({ field, fieldState }) => (
-                  <Field className='gap-1' data-invalid={fieldState.invalid}>
-                    <Label>
-                      Type <span className='font-semibold'>{project.name}</span>{' '}
-                      to confirm
-                    </Label>
-                    <Input
-                      {...field}
-                      aria-invalid={fieldState.invalid}
-                      autoFocus
-                      placeholder={project.name}
-                    />
-                    {fieldState.invalid && (
-                      <FieldError errors={[fieldState.error]} />
-                    )}
-                  </Field>
-                )}
-              />
-              <div className='flex justify-end gap-2'>
-                <Button onClick={() => setDeleteOpen(false)} variant='outline'>
-                  Cancel
-                </Button>
-                <Button
-                  disabled={deleteForm.watch('confirmName') !== project.name}
-                  loading={isDeleting}
-                  type='submit'
-                  variant='destructive'
-                >
-                  Delete Project
-                </Button>
-              </div>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDeleteDialog
+        confirmationText={project.name}
+        description={
+          <>
+            This will permanently delete{' '}
+            <span className='font-semibold text-foreground'>
+              "{project.name}"
+            </span>{' '}
+            and all associated data including timesheets, invoices, and
+            milestones. This action cannot be undone.
+          </>
+        }
+        onConfirm={() => {
+          executeDelete({
+            projectId: project.id,
+            confirmName: project.name,
+            organizationId,
+          })
+        }}
+        onOpenChange={setDeleteOpen}
+        open={deleteOpen}
+        title='Delete Project'
+      />
     </div>
   )
 }

@@ -44,7 +44,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { authClient, useSession } from '@/lib/auth-client'
-import { ApiKeysCard } from './_components/api-keys/card'
 import { InvoiceNumberTemplateInput } from './_components/invoice-number-template-input'
 import {
   deleteOrganizationAction,
@@ -687,13 +686,6 @@ export function SettingsPageClient({
             </CardContent>
           </Card>
         )}
-
-        <ApiKeysCard
-          onUpgrade={handleUpgrade}
-          organizationId={organization.id}
-          subscriptionStatus={subscription.status}
-          upgrading={checkoutLoading}
-        />
 
         {canDelete && (
           <Card className='border-destructive/50'>
