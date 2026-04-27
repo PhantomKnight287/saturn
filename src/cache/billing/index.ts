@@ -43,9 +43,9 @@ export const getUserBillingStatus = memoize(
     const data = await polarClient.subscriptions.list({
       metadata: { referenceId: userId },
     })
-    const hasActiveSubscription = data?.result?.items.some((sub) =>
-      ACTIVE_STATUSES.has(sub.status)
-    )
+    const hasActiveSubscription =
+      data?.result?.items.some((sub) => ACTIVE_STATUSES.has(sub.status)) ??
+      false
     return hasActiveSubscription
   },
   {

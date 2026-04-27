@@ -71,22 +71,26 @@ const route = createRoute({
             id: z.string(),
             name: z.string(),
             slug: z.string(),
-            settings: z.object({
-              memberRate: z.number(),
-              currency: z.string(),
-              timesheetDuration: z.enum(['weekly', 'biweekly', 'monthly']),
-              invoiceNumberTemplate: z.string().nullable(),
-              clientInvolvement: z
-                .object({
-                  expenses: z.enum(['on', 'off']),
-                  invoices: z.enum(['on', 'off']),
-                  proposals: z.enum(['on', 'off']),
-                  milestones: z.enum(['on', 'off']),
-                  timesheets: z.enum(['on', 'off']),
-                  requirements: z.enum(['on', 'off']),
-                })
-                .nullable(),
-            }),
+            settings: z
+              .object({
+                memberRate: z.number().nullable(),
+                currency: z.string().nullable(),
+                timesheetDuration: z
+                  .enum(['weekly', 'biweekly', 'monthly'])
+                  .nullable(),
+                invoiceNumberTemplate: z.string().nullable(),
+                clientInvolvement: z
+                  .object({
+                    expenses: z.enum(['on', 'off']),
+                    invoices: z.enum(['on', 'off']),
+                    proposals: z.enum(['on', 'off']),
+                    milestones: z.enum(['on', 'off']),
+                    timesheets: z.enum(['on', 'off']),
+                    requirements: z.enum(['on', 'off']),
+                  })
+                  .nullable(),
+              })
+              .nullable(),
           }),
         },
       },

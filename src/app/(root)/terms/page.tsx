@@ -149,10 +149,10 @@ export default function TermsPage() {
 
         <h2>13. Governing Law</h2>
         <p>
-          These Terms are governed by the laws of the jurisdiction in which
-          Saturn is established, without regard to conflict-of-law principles.
-          Any dispute arising under these Terms will be resolved in the courts
-          of that jurisdiction, unless otherwise required by applicable law.
+          These Terms are governed by the laws of India, without regard to
+          conflict-of-law principles. Any dispute arising under these Terms will
+          be subject to the exclusive jurisdiction of the courts located in New
+          Delhi, India, unless otherwise required by applicable law.
         </p>
 
         <h2>14. Contact</h2>

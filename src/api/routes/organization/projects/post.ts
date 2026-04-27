@@ -1,5 +1,5 @@
 import { createRoute, z } from '@hono/zod-openapi'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import type { app } from '@/api/app'
 import { requireApiKey, throwHttp } from '@/api/auth'
 import { ProjectEntity } from '@/api/entities'
@@ -63,7 +63,12 @@ export const handler = (hono: typeof app) => {
     const [existing] = await db
       .select({ id: projects.id })
       .from(projects)
-      .where(eq(projects.slug, body.slug))
+      .where(
+        and(
+          eq(projects.slug, body.slug),
+          eq(projects.organizationId, key.organizationId)
+        )
+      )
     if (existing) {
       throwHttp(409, 'Slug is already taken')
     }

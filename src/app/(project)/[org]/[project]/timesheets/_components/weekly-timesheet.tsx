@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from '@bprogress/next/app'
+import { format } from 'date-fns'
 import {
   ChevronLeft,
   ChevronRight,
@@ -97,10 +98,12 @@ export function WeeklyTimesheet({
     d.setDate(d.getDate() + i)
     return d
   })
-
+  const weekStart = weekDays.at(0)!
+  const weekEnd = new Date(weekDays.at(-1)!)
+  weekEnd.setHours(23, 59, 59, 999)
   const weekEntries = entries.filter((e) => {
     const entryDate = new Date(e.date)
-    return entryDate >= weekDays.at(0)! && entryDate <= weekDays.at(-1)!
+    return entryDate >= weekStart && entryDate <= weekEnd
   })
 
   // For personal view: draft entries the member can submit
@@ -196,7 +199,7 @@ export function WeeklyTimesheet({
                 onClick={() =>
                   exportTimeEntries(
                     weekEntries,
-                    `time-entries-${weekDays.at(0)!.toISOString().slice(0, 10)}.xlsx`
+                    `time-entries-${format(weekDays.at(0)!, 'yyyy-MM-dd')}.xlsx`
                   )
                 }
                 size='sm'
