@@ -1,4 +1,5 @@
 import { fileURLToPath } from 'node:url'
+import { withContentCollections } from '@content-collections/next'
 import bundleAnalyzer from '@next/bundle-analyzer'
 import type { NextConfig } from 'next'
 
@@ -58,8 +59,7 @@ const bundleAnalyzerPlugin = bundleAnalyzer({
 
 const NextApp = async () => {
   const nextConfig = await createNextConfig()
-  const plugins = [bundleAnalyzerPlugin]
-  return plugins.reduce((config, plugin) => plugin(config), nextConfig)
+  return withContentCollections(bundleAnalyzerPlugin(nextConfig))
 }
 
 export default NextApp

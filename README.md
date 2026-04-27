@@ -53,6 +53,10 @@ Four roles with fine-grained permissions:
 - **Storage** — S3-compatible object storage
 - **Email** — [React Email](https://react.email)
 
+
+> [!Note]
+> AI has been used in development of this project. 
+
 ## Getting Started
 
 ```bash

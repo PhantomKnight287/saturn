@@ -32,7 +32,6 @@ export default function LandingPageClient({
     <div className='min-h-svh w-full bg-background text-foreground'>
       <LandingNav githubStars={githubStars} />
 
-      {/* HERO */}
       <section className='relative overflow-hidden border-border/60 border-b'>
         <div className='relative mx-auto max-w-6xl px-6 pt-24 pb-10 sm:pt-32'>
           <div className='max-w-3xl'>
@@ -90,7 +89,6 @@ export default function LandingPageClient({
           </div>
         </div>
 
-        {/* product shot */}
         <div className='relative mx-auto max-w-6xl px-6 pb-0'>
           <div className='relative'>
             <div
@@ -106,7 +104,6 @@ export default function LandingPageClient({
         </div>
       </section>
 
-      {/* MODULES OVERVIEW */}
       <section className='border-border/60 border-b'>
         <div className='mx-auto max-w-6xl px-6 py-20 sm:py-24'>
           <div className='mb-12 max-w-2xl'>
@@ -137,7 +134,6 @@ export default function LandingPageClient({
         </div>
       </section>
 
-      {/* BENTO */}
       <section
         className='mx-auto max-w-6xl px-6 pt-24 pb-24 sm:pt-32'
         id='features'
@@ -158,7 +154,6 @@ export default function LandingPageClient({
         </div>
 
         <div className='grid grid-cols-1 gap-3 md:grid-cols-6'>
-          {/* Proposals — large */}
           <BentoCard
             className='md:col-span-4 md:row-span-2'
             description='Draft proposals inside Saturn, send them to clients, and collect signatures without a separate DocuSign tab.'
@@ -169,7 +164,6 @@ export default function LandingPageClient({
             </div>
           </BentoCard>
 
-          {/* Timer */}
           <BentoCard
             className='md:col-span-2'
             description='Time tracked inside the platform, auto-attached to the right project.'
@@ -178,7 +172,6 @@ export default function LandingPageClient({
             <MockTimer />
           </BentoCard>
 
-          {/* Analytics */}
           <BentoCard
             className='md:col-span-2'
             description='Revenue, hours, and overdue invoices the moment you log in.'
@@ -187,7 +180,6 @@ export default function LandingPageClient({
             <MockAnalytics />
           </BentoCard>
 
-          {/* Timesheet */}
           <BentoCard
             className='md:col-span-2'
             description='Log weekly or let the timer do it. Export reports when clients ask.'
@@ -196,7 +188,6 @@ export default function LandingPageClient({
             <MockTimesheetCard />
           </BentoCard>
 
-          {/* Expenses */}
           <BentoCard
             className='md:col-span-2'
             description='Log what you spent, tag it billable, and attach it to the next invoice.'
@@ -205,7 +196,6 @@ export default function LandingPageClient({
             <MockExpenseCard />
           </BentoCard>
 
-          {/* Invoice */}
           <BentoCard
             className='md:col-span-2'
             description='Lines pull from timesheets and expenses. Export PDF. Track paid status.'
@@ -216,7 +206,6 @@ export default function LandingPageClient({
         </div>
       </section>
 
-      {/* HOW IT WORKS */}
       <section className='border-border/60 border-y bg-secondary/20'>
         <div className='mx-auto max-w-6xl px-6 py-24 sm:py-28'>
           <div className='mb-14 max-w-2xl'>
@@ -251,7 +240,6 @@ export default function LandingPageClient({
         </div>
       </section>
 
-      {/* COMPARISON */}
       <section className='mx-auto max-w-5xl px-6 py-24 sm:py-28'>
         <div className='mb-12 max-w-2xl'>
           <div className='font-mono text-[11px] text-muted-foreground uppercase tracking-[0.18em]'>
@@ -294,7 +282,6 @@ export default function LandingPageClient({
         </div>
       </section>
 
-      {/* PRICING */}
       <section
         className='relative border-border/60 border-y bg-secondary/20'
         id='pricing'
@@ -337,7 +324,6 @@ export default function LandingPageClient({
         </div>
       </section>
 
-      {/* FAQ */}
       <section className='mx-auto max-w-3xl px-6 py-24 sm:py-28' id='faq'>
         <div className='mb-12'>
           <div className='font-mono text-[11px] text-muted-foreground uppercase tracking-[0.18em]'>
@@ -365,7 +351,6 @@ export default function LandingPageClient({
         </div>
       </section>
 
-      {/* CTA */}
       <section className='mx-auto max-w-3xl px-6 py-28 text-center sm:py-36'>
         <h2 className='font-semibold text-4xl leading-[1.02] tracking-[-0.04em] sm:text-6xl'>
           Two minutes to
@@ -389,6 +374,12 @@ export default function LandingPageClient({
             <span className='text-muted-foreground text-sm'>Saturn</span>
           </div>
           <div className='flex items-center gap-5'>
+            <Link
+              className='text-muted-foreground text-sm transition-colors hover:text-foreground'
+              href='/changelogs'
+            >
+              Changelogs
+            </Link>
             <Link
               className='text-muted-foreground text-sm transition-colors hover:text-foreground'
               href='/terms'
