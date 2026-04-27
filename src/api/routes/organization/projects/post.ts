@@ -52,6 +52,7 @@ const route = createRoute({
     403: { ...errorResponse, description: 'Insufficient API key permissions' },
     409: { ...errorResponse, description: 'Slug is already taken' },
     429: { ...errorResponse, description: 'Rate limit exceeded' },
+    500: { ...errorResponse, description: 'Rate limit exceeded' },
   },
 })
 
