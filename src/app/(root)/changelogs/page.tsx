@@ -17,9 +17,7 @@ export const metadata: Metadata = createMetadata({
 })
 
 export default function ChangelogsGridPage() {
-  const entries = [...allChangelogs].sort((a, b) =>
-    a.date < b.date ? 1 : -1
-  )
+  const entries = [...allChangelogs].sort((a, b) => (a.date < b.date ? 1 : -1))
 
   return (
     <main className='mx-auto max-w-7xl px-6 py-16'>

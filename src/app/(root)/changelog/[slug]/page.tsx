@@ -1,11 +1,11 @@
 import { allChangelogs } from 'content-collections'
 import { format } from 'date-fns'
+import { ArrowLeft } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { createMetadata } from '@/lib/metadata'
-import { ArrowLeft } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button-variants'
+import { createMetadata } from '@/lib/metadata'
 
 export function generateStaticParams() {
   return allChangelogs.map((c) => ({ slug: c.slug }))
