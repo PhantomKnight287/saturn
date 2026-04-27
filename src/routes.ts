@@ -9,6 +9,7 @@ export const PUBLIC_ROUTES: string[] = [
   '/sitemap.xml',
   '/manifest.webmanifest',
 ]
+export const PUBLIC_PREFIXES: string[] = ['/changelog']
 export const AUTH_PREFIX: string = '/auth'
 export const API_AUTH_PREFIX: string = '/api/auth'
 export const ERROR_PREFIX: string = '/error/'
@@ -24,7 +25,9 @@ export function isAuthRoute(pathname: string): boolean {
 
 export function isPublicRoute(pathname: string): boolean {
   return (
-    isPathEqual(pathname, PUBLIC_ROUTES) || startsWith(pathname, ERROR_PREFIX)
+    isPathEqual(pathname, PUBLIC_ROUTES) ||
+    startsWith(pathname, ERROR_PREFIX) ||
+    PUBLIC_PREFIXES.some((p) => startsWith(pathname, p))
   )
 }
 

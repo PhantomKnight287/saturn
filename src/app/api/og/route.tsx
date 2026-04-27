@@ -37,8 +37,11 @@ async function loadGeistFont() {
 
 export async function GET(request: NextRequest) {
   const page = request.nextUrl.searchParams.get('page') || 'Saturn'
+  const subtitleParam = request.nextUrl.searchParams.get('subtitle')
   const subtitle =
-    subtitles[page] ?? 'The operating system for your freelance business'
+    subtitleParam ??
+    subtitles[page] ??
+    'The operating system for your freelance business'
 
   const { bold, regular } = await loadGeistFont()
 
