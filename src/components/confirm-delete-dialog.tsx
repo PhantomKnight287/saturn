@@ -64,8 +64,11 @@ export function ConfirmDeleteDialog({
         <form onSubmit={handleSubmit}>
           <Field className='gap-1'>
             <Label>
-              Type <span className='font-semibold'>{confirmationText}</span> to
-              confirm
+              Type
+              <span className='max-w-fit font-semibold'>
+                "{confirmationText}"
+              </span>
+              to confirm
             </Label>
             <Input
               autoFocus

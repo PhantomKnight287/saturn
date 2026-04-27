@@ -76,7 +76,7 @@ bun dev
 ## Pricing
 
 - **Free** — 1 organization, 2 projects, unlimited team members, all core features.
-- **Pro ($3/mo)** — Unlimited organizations and projects, API access for automation, priority support.
+- **Pro ($3/mo)** — Unlimited organizations and projects, priority support.
 
 No credit card required. No feature gates on core functionality.
 
