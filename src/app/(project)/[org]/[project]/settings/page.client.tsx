@@ -591,7 +591,7 @@ export function ProjectSettingsPageClient({
             <DialogDescription>
               This will permanently delete{' '}
               <span className='font-semibold text-foreground'>
-                {project.name}
+                "{project.name}"
               </span>{' '}
               and all associated data including timesheets, invoices, and
               milestones. This action cannot be undone.
