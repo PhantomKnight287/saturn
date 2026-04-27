@@ -28,7 +28,7 @@ export default async function NewProposal({
 
   if (!role.authorize({ proposal: ['create'] }).success) {
     redirect(
-      `/error?message=${encodeURIComponent('You do not have permission to create proposals')}`
+      `/error/403?message=${encodeURIComponent('You do not have permission to create proposals')}`
     )
   }
   const settings = await projectsService.getSettings(

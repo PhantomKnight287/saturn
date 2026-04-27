@@ -4,15 +4,18 @@ import { checkout, polar, portal, webhooks } from '@polar-sh/better-auth'
 import { render } from '@react-email/render'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
+import { APIError } from 'better-auth/api'
 import { lastLoginMethod, organization } from 'better-auth/plugins'
-import { and, eq, isNull } from 'drizzle-orm'
+import { and, count, eq, isNull } from 'drizzle-orm'
 import { revalidateTag } from 'next/cache'
 import { headers } from 'next/headers'
 import type { NextRequest } from 'next/server'
+import { getUserBillingStatus } from '@/cache/billing'
 import { BillingCacheKeys } from '@/cache/billing/keys'
 import InvitationEmail from '@/emails/templates/invitation'
 import { env } from '@/env'
 import { polarClient } from '@/lib/polar'
+import { FREE_PLAN_LIMITS } from '@/limits'
 import { db } from '@/server/db'
 import * as schema from '@/server/db/schema'
 import { memberRates, pendingMemberRates, settings } from '@/server/db/schema'
@@ -57,6 +60,30 @@ export const auth = betterAuth({
         admin: adminRole,
         member: memberRole,
         client: clientRole,
+      },
+      async allowUserToCreateOrganization(user) {
+        const hasActiveSubscription = await getUserBillingStatus(user.id)
+        if (hasActiveSubscription) {
+          return true
+        }
+
+        const [row] = await db
+          .select({ value: count() })
+          .from(schema.members)
+          .where(
+            and(
+              eq(schema.members.userId, user.id),
+              eq(schema.members.role, 'owner')
+            )
+          )
+        const ownedCount = row?.value ?? 0
+
+        if (ownedCount >= FREE_PLAN_LIMITS.WORKSPACES) {
+          throw new APIError('PAYMENT_REQUIRED', {
+            message: `Free plan is limited to ${FREE_PLAN_LIMITS.WORKSPACES} workspace. Upgrade to Pro to create additional workspaces.`,
+          })
+        }
+        return true
       },
       async sendInvitationEmail(data) {
         const html = await render(

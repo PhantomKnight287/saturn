@@ -1,11 +1,10 @@
 import type { Metadata } from 'next'
 import { headers } from 'next/headers'
-import { redirect } from 'next/navigation'
 import { projectsService } from '@/app/api/projects/service'
 import { teamService } from '@/app/api/teams/service'
 import { createMetadata } from '@/lib/metadata'
 import { auth } from '@/server/auth'
-import { resolveOrgContext } from '../cache'
+import { requirePermission, resolveOrgContext } from '../cache'
 import { ClientsPageClient } from './page.client'
 import type { PendingInvitation } from './types'
 
@@ -26,11 +25,11 @@ export default async function ClientsPage({
   const { org } = await params
   const { organization, role } = await resolveOrgContext(org)
 
-  if (!role.authorize({ member: ['create'] }).success) {
-    redirect(
-      `/error?message=${encodeURIComponent('You do not have permission to view clients')}`
-    )
-  }
+  requirePermission(
+    role,
+    { member: ['create'] },
+    'You do not have permission to view clients'
+  )
 
   const canManage = role.authorize({ member: ['create'] }).success
 

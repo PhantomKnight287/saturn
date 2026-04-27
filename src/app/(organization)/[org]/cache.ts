@@ -80,14 +80,14 @@ export const resolveOrgContext = async (orgSlug: string) => {
   const organization = await getCachedOrganization(orgSlug, h)
 
   if (!organization) {
-    redirect(`/error?message=${encodeURIComponent('Workspace not found')}`)
+    redirect(`/error/404?message=${encodeURIComponent('Workspace not found')}`)
   }
 
   const orgMember = await getCachedActiveOrgMember(h)
 
   if (!orgMember) {
     redirect(
-      `/error?message=${encodeURIComponent('You are not a member of this workspace')}`
+      `/error/403?message=${encodeURIComponent('You are not a member of this workspace')}`
     )
   }
 
@@ -121,7 +121,7 @@ export const resolveProjectContext = async (
     )
 
   if (!project) {
-    redirect(`/error?message=${encodeURIComponent('Project not found')}`)
+    redirect(`/error/404?message=${encodeURIComponent('Project not found')}`)
   }
 
   // Owners and admins have access to all projects in the org
@@ -183,6 +183,24 @@ export const resolveProjectContext = async (
   }
 
   redirect(
-    `/error?message=${encodeURIComponent('You do not have access to this project')}`
+    `/error/403?message=${encodeURIComponent('You do not have access to this project')}`
   )
+}
+
+type Role = (typeof roles)[keyof typeof roles]
+type AuthorizeArg = Parameters<Role['authorize']>[0]
+
+/**
+ * Redirects to the 403 error page if the role does not satisfy the given
+ * permissions. Use at the top of `/[org]/*` and `/[org]/[project]/*` pages
+ * after resolving the org/project context.
+ */
+export const requirePermission = (
+  role: Role,
+  permissions: AuthorizeArg,
+  message = 'You do not have permission to view this page'
+) => {
+  if (!role.authorize(permissions).success) {
+    redirect(`/error/403?message=${encodeURIComponent(message)}`)
+  }
 }

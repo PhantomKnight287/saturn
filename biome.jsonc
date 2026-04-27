@@ -41,7 +41,8 @@
       },
       "performance": {
         "noBarrelFile": "off",
-        "noNamespaceImport": "off"
+        "noNamespaceImport": "off",
+        "useTopLevelRegex": "off"
       },
       "correctness": {
         "noUnusedImports": {

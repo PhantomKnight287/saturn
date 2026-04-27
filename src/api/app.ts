@@ -9,7 +9,6 @@ app.use(
   '*',
   logger((str) => {
     const timestamp = new Date().toISOString()
-    // biome-ignore lint/performance/useTopLevelRegex: meh
     const match = str.match(/(\w+)\s+(\S+)\s+(\d+)\s+(\d+)ms/)
     if (match) {
       const [, method, path, status, time] = match

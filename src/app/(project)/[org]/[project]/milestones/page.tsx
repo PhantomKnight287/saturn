@@ -29,7 +29,7 @@ export default async function Milestones({
 
   if (!role.authorize({ milestone: ['read'] }).success) {
     redirect(
-      `/error?message=${encodeURIComponent('You do not have permission to view milestones')}`
+      `/error/403?message=${encodeURIComponent('You do not have permission to view milestones')}`
     )
   }
 

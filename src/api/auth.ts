@@ -15,10 +15,8 @@ export interface VerifiedApiKey {
   organizationId: string
 }
 
-const ACTIVE_STATUSES = new Set(['active', 'trialing'])
-
 export function throwHttp(
-  status: 401 | 402 | 403 | 404 | 409 | 429,
+  status: 401 | 402 | 403 | 404 | 409 | 429 | 500,
   message: string,
   headers?: Record<string, string>
 ): never {
@@ -144,10 +142,9 @@ export async function requireApiKey(
     assertPermissions(readStoredPermissions(metadata), permissions)
   }
 
-  const billing = await getOrganizationBillingStatus(organizationId)
-  const hasActiveSubscription = billing?.result.items.some((sub) =>
-    ACTIVE_STATUSES.has(sub.status)
-  )
+  const hasActiveSubscription =
+    await getOrganizationBillingStatus(organizationId)
+
   if (!hasActiveSubscription) {
     throwHttp(402, 'Organization does not have an active Pro subscription')
   }

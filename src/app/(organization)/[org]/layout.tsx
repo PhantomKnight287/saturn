@@ -19,7 +19,7 @@ export default async function OrganizationLayout({
   const organization = await getCachedOrganization(org, await headers())
 
   if (!organization) {
-    redirect(`/onboarding?redirectTo=/${org}`)
+    redirect(`/error/404?message=${encodeURIComponent('Workspace not found')}`)
   }
 
   const allOrganizations = await authClient.organization.list(

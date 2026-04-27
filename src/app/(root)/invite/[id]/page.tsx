@@ -32,19 +32,21 @@ export default async function InvitePage({
       query: { id: invitationId },
     })
     if (!result) {
-      redirect(`/error?message=${encodeURIComponent('Invitation not found')}`)
+      redirect(
+        `/error/404?message=${encodeURIComponent('Invitation not found')}`
+      )
     }
     invitation = result as typeof invitation
   } catch (e) {
     console.error(e)
     redirect(
-      `/error?message=${encodeURIComponent('Invitation not found or expired')}`
+      `/error/404?message=${encodeURIComponent('Invitation not found or expired')}`
     )
   }
 
   if (invitation.status !== 'pending') {
     redirect(
-      `/error?message=${encodeURIComponent('This invitation has already been used')}`
+      `/error/403?message=${encodeURIComponent('This invitation has already been used')}`
     )
   }
 

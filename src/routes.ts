@@ -11,6 +11,7 @@ export const PUBLIC_ROUTES: string[] = [
 ]
 export const AUTH_PREFIX: string = '/auth'
 export const API_AUTH_PREFIX: string = '/api/auth'
+export const ERROR_PREFIX: string = '/error/'
 export const DEFAULT_LOGIN_REDIRECT: string = '/dashboard'
 
 export function isApiAuth(pathname: string): boolean {
@@ -22,7 +23,9 @@ export function isAuthRoute(pathname: string): boolean {
 }
 
 export function isPublicRoute(pathname: string): boolean {
-  return isPathEqual(pathname, PUBLIC_ROUTES)
+  return (
+    isPathEqual(pathname, PUBLIC_ROUTES) || startsWith(pathname, ERROR_PREFIX)
+  )
 }
 
 // Utils

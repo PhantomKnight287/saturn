@@ -32,7 +32,7 @@ export default async function TeamPage({
 
   if (!['owner', 'admin', 'member'].includes(orgMember.role)) {
     redirect(
-      `/error?message=${encodeURIComponent('You do not have permission to view the team')}`
+      `/error/403?message=${encodeURIComponent('You do not have permission to view the team')}`
     )
   }
 

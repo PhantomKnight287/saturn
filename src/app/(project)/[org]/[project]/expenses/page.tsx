@@ -33,7 +33,7 @@ export default async function Expenses({
 
   if (!role.authorize({ expense: ['read'] }).success) {
     redirect(
-      `/error?message=${encodeURIComponent('You do not have permission to view expenses')}`
+      `/error/403?message=${encodeURIComponent('You do not have permission to view expenses')}`
     )
   }
 

@@ -34,7 +34,7 @@ export default async function RequirementDetail({
 
   if (!role.authorize({ requirement: ['read'] }).success) {
     redirect(
-      `/error?message=${encodeURIComponent('You do not have permission to view requirements')}`
+      `/error/403?message=${encodeURIComponent('You do not have permission to view requirements')}`
     )
   }
 
@@ -44,7 +44,9 @@ export default async function RequirementDetail({
   )
 
   if (!requirement) {
-    redirect(`/error?message=${encodeURIComponent('Requirement not found')}`)
+    redirect(
+      `/error/404?message=${encodeURIComponent('Requirement not found')}`
+    )
   }
 
   const canEdit =

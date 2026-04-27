@@ -31,7 +31,7 @@ export default async function Proposals({
 
   if (!role.authorize({ proposal: ['read'] }).success) {
     redirect(
-      `/error?message=${encodeURIComponent('You do not have permission to view proposals')}`
+      `/error/403?message=${encodeURIComponent('You do not have permission to view proposals')}`
     )
   }
 

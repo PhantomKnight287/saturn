@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from '@bprogress/next/app'
+import { format } from 'date-fns'
 import {
   ChevronLeft,
   ChevronRight,
@@ -33,6 +34,7 @@ import { useSetSelection } from '@/hooks/use-set-selection'
 import { deleteTimeEntryAction, submitTimesheetAction } from '../actions'
 import { canDeleteTimeEntry, canEditTimeEntry, formatMinutes } from '../common'
 import type { Requirement, TimeEntry } from '../types'
+import { exportTimeEntries } from './export-time-entries'
 import { StatusBadgeWithReason } from './status-badge-with-reason'
 import { TimeEntryForm } from './time-entry-form'
 
@@ -96,10 +98,12 @@ export function WeeklyTimesheet({
     d.setDate(d.getDate() + i)
     return d
   })
-
+  const weekStart = weekDays.at(0)!
+  const weekEnd = new Date(weekDays.at(-1)!)
+  weekEnd.setHours(23, 59, 59, 999)
   const weekEntries = entries.filter((e) => {
     const entryDate = new Date(e.date)
-    return entryDate >= weekDays.at(0)! && entryDate <= weekDays.at(-1)!
+    return entryDate >= weekStart && entryDate <= weekEnd
   })
 
   // For personal view: draft entries the member can submit
@@ -189,6 +193,20 @@ export function WeeklyTimesheet({
                   {formatMinutes(weekTotal)}
                 </span>
               </span>
+              <Button
+                disabled={weekEntries.length === 0}
+                kbd='e'
+                onClick={() =>
+                  exportTimeEntries(
+                    weekEntries,
+                    `time-entries-${format(weekDays.at(0)!, 'yyyy-MM-dd')}.xlsx`
+                  )
+                }
+                size='sm'
+                variant='secondary'
+              >
+                Export
+              </Button>
               {!isTeamView && submittableEntries.length > 0 && (
                 <Button
                   disabled={selectedIds.size === 0 || submitAction.isPending}

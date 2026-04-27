@@ -31,7 +31,7 @@ export default async function MilestoneDetail({
 
   if (!role.authorize({ milestone: ['read'] }).success) {
     redirect(
-      `/error?message=${encodeURIComponent('You do not have permission to view milestones')}`
+      `/error/403?message=${encodeURIComponent('You do not have permission to view milestones')}`
     )
   }
 
@@ -41,7 +41,7 @@ export default async function MilestoneDetail({
   )
 
   if (!milestone) {
-    redirect(`/error?message=${encodeURIComponent('Milestone not found')}`)
+    redirect(`/error/404?message=${encodeURIComponent('Milestone not found')}`)
   }
 
   const [linkedRequirements, progress, allRequirements, settings] =

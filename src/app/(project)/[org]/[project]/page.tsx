@@ -12,9 +12,11 @@ import {
 } from 'lucide-react'
 import type { Metadata } from 'next'
 import { headers } from 'next/headers'
-import { redirect } from 'next/navigation'
 
-import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
+import {
+  requirePermission,
+  resolveProjectContext,
+} from '@/app/(organization)/[org]/cache'
 import { expensesServices } from '@/app/api/expenses/service'
 import { invoicesService } from '@/app/api/invoices/service'
 import { milestonesService } from '@/app/api/milestones/service'
@@ -58,11 +60,11 @@ export default async function ProjectOverview({
   const { organization, project, orgMember, role } =
     await resolveProjectContext(org, projectSlug)
 
-  if (!role.authorize({ project: ['read'] }).success) {
-    redirect(
-      `/error?message=${encodeURIComponent('You do not have permission to view this project')}`
-    )
-  }
+  requirePermission(
+    role,
+    { project: ['read'] },
+    'You do not have permission to view this project'
+  )
 
   const h = await headers()
   const isClient = orgMember.role === 'client'
