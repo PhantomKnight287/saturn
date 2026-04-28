@@ -1,0 +1,2 @@
+ALTER TABLE "invoices" DROP CONSTRAINT "invoices_invoice_number_unique";--> statement-breakpoint
+ALTER TABLE "invoices" ADD CONSTRAINT "invoices_invoice_number_project_id_unique" UNIQUE("invoice_number","project_id");

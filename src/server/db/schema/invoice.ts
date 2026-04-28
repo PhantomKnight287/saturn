@@ -32,7 +32,7 @@ export const invoices = pgTable(
     projectId: text('project_id')
       .references(() => projects.id, { onDelete: 'cascade' })
       .notNull(),
-    invoiceNumber: text('invoice_number').notNull().unique(),
+    invoiceNumber: text('invoice_number').notNull(),
     status: invoiceStatusEnum('status').default('draft').notNull(),
     issueDate: timestamp('issue_date').defaultNow().notNull(),
     dueDate: timestamp('due_date'),
@@ -72,6 +72,7 @@ export const invoices = pgTable(
   },
   (table) => [
     index('invoices_project_id_status_idx').on(table.projectId, table.status),
+    unique().on(table.invoiceNumber, table.projectId),
   ]
 )
 

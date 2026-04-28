@@ -197,6 +197,13 @@
       "when": 1776949896766,
       "tag": "0027_absurd_scorpion",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1777373767800,
+      "tag": "0028_lucky_dagger",
+      "breakpoints": true
     }
   ]
 }
