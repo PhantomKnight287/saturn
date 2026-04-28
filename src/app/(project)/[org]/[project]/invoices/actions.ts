@@ -1,7 +1,7 @@
 'use server'
 
 import { render } from '@react-email/render'
-import { eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import { authService } from '@/app/api/auth/service'
 import { projectsService } from '@/app/api/projects/service'
 import InvoiceDisputedEmail from '@/emails/templates/invoice-disputed'
@@ -80,7 +80,18 @@ export const createInvoiceAction = authedActionClient
       const totalAmount = items
         .reduce((sum, item) => sum + Number(item.amount), 0)
         .toFixed(4)
-
+      const invoiceWithSameNumber = await db
+        .select()
+        .from(invoices)
+        .where(
+          and(
+            eq(invoices.projectId, projectId),
+            eq(invoices.invoiceNumber, invoiceNumber)
+          )
+        )
+      if (invoiceWithSameNumber.length) {
+        throw new Error('An invoice with same invoice number already exists.')
+      }
       const invoice = await db.transaction(async (tx) => {
         const [insertedInvoice] = await tx
           .insert(invoices)

@@ -20,6 +20,7 @@ export const proPlanFeatures = [
   'Unlimited projects & workspaces',
   'Everything in Free',
   'Priority support',
+  'Recurrnig Invoices(coming soon)',
 ]
 
 export const modules: {
