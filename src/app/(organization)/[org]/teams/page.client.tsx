@@ -34,13 +34,13 @@ export function TeamsPageClient({
         {canManage && (
           <>
             {activeTab === 'members' && (
-              <Button onClick={() => setShowInviteDialog(true)} size='sm'>
+              <Button onClick={() => setShowInviteDialog(true)}>
                 <UserPlus className='size-4' />
                 Invite Member
               </Button>
             )}
             {activeTab === 'teams' && (
-              <Button onClick={() => setShowCreateTeamDialog(true)} size='sm'>
+              <Button onClick={() => setShowCreateTeamDialog(true)}>
                 <Plus className='size-4' />
                 Create Team
               </Button>

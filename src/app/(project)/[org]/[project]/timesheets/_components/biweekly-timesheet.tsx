@@ -367,7 +367,6 @@ export function BiweeklyTimesheet({
                 <Button
                   className='text-xs'
                   onClick={() => setPeriodOffset(0)}
-                  size='sm'
                   variant='ghost'
                 >
                   Today
@@ -390,7 +389,6 @@ export function BiweeklyTimesheet({
                     `time-entries-${format(periodStart, 'yyyy-MM-dd')}.xlsx`
                   )
                 }
-                size='sm'
                 variant='secondary'
               >
                 Export
@@ -400,7 +398,6 @@ export function BiweeklyTimesheet({
                   disabled={selectedIds.size === 0 || submitAction.isPending}
                   loading={submitAction.isPending}
                   onClick={handleSubmit}
-                  size='sm'
                 >
                   <Send className='size-4' />
                   Submit Selected

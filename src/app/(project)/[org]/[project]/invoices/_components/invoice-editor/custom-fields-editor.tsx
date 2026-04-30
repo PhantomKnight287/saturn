@@ -57,7 +57,6 @@ export const CustomFieldsEditor = memo(function CustomFieldsEditor({
         <Button
           className='text-muted-foreground text-xs'
           onClick={addField}
-          size='sm'
           variant='ghost'
         >
           <Plus className='size-3' />

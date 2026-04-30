@@ -57,7 +57,6 @@ export function ApplicationHeader({
           <Button
             aria-label='Open workspace switcher'
             className='flex h-8 items-center gap-2 px-2 text-sm'
-            size='sm'
             variant='ghost'
           >
             <span className='max-w-[120px] truncate font-medium text-sm'>
@@ -114,7 +113,6 @@ export function ApplicationHeader({
               <Button
                 aria-label='Open team switcher'
                 className='flex h-8 items-center gap-2 px-2 text-sm'
-                size='sm'
                 variant='ghost'
               >
                 <div className='h-2 w-2 rounded-full bg-blue-500' />

@@ -11,6 +11,10 @@ const orgClientInvolvementValueSchema = z.object({
   invoices: clientInvolvementToggleSchema,
 })
 
+export type ClientInvolvementValue = z.infer<
+  typeof orgClientInvolvementValueSchema
+>
+
 export const updateOrgClientInvolvementSchema = z.object({
   organizationId: z.string().min(1),
   clientInvolvement: orgClientInvolvementValueSchema,

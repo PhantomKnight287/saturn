@@ -1,10 +1,10 @@
 import type { z } from 'zod'
+import type { timesheetService } from '@/app/api/timesheets/service'
 import type {
   statusEnum,
   timeEntries,
   timesheetDurationEnum,
-  timesheetReportRecipientStatusEnum,
-  timesheetReportStatusEnum,
+  timesheetReports,
 } from '@/server/db/schema'
 import type { ProjectClient } from '../team/types'
 import type { timeEntryFormSchema } from './common'
@@ -40,17 +40,9 @@ export interface BudgetStatus {
   totalApprovedMinutes: number
 }
 
-export interface MemberRate {
-  createdAt: Date
-  currency: string
-  effectiveFrom: Date
-  hourlyRate: number
-  id: string
-  memberEmail: string
-  memberId: string
-  memberName: string | null
-  projectId: string | null
-}
+export type MemberRate = Awaited<
+  ReturnType<typeof timesheetService.getMemberRates>
+>[number]
 
 export interface Requirement {
   id: string
@@ -64,41 +56,14 @@ export interface ProjectMember {
   name: string | null
 }
 
-export interface TimesheetReportRecipient {
-  clientEmail: string
-  clientMemberId: string
-  clientName: string | null
-  disputeReason: string | null
-  id: string
-  respondedAt: Date | null
-  status: (typeof timesheetReportRecipientStatusEnum.enumValues)[number]
-}
+export type TimesheetReportRecipient = Awaited<
+  ReturnType<typeof timesheetService.getReportRecipientsBatch>
+>[string][number]
 
-export interface TimesheetReport {
-  createdAt: Date
-  currency: string
-  disputeReason: string | null
-  id: string
-  projectId: string
-  respondedAt: Date | null
-  sentAt: Date | null
-  sentByMemberId: string | null
-  status: (typeof timesheetReportStatusEnum.enumValues)[number]
-  title: string
-  totalAmount: number
-  totalMinutes: number
-}
-
-export interface ReportEntryDetail {
-  billable: boolean
-  date: Date
-  description: string
-  durationMinutes: number
-  id: string
-  memberId: string
-  memberName: string | null
-  requirementTitle: string | null
-}
+export type TimesheetReport = typeof timesheetReports.$inferSelect
+export type ReportEntryDetail = Awaited<
+  ReturnType<typeof timesheetService.getReportEntriesBatch>
+>[string][number]
 
 export interface ClientReportWithEntries {
   entries: ReportEntryDetail[]
@@ -107,19 +72,7 @@ export interface ClientReportWithEntries {
 
 export interface TimesheetReportDetail {
   entries: ReportEntryDetail[]
-  report: {
-    id: string
-    projectId: string
-    title: string
-    status: (typeof timesheetReportStatusEnum.enumValues)[number]
-    totalMinutes: number
-    totalAmount: number
-    currency: string
-    sentByMemberId: string | null
-    disputeReason: string | null
-    sentAt: Date | null
-    respondedAt: Date | null
-  }
+  report: TimesheetReport
 }
 
 export type TimesheetDuration =

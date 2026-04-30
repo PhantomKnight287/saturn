@@ -9,6 +9,7 @@ import { timesheetService } from '@/app/api/timesheets/service'
 
 import { createMetadata } from '@/lib/metadata'
 import { TimeTrackingClient } from './page.client'
+import type { ClientReportWithEntries } from './types'
 
 const LOG_MINUTES_RE = /^\d+$/
 
@@ -98,19 +99,7 @@ export default async function TimeTracking({
       : Promise.resolve({}),
   ])
 
-  let clientReports: {
-    report: (typeof reports)[number]
-    entries: {
-      id: string
-      memberId: string
-      description: string
-      date: Date
-      durationMinutes: number
-      billable: boolean
-      memberName: string | null
-      requirementTitle: string | null
-    }[]
-  }[] = []
+  let clientReports: ClientReportWithEntries[] = []
 
   if (isClient) {
     const rawReports = await timesheetService.listReportsForClient(orgMember.id)

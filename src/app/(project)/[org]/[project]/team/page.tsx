@@ -61,23 +61,9 @@ export default async function TeamPage({
     projectsService.getSettings(organization.id),
   ])
 
-  const pendingInvitations = (invitations ?? [])
-    .filter((i: { status: string }) => i.status === 'pending')
-    .map(
-      (i: {
-        id: string
-        email: string
-        role: string
-        status: string
-        expiresAt: Date
-      }) => ({
-        id: i.id,
-        email: i.email,
-        role: i.role,
-        status: i.status,
-        expiresAt: i.expiresAt,
-      })
-    )
+  const pendingInvitations = (invitations ?? []).filter(
+    (i: { status: string }) => i.status === 'pending'
+  )
 
   return (
     <TeamPageClient

@@ -476,7 +476,7 @@ export default function InvoiceEditor({
   return (
     <div className='mx-auto w-full max-w-7xl'>
       <div className='mb-6 flex items-center justify-between gap-4'>
-        <Button asChild size='sm' variant='ghost'>
+        <Button asChild variant='ghost'>
           <Link href={backUrl}>
             <ArrowLeft className='size-4' />
             Back
@@ -498,7 +498,6 @@ export default function InvoiceEditor({
                   status: 'sent',
                 })
               }
-              size='sm'
               variant='outline'
             >
               Mark as Unpaid
@@ -509,7 +508,6 @@ export default function InvoiceEditor({
               className='text-destructive hover:bg-destructive/10'
               loading={isDeleting}
               onClick={handleDelete}
-              size='sm'
               variant='outline'
             >
               <Trash2 className='size-4' />
@@ -519,11 +517,7 @@ export default function InvoiceEditor({
           {canMarkPaid &&
             (invoice?.status === 'sent' ||
               (!isClientInvolved && invoice?.status === 'draft')) && (
-              <Button
-                loading={isMarkingPaid}
-                onClick={handleMarkPaid}
-                size='sm'
-              >
+              <Button loading={isMarkingPaid} onClick={handleMarkPaid}>
                 <CheckCircle2 className='size-4' />
                 Mark as Paid
               </Button>
@@ -532,7 +526,6 @@ export default function InvoiceEditor({
             <Button
               loading={isSending}
               onClick={() => setSendOpen(true)}
-              size='sm'
               variant='outline'
             >
               <Send className='size-4' />
@@ -540,7 +533,7 @@ export default function InvoiceEditor({
             </Button>
           )}
           {isEditable && (
-            <Button loading={isPending} onClick={handleSave} size='sm'>
+            <Button loading={isPending} onClick={handleSave}>
               <Save className='size-4' />
               {mode === 'create' ? 'Create' : 'Save'}
             </Button>
@@ -837,11 +830,7 @@ export default function InvoiceEditor({
               </div>
               {isEditable && (
                 <div className='flex items-center gap-2'>
-                  <Button
-                    onClick={() => setImportOpen(true)}
-                    size='sm'
-                    variant='outline'
-                  >
+                  <Button onClick={() => setImportOpen(true)} variant='outline'>
                     <Clock className='size-4' />
                     Import Time
                   </Button>
@@ -854,7 +843,6 @@ export default function InvoiceEditor({
                         amount: '0',
                       })
                     }
-                    size='sm'
                     variant='outline'
                   >
                     <Plus className='size-4' />

@@ -316,7 +316,6 @@ export default function TiptapEditor({
               editor.chain().focus().toggleHeading({ level: 1 }).run()
             }
             pressed={editor.isActive('heading', { level: 1 })}
-            size='sm'
           >
             <Heading1 className='size-4' />
           </Toggle>
@@ -325,7 +324,6 @@ export default function TiptapEditor({
               editor.chain().focus().toggleHeading({ level: 2 }).run()
             }
             pressed={editor.isActive('heading', { level: 2 })}
-            size='sm'
           >
             <Heading2 className='size-4' />
           </Toggle>
@@ -334,7 +332,6 @@ export default function TiptapEditor({
               editor.chain().focus().toggleHeading({ level: 3 }).run()
             }
             pressed={editor.isActive('heading', { level: 3 })}
-            size='sm'
           >
             <Heading3 className='size-4' />
           </Toggle>
@@ -344,14 +341,12 @@ export default function TiptapEditor({
           <Toggle
             onPressedChange={() => editor.chain().focus().toggleBold().run()}
             pressed={editor.isActive('bold')}
-            size='sm'
           >
             <Bold className='size-4' />
           </Toggle>
           <Toggle
             onPressedChange={() => editor.chain().focus().toggleItalic().run()}
             pressed={editor.isActive('italic')}
-            size='sm'
           >
             <Italic className='size-4' />
           </Toggle>
@@ -360,21 +355,18 @@ export default function TiptapEditor({
               editor.chain().focus().toggleUnderline().run()
             }
             pressed={editor.isActive('underline')}
-            size='sm'
           >
             <UnderlineIcon className='size-4' />
           </Toggle>
           <Toggle
             onPressedChange={() => editor.chain().focus().toggleStrike().run()}
             pressed={editor.isActive('strike')}
-            size='sm'
           >
             <Strikethrough className='size-4' />
           </Toggle>
           <Toggle
             onPressedChange={() => editor.chain().focus().toggleCode().run()}
             pressed={editor.isActive('code')}
-            size='sm'
           >
             <Code className='size-4' />
           </Toggle>
@@ -386,7 +378,6 @@ export default function TiptapEditor({
               editor.chain().focus().toggleBulletList().run()
             }
             pressed={editor.isActive('bulletList')}
-            size='sm'
           >
             <List className='size-4' />
           </Toggle>
@@ -395,7 +386,6 @@ export default function TiptapEditor({
               editor.chain().focus().toggleOrderedList().run()
             }
             pressed={editor.isActive('orderedList')}
-            size='sm'
           >
             <ListOrdered className='size-4' />
           </Toggle>
@@ -404,7 +394,6 @@ export default function TiptapEditor({
               editor.chain().focus().toggleBlockquote().run()
             }
             pressed={editor.isActive('blockquote')}
-            size='sm'
           >
             <Quote className='size-4' />
           </Toggle>
@@ -413,17 +402,16 @@ export default function TiptapEditor({
               editor.chain().focus().setHorizontalRule().run()
             }
             pressed={false}
-            size='sm'
           >
             <Minus className='size-4' />
           </Toggle>
 
           <Separator className='!h-5 mx-1' orientation='vertical' />
 
-          <Toggle onPressedChange={addLink} pressed={false} size='sm'>
+          <Toggle onPressedChange={addLink} pressed={false}>
             <LinkIcon className='size-4' />
           </Toggle>
-          <Toggle onPressedChange={addImageFromFile} pressed={false} size='sm'>
+          <Toggle onPressedChange={addImageFromFile} pressed={false}>
             <ImageIcon className='size-4' />
           </Toggle>
 
@@ -433,7 +421,6 @@ export default function TiptapEditor({
             disabled={!editor.can().undo()}
             onPressedChange={() => editor.chain().focus().undo().run()}
             pressed={false}
-            size='sm'
           >
             <Undo className='size-4' />
           </Toggle>
@@ -441,7 +428,6 @@ export default function TiptapEditor({
             disabled={!editor.can().redo()}
             onPressedChange={() => editor.chain().focus().redo().run()}
             pressed={false}
-            size='sm'
           >
             <Redo className='size-4' />
           </Toggle>

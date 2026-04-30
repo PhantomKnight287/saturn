@@ -49,7 +49,7 @@ export function TeamPageClient({
         {canManage && (
           <>
             {activeTab === 'members' && (
-              <Button onClick={() => setShowInviteDialog(true)} size='sm'>
+              <Button onClick={() => setShowInviteDialog(true)}>
                 <UserPlus className='size-4' />
                 Invite Member
               </Button>
@@ -58,14 +58,13 @@ export function TeamPageClient({
               <Button
                 disabled={!hasAvailableTeams}
                 onClick={() => setShowAssignTeamDialog(true)}
-                size='sm'
               >
                 <Plus className='size-4' />
                 Assign Team
               </Button>
             )}
             {activeTab === 'clients' && (
-              <Button onClick={() => setShowInviteDialog(true)} size='sm'>
+              <Button onClick={() => setShowInviteDialog(true)}>
                 <UserPlus className='size-4' />
                 Invite Client
               </Button>

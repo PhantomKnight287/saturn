@@ -74,27 +74,17 @@ export function FloatingTimer() {
       </div>
       <div className='flex items-center gap-2'>
         {isRunning ? (
-          <Button
-            className='flex-1'
-            onClick={pause}
-            size='sm'
-            variant='outline'
-          >
+          <Button className='flex-1' onClick={pause} variant='outline'>
             <Pause className='size-3.5' />
             Pause
           </Button>
         ) : (
           <>
-            <Button
-              className='flex-1'
-              onClick={resume}
-              size='sm'
-              variant='outline'
-            >
+            <Button className='flex-1' onClick={resume} variant='outline'>
               <Play className='size-3.5' />
               Resume
             </Button>
-            <Button className='flex-1' onClick={handleLog} size='sm'>
+            <Button className='flex-1' onClick={handleLog}>
               <Check className='size-3.5' />
               Log time
             </Button>

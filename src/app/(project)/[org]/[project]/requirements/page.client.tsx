@@ -46,7 +46,6 @@ export function RequirementsClient({
             onClick={() => {
               router.push(newUrl)
             }}
-            size='sm'
           >
             <Plus className='h-4 w-4' />
             New Requirement
@@ -73,7 +72,6 @@ export function RequirementsClient({
                 onClick={() => {
                   router.push(newUrl)
                 }}
-                size='sm'
               >
                 New Requirement
               </Button>

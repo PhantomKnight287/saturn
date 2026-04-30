@@ -131,7 +131,6 @@ export default function TeamsSection({
                         projectSlug,
                       })
                     }
-                    size='sm'
                     variant='ghost'
                   >
                     <X className='size-4 text-muted-foreground' />

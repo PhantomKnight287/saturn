@@ -103,7 +103,7 @@ export default function LineItemsEditor({
       <div className='flex items-center justify-between'>
         <h3 className='font-medium text-sm'>{title || 'Line Items'}</h3>
         {editable && (
-          <Button onClick={addItem} size='sm' type='button' variant='outline'>
+          <Button onClick={addItem} type='button' variant='outline'>
             <Plus className='size-3.5' />
             Add Item
           </Button>
@@ -234,7 +234,6 @@ const LineItemRow = memo(function LineItemRow({
           <Button
             className='h-7 w-7 p-0 text-muted-foreground hover:text-destructive'
             onClick={() => onRemove(index)}
-            size='sm'
             type='button'
             variant='ghost'
           >

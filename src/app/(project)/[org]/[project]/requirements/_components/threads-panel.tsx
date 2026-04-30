@@ -176,7 +176,6 @@ function ThreadItem({
                     setShowReply(false)
                     setReplyText('')
                   }}
-                  size='sm'
                   variant='outline'
                 >
                   Cancel
@@ -185,7 +184,6 @@ function ThreadItem({
                   disabled={!replyText.trim()}
                   loading={isPending || isSending}
                   onClick={handleReply}
-                  size='sm'
                 >
                   <Send className='size-3.5' />
                   Reply
@@ -194,20 +192,12 @@ function ThreadItem({
             </div>
           ) : (
             <div className='mt-3 flex items-center gap-2'>
-              <Button
-                onClick={() => setShowReply(true)}
-                size='sm'
-                variant='ghost'
-              >
+              <Button onClick={() => setShowReply(true)} variant='ghost'>
                 <MessageSquare className='size-3.5' />
                 Reply
               </Button>
               {onResolve && thread.status === 'open' && (
-                <Button
-                  onClick={() => onResolve(thread.id)}
-                  size='sm'
-                  variant='ghost'
-                >
+                <Button onClick={() => onResolve(thread.id)} variant='ghost'>
                   <CheckCircle2 className='size-3.5' />
                   Resolve
                 </Button>

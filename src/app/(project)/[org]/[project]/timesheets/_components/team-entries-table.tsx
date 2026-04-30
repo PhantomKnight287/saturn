@@ -197,7 +197,6 @@ export function TeamEntriesTable({
               setFilterStatus('all')
               setFilterRequirement('all')
             }}
-            size='sm'
             variant='ghost'
           >
             Clear filters

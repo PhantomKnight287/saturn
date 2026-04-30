@@ -1,4 +1,4 @@
-import { format, isPast } from 'date-fns'
+import { format } from 'date-fns'
 import {
   AlertTriangleIcon,
   ClipboardList,
@@ -33,6 +33,13 @@ import { OverdueInvoicesAccordion } from '@/components/dashboard/overdue-invoice
 import { StatCard } from '@/components/dashboard/stat-card'
 import { Badge } from '@/components/ui/badge'
 import { createMetadata } from '@/lib/metadata'
+import {
+  classifyExpenses,
+  classifyInvoices,
+  classifyMilestones,
+  summarizeTimeEntries,
+  toOverdueInvoiceEntries,
+} from '@/lib/overview-stats'
 import { ActiveMilestonesCard } from './_components/active-milestones-card'
 import { BudgetCard } from './_components/budget-card'
 import {
@@ -45,12 +52,8 @@ import { TimesheetReportsCard } from './_components/timesheet-reports-card'
 export const metadata: Metadata = createMetadata({
   title: 'Project Overview',
   description: 'Project at a glance — milestones, budget, and pending work.',
-  openGraph: {
-    images: ['/api/og?page=Overview'],
-  },
-  twitter: {
-    images: ['/api/og?page=Overview'],
-  },
+  openGraph: { images: ['/api/og?page=Overview'] },
+  twitter: { images: ['/api/og?page=Overview'] },
 })
 
 export default async function ProjectOverview({
@@ -120,114 +123,60 @@ export default async function ProjectOverview({
 
   const basePath = `/${org}/${projectSlug}`
 
-  const milestonesBlocked = milestones.filter((m) => m.status === 'blocked')
-  const milestonesOverdue = milestones.filter(
-    (m) => m.dueDate && isPast(new Date(m.dueDate)) && m.status !== 'completed'
-  )
-  const milestonesInProgress = milestones.filter(
-    (m) => m.status === 'in_progress'
-  )
-  const milestonesCompleted = milestones.filter(
-    (m) => m.status === 'completed'
-  ).length
-  const milestoneCompletion = milestones.length
-    ? Math.round((milestonesCompleted / milestones.length) * 100)
-    : 0
-  const nextMilestone = milestones
-    .filter((m) => m.status !== 'completed' && m.dueDate)
-    .sort(
-      (a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime()
-    )[0]
-
-  const totalMinutesLogged = timeEntries.reduce(
-    (sum, e) => sum + e.durationMinutes,
-    0
-  )
-  const hoursLogged = Math.floor(totalMinutesLogged / 60)
-  const minutesLogged = totalMinutesLogged % 60
-  const timesheetsPendingApproval = timeEntries.filter(
-    (e) => e.status === 'submitted_to_admin'
-  )
-  const timesheetsRejected = timeEntries.filter(
-    (e) => e.status === 'admin_rejected'
-  )
-
-  const invoicesDisputed = invoices.filter((i) => i.status === 'disputed')
-  const invoicesOverdue = invoices.filter(
-    (i) => i.status === 'sent' && i.dueDate && isPast(new Date(i.dueDate))
-  )
-  const invoicesPending = invoices.filter((i) => i.status === 'sent')
-  const invoicesPaid = invoices.filter((i) => i.status === 'paid')
-  const invoicesDraft = invoices.filter((i) => i.status === 'draft')
-
-  const expensesPendingAdminApproval = expenses.filter(
-    (e) => e.status === 'submitted_to_admin'
-  )
-  const expensesPendingClientApproval = expenses.filter(
-    (e) => e.status === 'submitted_to_client'
-  )
-  const billableApprovedExpenses = expenses.filter(
-    (e) => e.billable && e.status === 'client_accepted'
-  )
-
+  const ms = classifyMilestones(milestones)
+  const time = summarizeTimeEntries(timeEntries)
+  const inv = classifyInvoices(invoices)
+  const exp = classifyExpenses(expenses)
   const requirementsAwaitingSignature = requirements.filter(
     (r) => r.status === 'submitted_to_client'
   )
   const requirementsWithChanges = requirements.filter(
     (r) => r.status === 'changes_requested'
   )
-
   const proposalsAwaitingSignature = proposals.filter(
     (p) => p.status === 'submitted_to_client'
   )
-
   const reportsDisputed = timesheetReports.filter(
     (r) => r.status === 'disputed'
   )
-  const reportsPendingApproval = timesheetReports.filter(
-    (r) => r.status === 'sent'
+  const reportsPending = timesheetReports.filter((r) => r.status === 'sent')
+  const overdueInvoiceEntries = toOverdueInvoiceEntries(
+    inv.overdue,
+    projectSlug
   )
-
-  const overdueInvoiceEntries = invoicesOverdue.map((inv) => ({
-    id: inv.id,
-    invoiceNumber: inv.invoiceNumber,
-    totalAmount: inv.totalAmount,
-    currency: inv.currency,
-    dueDate: new Date(inv.dueDate!),
-    projectSlug,
-  }))
 
   const hasActionItems =
     overdueInvoiceEntries.length > 0 ||
     (isAdmin &&
-      (timesheetsPendingApproval.length > 0 ||
-        expensesPendingAdminApproval.length > 0 ||
-        invoicesDisputed.length > 0 ||
+      (time.pendingApproval.length > 0 ||
+        exp.pendingAdmin.length > 0 ||
+        inv.disputed.length > 0 ||
         reportsDisputed.length > 0 ||
         requirementsWithChanges.length > 0)) ||
     (isClient &&
       (requirementsAwaitingSignature.length > 0 ||
         proposalsAwaitingSignature.length > 0 ||
-        reportsPendingApproval.length > 0 ||
-        expensesPendingClientApproval.length > 0)) ||
-    (!(isClient || isAdmin) && timesheetsRejected.length > 0) ||
-    (canReadMilestones &&
-      (milestonesBlocked.length > 0 || milestonesOverdue.length > 0))
+        reportsPending.length > 0 ||
+        exp.pendingClient.length > 0)) ||
+    (!(isClient || isAdmin) && time.rejected.length > 0) ||
+    (canReadMilestones && (ms.blocked.length > 0 || ms.overdue.length > 0))
 
   const hasDetailGridContent =
-    (canReadMilestones && milestonesInProgress.length > 0) ||
+    (canReadMilestones && ms.inProgress.length > 0) ||
     (canReadRequirements && requirementsAwaitingSignature.length > 0) ||
     (canReadProposals && proposalsAwaitingSignature.length > 0) ||
     (isAdmin && !!budgetStatus) ||
     (canReadReports && timesheetReports.length > 0)
 
   return (
-    <div className='w-full space-y-6'>
-      <div className='flex flex-wrap items-start justify-between gap-4'>
+    <div className='w-full space-y-8'>
+      <header className='flex flex-wrap items-start justify-between gap-4'>
         <div>
-          <h1 className='font-semibold text-2xl'>{project.name}</h1>
+          <h1 className='font-semibold text-2xl tracking-tight'>
+            {project.name}
+          </h1>
           {project.description && (
-            <p className='mt-1 text-muted-foreground text-sm'>
+            <p className='mt-1 max-w-prose text-muted-foreground text-sm'>
               {project.description}
             </p>
           )}
@@ -247,7 +196,122 @@ export default async function ProjectOverview({
               ` · ${clients.length} ${clients.length === 1 ? 'client' : 'clients'}`}
           </Badge>
         </div>
-      </div>
+      </header>
+
+      {hasActionItems && (
+        <section className='space-y-3'>
+          <SectionLabel>Needs your attention</SectionLabel>
+          <NeedsAttentionCard>
+            {overdueInvoiceEntries.length > 0 && (
+              <OverdueInvoicesAccordion
+                invoices={overdueInvoiceEntries}
+                orgSlug={org}
+              />
+            )}
+            {isAdmin && time.pendingApproval.length > 0 && (
+              <ActionItemLink
+                count={time.pendingApproval.length}
+                href={`${basePath}/timesheets`}
+                icon={Clock}
+                label='Timesheets pending approval'
+              />
+            )}
+            {isAdmin && exp.pendingAdmin.length > 0 && (
+              <ActionItemLink
+                count={exp.pendingAdmin.length}
+                href={`${basePath}/expenses`}
+                icon={Receipt}
+                label='Expenses pending approval'
+              />
+            )}
+            {isAdmin && inv.disputed.length > 0 && (
+              <ActionItemLink
+                count={inv.disputed.length}
+                href={`${basePath}/invoices`}
+                icon={FileSpreadsheet}
+                label='Disputed invoices'
+                variant='destructive'
+              />
+            )}
+            {isAdmin && reportsDisputed.length > 0 && (
+              <ActionItemLink
+                count={reportsDisputed.length}
+                href={`${basePath}/timesheets`}
+                icon={ShieldAlert}
+                label='Disputed timesheet reports'
+                variant='destructive'
+              />
+            )}
+            {isAdmin && requirementsWithChanges.length > 0 && (
+              <ActionItemLink
+                count={requirementsWithChanges.length}
+                href={`${basePath}/requirements`}
+                icon={ClipboardList}
+                label='Requirements with change requests'
+              />
+            )}
+            {isClient && requirementsAwaitingSignature.length > 0 && (
+              <ActionItemLink
+                count={requirementsAwaitingSignature.length}
+                href={`${basePath}/requirements`}
+                icon={ClipboardList}
+                label='Requirements awaiting your signature'
+              />
+            )}
+            {isClient && proposalsAwaitingSignature.length > 0 && (
+              <ActionItemLink
+                count={proposalsAwaitingSignature.length}
+                href={`${basePath}/proposals`}
+                icon={FileText}
+                label='Proposals awaiting your signature'
+              />
+            )}
+            {isClient && reportsPending.length > 0 && (
+              <ActionItemLink
+                count={reportsPending.length}
+                href={`${basePath}/timesheets`}
+                icon={Clock}
+                label='Timesheet reports to review'
+              />
+            )}
+            {isClient && exp.pendingClient.length > 0 && (
+              <ActionItemLink
+                count={exp.pendingClient.length}
+                href={`${basePath}/expenses`}
+                icon={Receipt}
+                label='Expenses to review'
+              />
+            )}
+            {!(isClient || isAdmin) && time.rejected.length > 0 && (
+              <ActionItemLink
+                count={time.rejected.length}
+                href={`${basePath}/timesheets`}
+                icon={Clock}
+                label='Rejected timesheets to fix'
+                variant='destructive'
+              />
+            )}
+            {canReadMilestones && ms.blocked.length > 0 && (
+              <ActionItemLink
+                count={ms.blocked.length}
+                href={`${basePath}/milestones`}
+                icon={ShieldAlert}
+                label='Blocked milestones'
+                variant='destructive'
+              />
+            )}
+            {canReadMilestones && ms.overdue.length > 0 && (
+              <ActionItemLink
+                count={ms.overdue.length}
+                href={`${basePath}/milestones`}
+                icon={AlertTriangleIcon}
+                label='Overdue milestones'
+                variant='destructive'
+              />
+            )}
+          </NeedsAttentionCard>
+        </section>
+      )}
 
       {canReadInvoices && orgMember.role !== 'client' && (
         <FinancialOverviewCard
@@ -259,206 +323,113 @@ export default async function ProjectOverview({
         />
       )}
 
-      {hasActionItems && (
-        <NeedsAttentionCard>
-          {overdueInvoiceEntries.length > 0 && (
-            <OverdueInvoicesAccordion
-              invoices={overdueInvoiceEntries}
-              orgSlug={org}
+      <section className='space-y-3'>
+        <SectionLabel>At a glance</SectionLabel>
+        <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-4'>
+          {canReadMilestones && (
+            <StatCard
+              accent='amber'
+              href={`${basePath}/milestones`}
+              icon={MilestoneIcon}
+              label='Milestones'
+              sublabel={
+                milestones.length > 0
+                  ? `${ms.completed}/${milestones.length} done${ms.next?.dueDate ? ` · next ${format(new Date(ms.next.dueDate), 'MMM d')}` : ''}`
+                  : undefined
+              }
+              value={
+                milestones.length > 0
+                  ? `${ms.completionPercent}%`
+                  : milestones.length
+              }
             />
           )}
-          {isAdmin && timesheetsPendingApproval.length > 0 && (
-            <ActionItemLink
-              count={timesheetsPendingApproval.length}
+          {canReadTimesheets && (
+            <StatCard
+              accent='sky'
               href={`${basePath}/timesheets`}
               icon={Clock}
-              label='Timesheets pending approval'
+              label='Time Logged'
+              sublabel={
+                budgetStatus
+                  ? `${budgetStatus.percentageUsed}% of budget used`
+                  : undefined
+              }
+              value={`${time.hours}h ${time.minutes}m`}
             />
           )}
-          {isAdmin && expensesPendingAdminApproval.length > 0 && (
-            <ActionItemLink
-              count={expensesPendingAdminApproval.length}
-              href={`${basePath}/expenses`}
-              icon={Receipt}
-              label='Expenses pending approval'
-            />
-          )}
-          {isAdmin && invoicesDisputed.length > 0 && (
-            <ActionItemLink
-              count={invoicesDisputed.length}
+          {canReadInvoices && (
+            <StatCard
+              accent='teal'
               href={`${basePath}/invoices`}
               icon={FileSpreadsheet}
-              label='Disputed invoices'
-              variant='destructive'
+              label='Invoices'
+              sublabel={
+                invoices.length > 0
+                  ? `${inv.paid.length} paid · ${inv.sent.length} sent · ${inv.draft.length} draft`
+                  : undefined
+              }
+              value={invoices.length}
             />
           )}
-          {isAdmin && reportsDisputed.length > 0 && (
-            <ActionItemLink
-              count={reportsDisputed.length}
-              href={`${basePath}/timesheets`}
-              icon={ShieldAlert}
-              label='Disputed timesheet reports'
-              variant='destructive'
-            />
-          )}
-          {isAdmin && requirementsWithChanges.length > 0 && (
-            <ActionItemLink
-              count={requirementsWithChanges.length}
-              href={`${basePath}/requirements`}
-              icon={ClipboardList}
-              label='Requirements with change requests'
-            />
-          )}
-          {isClient && requirementsAwaitingSignature.length > 0 && (
-            <ActionItemLink
-              count={requirementsAwaitingSignature.length}
-              href={`${basePath}/requirements`}
-              icon={ClipboardList}
-              label='Requirements awaiting your signature'
-            />
-          )}
-          {isClient && proposalsAwaitingSignature.length > 0 && (
-            <ActionItemLink
-              count={proposalsAwaitingSignature.length}
-              href={`${basePath}/proposals`}
-              icon={FileText}
-              label='Proposals awaiting your signature'
-            />
-          )}
-          {isClient && reportsPendingApproval.length > 0 && (
-            <ActionItemLink
-              count={reportsPendingApproval.length}
-              href={`${basePath}/timesheets`}
-              icon={Clock}
-              label='Timesheet reports to review'
-            />
-          )}
-          {isClient && expensesPendingClientApproval.length > 0 && (
-            <ActionItemLink
-              count={expensesPendingClientApproval.length}
+          {canReadExpenses && (
+            <StatCard
+              accent='rose'
               href={`${basePath}/expenses`}
               icon={Receipt}
-              label='Expenses to review'
-            />
-          )}
-          {!(isClient || isAdmin) && timesheetsRejected.length > 0 && (
-            <ActionItemLink
-              count={timesheetsRejected.length}
-              href={`${basePath}/timesheets`}
-              icon={Clock}
-              label='Rejected timesheets to fix'
-              variant='destructive'
-            />
-          )}
-          {canReadMilestones && milestonesBlocked.length > 0 && (
-            <ActionItemLink
-              count={milestonesBlocked.length}
-              href={`${basePath}/milestones`}
-              icon={ShieldAlert}
-              label='Blocked milestones'
-              variant='destructive'
-            />
-          )}
-          {canReadMilestones && milestonesOverdue.length > 0 && (
-            <ActionItemLink
-              count={milestonesOverdue.length}
-              href={`${basePath}/milestones`}
-              icon={AlertTriangleIcon}
-              label='Overdue milestones'
-              variant='destructive'
-            />
-          )}
-        </NeedsAttentionCard>
-      )}
-
-      <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-4'>
-        {canReadMilestones && (
-          <StatCard
-            href={`${basePath}/milestones`}
-            icon={MilestoneIcon}
-            label='Milestones'
-            sublabel={
-              milestones.length > 0
-                ? `${milestonesCompleted}/${milestones.length} done${nextMilestone?.dueDate ? ` · next ${format(new Date(nextMilestone.dueDate), 'MMM d')}` : ''}`
-                : undefined
-            }
-            value={
-              milestones.length > 0
-                ? `${milestoneCompletion}%`
-                : milestones.length
-            }
-          />
-        )}
-        {canReadTimesheets && (
-          <StatCard
-            href={`${basePath}/timesheets`}
-            icon={Clock}
-            label='Time Logged'
-            sublabel={
-              budgetStatus
-                ? `${budgetStatus.percentageUsed}% of budget used`
-                : undefined
-            }
-            value={`${hoursLogged}h ${minutesLogged}m`}
-          />
-        )}
-        {canReadInvoices && (
-          <StatCard
-            href={`${basePath}/invoices`}
-            icon={FileSpreadsheet}
-            label='Invoices'
-            sublabel={
-              invoices.length > 0
-                ? `${invoicesPaid.length} paid · ${invoicesPending.length} sent · ${invoicesDraft.length} draft`
-                : undefined
-            }
-            value={invoices.length}
-          />
-        )}
-        {canReadExpenses && (
-          <StatCard
-            href={`${basePath}/expenses`}
-            icon={Receipt}
-            label='Expenses'
-            sublabel={
-              expenses.length > 0
-                ? `${billableApprovedExpenses.length} billable · ${expensesPendingAdminApproval.length + expensesPendingClientApproval.length} pending`
-                : undefined
-            }
-            value={expenses.length}
-          />
-        )}
-      </div>
-
-      {hasDetailGridContent && (
-        <div className='grid gap-4 lg:grid-cols-2'>
-          {canReadMilestones && milestonesInProgress.length > 0 && (
-            <ActiveMilestonesCard
-              basePath={basePath}
-              milestones={milestonesInProgress}
-            />
-          )}
-          {canReadRequirements && requirementsAwaitingSignature.length > 0 && (
-            <RequirementsAwaitingSignatureCard
-              basePath={basePath}
-              requirements={requirementsAwaitingSignature}
-            />
-          )}
-          {canReadProposals && proposalsAwaitingSignature.length > 0 && (
-            <ProposalsPendingCard
-              basePath={basePath}
-              proposals={proposalsAwaitingSignature}
-            />
-          )}
-          {isAdmin && budgetStatus && <BudgetCard budget={budgetStatus} />}
-          {canReadReports && timesheetReports.length > 0 && (
-            <TimesheetReportsCard
-              basePath={basePath}
-              reports={timesheetReports}
+              label='Expenses'
+              sublabel={
+                expenses.length > 0
+                  ? `${exp.billableApproved.length} billable · ${exp.pendingAdmin.length + exp.pendingClient.length} pending`
+                  : undefined
+              }
+              value={expenses.length}
             />
           )}
         </div>
+      </section>
+
+      {hasDetailGridContent && (
+        <section className='space-y-3'>
+          <SectionLabel>Active work</SectionLabel>
+          <div className='grid gap-4 lg:grid-cols-2'>
+            {canReadMilestones && ms.inProgress.length > 0 && (
+              <ActiveMilestonesCard
+                basePath={basePath}
+                milestones={ms.inProgress}
+              />
+            )}
+            {canReadRequirements &&
+              requirementsAwaitingSignature.length > 0 && (
+                <RequirementsAwaitingSignatureCard
+                  basePath={basePath}
+                  requirements={requirementsAwaitingSignature}
+                />
+              )}
+            {canReadProposals && proposalsAwaitingSignature.length > 0 && (
+              <ProposalsPendingCard
+                basePath={basePath}
+                proposals={proposalsAwaitingSignature}
+              />
+            )}
+            {isAdmin && budgetStatus && <BudgetCard budget={budgetStatus} />}
+            {canReadReports && timesheetReports.length > 0 && (
+              <TimesheetReportsCard
+                basePath={basePath}
+                reports={timesheetReports}
+              />
+            )}
+          </div>
+        </section>
       )}
     </div>
+  )
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className='font-medium text-muted-foreground text-sm uppercase tracking-wider'>
+      {children}
+    </h2>
   )
 }

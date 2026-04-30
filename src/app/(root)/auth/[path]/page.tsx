@@ -1,6 +1,7 @@
 import { AuthView } from 'better-auth-ui'
 import { authViewPaths } from 'better-auth-ui/server'
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { createMetadata } from '@/lib/metadata'
 
 export const dynamicParams = false
@@ -25,7 +26,28 @@ export default async function AuthPage({ params }: PageProps<'/auth/[path]'>) {
 
   return (
     <main className='container flex grow flex-col items-center justify-center self-center p-4 md:p-6'>
-      <AuthView pathname={path} />
+      <AuthView
+        cardFooter={
+          <p className='text-center text-muted-foreground text-xs'>
+            By continuing, you agree to our{' '}
+            <Link
+              className='underline underline-offset-4 hover:text-foreground'
+              href='/terms'
+            >
+              Terms of Service
+            </Link>{' '}
+            and{' '}
+            <Link
+              className='underline underline-offset-4 hover:text-foreground'
+              href='/privacy'
+            >
+              Privacy Policy
+            </Link>
+            .
+          </p>
+        }
+        pathname={path}
+      />
     </main>
   )
 }

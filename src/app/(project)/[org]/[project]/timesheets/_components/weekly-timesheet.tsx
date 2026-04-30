@@ -179,7 +179,6 @@ export function WeeklyTimesheet({
                 <Button
                   className='text-xs'
                   onClick={() => setWeekOffset(0)}
-                  size='sm'
                   variant='ghost'
                 >
                   Today
@@ -202,7 +201,6 @@ export function WeeklyTimesheet({
                     `time-entries-${format(weekDays.at(0)!, 'yyyy-MM-dd')}.xlsx`
                   )
                 }
-                size='sm'
                 variant='secondary'
               >
                 Export
@@ -212,7 +210,6 @@ export function WeeklyTimesheet({
                   disabled={selectedIds.size === 0 || submitAction.isPending}
                   loading={submitAction.isPending}
                   onClick={handleSubmit}
-                  size='sm'
                 >
                   <Send className='size-4' />
                   Submit Selected

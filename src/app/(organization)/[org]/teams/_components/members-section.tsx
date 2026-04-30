@@ -168,7 +168,6 @@ export default function MembersSection({
                     {!(isSelf || isOwner) && (
                       <Button
                         onClick={() => executeRemove({ memberId: m.memberId })}
-                        size='sm'
                         variant='ghost'
                       >
                         <X className='size-4 text-muted-foreground' />

@@ -31,6 +31,9 @@ import { createNewOrganizationSchema } from './common'
 export default function OnboardingPageClient() {
   const form = useForm<z.infer<typeof createNewOrganizationSchema>>({
     resolver: zodResolver(createNewOrganizationSchema),
+    defaultValues: {
+      currency: 'USD',
+    },
   })
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()

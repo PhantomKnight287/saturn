@@ -36,7 +36,7 @@ export function ClientsPageClient({
       <div className='mb-6 flex items-center justify-between'>
         <h1 className='font-semibold text-2xl'>Clients</h1>
         {canManage && (
-          <Button onClick={() => setShowInviteDialog(true)} size='sm'>
+          <Button onClick={() => setShowInviteDialog(true)}>
             <UserPlus className='size-4' />
             Invite Client
           </Button>

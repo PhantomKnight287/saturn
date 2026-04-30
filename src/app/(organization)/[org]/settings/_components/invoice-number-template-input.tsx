@@ -363,7 +363,7 @@ function AddVariablePopover({
   return (
     <Popover onOpenChange={setOpen} open={open}>
       <PopoverTrigger asChild>
-        <Button className='h-7 gap-1 text-xs' size='sm' variant='ghost'>
+        <Button className='h-7 gap-1 text-xs' variant='ghost'>
           <Plus className='size-3' />
           Add variable
         </Button>

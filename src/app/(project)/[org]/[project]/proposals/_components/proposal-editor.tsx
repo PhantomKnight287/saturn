@@ -393,7 +393,7 @@ export default function ProposalEditor({
   return (
     <div className='mx-auto w-full max-w-4xl'>
       <div className='mb-6 flex items-center justify-between gap-4'>
-        <Button asChild size='sm' variant='ghost'>
+        <Button asChild variant='ghost'>
           <Link href={backUrl}>
             <ArrowLeft className='mr-1 size-4' />
             Back
@@ -411,7 +411,6 @@ export default function ProposalEditor({
             <Button
               loading={isSigning || isUploadingSignature}
               onClick={() => setShowSignatureDialog(true)}
-              size='sm'
             >
               <Check className='mr-1 size-4' />
               Accept & Sign
@@ -431,7 +430,6 @@ export default function ProposalEditor({
               className='border-destructive text-destructive hover:bg-destructive/10'
               loading={isDeclining}
               onClick={handleDecline}
-              size='sm'
               variant='outline'
             >
               <XCircle className='mr-1 size-4' />
@@ -439,27 +437,19 @@ export default function ProposalEditor({
             </Button>
           )}
           {canSendProposal && (
-            <Button
-              onClick={() => setShowSendDialog(true)}
-              size='sm'
-              variant='outline'
-            >
+            <Button onClick={() => setShowSendDialog(true)} variant='outline'>
               <Send className='mr-1 size-4' />
               Send to Client
             </Button>
           )}
           {showThreads && (
-            <Button onClick={handleStartThread} size='sm' variant='outline'>
+            <Button onClick={handleStartThread} variant='outline'>
               <MessageSquarePlus className='mr-1 size-4' />
               New Thread
             </Button>
           )}
           {isEditable && (
-            <Button
-              loading={isPending}
-              onClick={form.handleSubmit(handleSave)}
-              size='sm'
-            >
+            <Button loading={isPending} onClick={form.handleSubmit(handleSave)}>
               <Save className='mr-1 size-4' />
               {mode === 'create' ? 'Create' : 'Save'}
             </Button>

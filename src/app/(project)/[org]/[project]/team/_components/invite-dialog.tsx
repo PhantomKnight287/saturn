@@ -416,7 +416,6 @@ export default function InviteDialog({
                         setSelectedMember(null)
                         setSearch('')
                       }}
-                      size='sm'
                       variant='outline'
                     >
                       <Mail className='size-4' />
@@ -435,7 +434,6 @@ export default function InviteDialog({
                       form.setValue('email', '')
                       setSearch('__show_email__')
                     }}
-                    size='sm'
                     variant='outline'
                   >
                     <Mail className='size-4' />
@@ -474,7 +472,6 @@ export default function InviteDialog({
                     form.setValue('email', '')
                     setSearch('')
                   }}
-                  size='sm'
                   type='button'
                   variant='ghost'
                 >

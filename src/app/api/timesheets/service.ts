@@ -14,17 +14,6 @@ import {
   users,
 } from '@/server/db/schema'
 
-export interface ReportEntry {
-  billable: boolean
-  date: Date
-  description: string
-  durationMinutes: number
-  id: string
-  memberId: string
-  memberName: string | null
-  requirementTitle: string | null
-}
-
 interface ListFilters {
   billable?: boolean
   dateFrom?: string
@@ -320,6 +309,7 @@ const listReportsByProject = async (projectId: string) => {
       sentAt: timesheetReports.sentAt,
       respondedAt: timesheetReports.respondedAt,
       createdAt: timesheetReports.createdAt,
+      updatedAt: timesheetReports.updatedAt,
       sentByMemberId: timesheetReports.sentByMemberId,
     })
     .from(timesheetReports)
@@ -342,6 +332,7 @@ const listReportsForClient = async (clientMemberId: string) => {
       sentAt: timesheetReports.sentAt,
       respondedAt: timesheetReports.respondedAt,
       createdAt: timesheetReports.createdAt,
+      updatedAt: timesheetReports.updatedAt,
       sentByMemberId: timesheetReports.sentByMemberId,
     })
     .from(timesheetReportRecipients)
@@ -356,8 +347,24 @@ const listReportsForClient = async (clientMemberId: string) => {
 }
 
 const getReportEntriesBatch = async (reportIds: string[]) => {
+  interface Row {
+    billable: boolean
+    createdAt: Date
+    date: Date
+    description: string
+    durationMinutes: number
+    id: string
+    invoiceId: string | null
+    memberId: string
+    memberName: string | null
+    reportId: string
+    requirementTitle: string | null
+    timeEntryId: string
+    updatedAt: Date
+  }
+
   if (reportIds.length === 0) {
-    return {} as Record<string, ReportEntry[]>
+    return {} as Record<string, Row[]>
   }
 
   const rows = await db
@@ -371,6 +378,10 @@ const getReportEntriesBatch = async (reportIds: string[]) => {
       billable: timeEntries.billable,
       memberName: users.name,
       requirementTitle: requirements.title,
+      timeEntryId: timeEntries.id,
+      createdAt: timesheetReportEntries.createdAt,
+      updatedAt: timesheetReportEntries.updatedAt,
+      invoiceId: timeEntries.invoiceId,
     })
     .from(timesheetReportEntries)
     .innerJoin(
@@ -383,23 +394,16 @@ const getReportEntriesBatch = async (reportIds: string[]) => {
     .where(inArray(timesheetReportEntries.reportId, reportIds))
     .orderBy(asc(timeEntries.date))
 
-  const grouped = new Map<string, ReportEntry[]>()
+  const grouped = new Map<string, Row[]>()
   for (const row of rows) {
-    if (!grouped.has(row.reportId)) {
-      grouped.set(row.reportId, [])
+    const list = grouped.get(row.reportId)
+    if (list) {
+      list.push(row)
+    } else {
+      grouped.set(row.reportId, [row])
     }
-    grouped.get(row.reportId)!.push({
-      id: row.id,
-      memberId: row.memberId,
-      description: row.description,
-      date: row.date,
-      durationMinutes: row.durationMinutes,
-      billable: row.billable,
-      memberName: row.memberName,
-      requirementTitle: row.requirementTitle,
-    })
   }
-  return Object.fromEntries(grouped) as Record<string, ReportEntry[]>
+  return Object.fromEntries(grouped)
 }
 
 const getReportById = async (reportId: string, projectId: string) => {

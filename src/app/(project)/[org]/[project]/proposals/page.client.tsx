@@ -41,7 +41,7 @@ export function ProposalsClient({
       <div className='mb-6 flex items-center justify-between'>
         <h1 className='font-semibold text-2xl'>Proposals</h1>
         {canCreate && proposals.length > 0 && (
-          <Button kbd='c' onClick={() => router.push(newUrl)} size='sm'>
+          <Button kbd='c' onClick={() => router.push(newUrl)}>
             <Plus className='h-4 w-4' />
             New Proposal
           </Button>
@@ -62,7 +62,7 @@ export function ProposalsClient({
           </EmptyHeader>
           {canCreate && (
             <EmptyContent>
-              <Button kbd='c' onClick={() => router.push(newUrl)} size='sm'>
+              <Button kbd='c' onClick={() => router.push(newUrl)}>
                 New Proposal
               </Button>
             </EmptyContent>

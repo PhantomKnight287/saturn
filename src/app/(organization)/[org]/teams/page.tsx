@@ -7,7 +7,6 @@ import { createMetadata } from '@/lib/metadata'
 import { auth } from '@/server/auth'
 import { resolveOrgContext } from '../cache'
 import { TeamsPageClient } from './page.client'
-import type { PendingInvitation } from './types'
 
 export const metadata: Metadata = createMetadata({
   title: 'Teams',
@@ -50,15 +49,9 @@ export default async function TeamsPage({ params }: PageProps<'/[org]/teams'>) {
       projectsService.getSettings(organization.id),
     ])
 
-  const pendingInvitations: PendingInvitation[] = (invitationsResult ?? [])
-    .filter((i) => i.status === 'pending' && i.role !== 'client')
-    .map((i) => ({
-      id: i.id,
-      email: i.email,
-      role: i.role ?? 'member',
-      status: i.status,
-      expiresAt: i.expiresAt,
-    }))
+  const pendingInvitations = (invitationsResult ?? []).filter(
+    (i) => i.status === 'pending' && i.role !== 'client'
+  )
 
   return (
     <TeamsPageClient
