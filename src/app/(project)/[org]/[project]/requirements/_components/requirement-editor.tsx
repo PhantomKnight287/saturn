@@ -280,7 +280,6 @@ export default function RequirementEditor(props: RequirementEditorProps) {
             <Button
               loading={isSigning || isUploadingSignature}
               onClick={() => setShowSignatureDialog(true)}
-              size='sm'
             >
               <Check className='mr-1 size-4' />
               Sign
@@ -290,7 +289,6 @@ export default function RequirementEditor(props: RequirementEditorProps) {
             <Button
               className='border-amber-600 text-amber-600 hover:bg-amber-50 hover:text-amber-700'
               onClick={() => setShowChangesDialog(true)}
-              size='sm'
               variant='outline'
             >
               <RotateCcw className='mr-1 size-4' />
@@ -301,7 +299,6 @@ export default function RequirementEditor(props: RequirementEditorProps) {
             <Button
               loading={isSendingForSign}
               onClick={() => setShowSendDialog(true)}
-              size='sm'
               variant='outline'
             >
               <Send className='mr-1 size-4' />
@@ -309,7 +306,7 @@ export default function RequirementEditor(props: RequirementEditorProps) {
             </Button>
           )}
           {showThreads && props.isClientInvolved && (
-            <Button onClick={handleStartThread} size='sm' variant='outline'>
+            <Button onClick={handleStartThread} variant='outline'>
               <MessageSquarePlus className='mr-1 size-4' />
               New Thread
             </Button>
@@ -319,7 +316,6 @@ export default function RequirementEditor(props: RequirementEditorProps) {
               disabled={!form.formState.isValid}
               loading={isUploading || isCreating || isUpdating}
               onClick={handleSave}
-              size='sm'
             >
               <Save className='mr-1 size-4' />
               {props.mode === 'create' ? 'Create' : 'Save'}

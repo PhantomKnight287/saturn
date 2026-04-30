@@ -120,7 +120,6 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
             <Button
               disabled={selectedEntryIds.size === 0}
               onClick={() => setSendOpen(true)}
-              size='sm'
               variant='outline'
             >
               <Send className='mr-1 size-4' />
@@ -132,7 +131,6 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
             <Button
               kbd='r'
               onClick={() => setRatesOpen(true)}
-              size='sm'
               variant='outline'
             >
               <Settings2 className='mr-1 size-4' />
@@ -145,13 +143,12 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
             onClick={() =>
               startTimer({ orgSlug, projectSlug, projectId, projectName })
             }
-            size='sm'
             variant='outline'
           >
             <Play className='mr-1 size-4' />
             {timerStartedAt ? 'Recording…' : 'Record'}
           </Button>
-          <Button kbd='l' onClick={() => setFormOpen(true)} size='sm'>
+          <Button kbd='l' onClick={() => setFormOpen(true)}>
             <Plus className='mr-1 size-4' />
             Log Time
           </Button>
@@ -159,7 +156,7 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
       </div>
 
       <Tabs defaultValue={isAdmin ? 'team' : 'timesheet'}>
-        <TabsList className='mb-4'>
+        <TabsList className='mb-4' variant={'line'}>
           <TabsTrigger value='timesheet'>My Timesheet</TabsTrigger>
           {isAdmin && (
             <>

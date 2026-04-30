@@ -1,4 +1,5 @@
 import type { teamService } from '@/app/api/teams/service'
+import type { auth } from '@/server/auth'
 
 export type ProjectMember = Awaited<
   ReturnType<typeof teamService.getProjectMembers>
@@ -16,18 +17,13 @@ export type OrgMember = Awaited<
   ReturnType<typeof teamService.getOrgMembers>
 >[number]
 
-export interface OrgTeam {
-  teamId: string
-  teamName: string
-}
+export type OrgTeam = Awaited<
+  ReturnType<typeof teamService.getOrgTeams>
+>[number]
 
-export interface PendingInvitation {
-  email: string
-  expiresAt: Date
-  id: string
-  role: string
-  status: string
-}
+export type PendingInvitation = Awaited<
+  ReturnType<typeof auth.api.listInvitations>
+>[number]
 
 export interface TeamPageClientProps {
   canManage: boolean

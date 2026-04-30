@@ -145,7 +145,6 @@ function ChangeRequestItem({
             <Button
               loading={isPending}
               onClick={() => handleResolve('rejected')}
-              size='sm'
               variant='outline'
             >
               <XCircle className='size-3.5' />
@@ -154,7 +153,6 @@ function ChangeRequestItem({
             <Button
               loading={isPending}
               onClick={() => handleResolve('accepted')}
-              size='sm'
             >
               <CheckCircle2 className='size-3.5' />
               Accept

@@ -126,7 +126,6 @@ export default function ExpensesClient({
             <Button
               disabled={selectedIds.size === 0}
               onClick={() => setSendToClientOpen(true)}
-              size='sm'
               variant='outline'
             >
               <Send className='size-4' />
@@ -140,24 +139,19 @@ export default function ExpensesClient({
               onClick={() =>
                 submitAction.execute({ expenseIds: selectedSubmittableIds })
               }
-              size='sm'
               variant='outline'
             >
               Submit (${selectedSubmittableIds.length})
             </Button>
           )}
           {isAdmin && (
-            <Button
-              onClick={() => setCategoriesOpen(true)}
-              size='sm'
-              variant='outline'
-            >
+            <Button onClick={() => setCategoriesOpen(true)} variant='outline'>
               <Settings2 className='size-4' />
               Categories
             </Button>
           )}
           {canCreate && (
-            <Button kbd='c' onClick={() => setFormOpen(true)} size='sm'>
+            <Button kbd='c' onClick={() => setFormOpen(true)}>
               <Plus className='size-4' />
               Log Expense
             </Button>

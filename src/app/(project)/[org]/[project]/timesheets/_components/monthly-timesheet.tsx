@@ -200,7 +200,6 @@ export function MonthlyTimesheet({
                 <Button
                   className='text-xs'
                   onClick={() => setMonthOffset(0)}
-                  size='sm'
                   variant='ghost'
                 >
                   Today
@@ -223,7 +222,6 @@ export function MonthlyTimesheet({
                     `time-entries-${format(currentMonth, 'yyyy-MM')}.xlsx`
                   )
                 }
-                size='sm'
                 variant='secondary'
               >
                 Export
@@ -233,7 +231,6 @@ export function MonthlyTimesheet({
                   disabled={selectedIds.size === 0 || submitAction.isPending}
                   loading={submitAction.isPending}
                   onClick={handleSubmit}
-                  size='sm'
                 >
                   <Send className='size-4' />
                   Submit Selected
@@ -329,7 +326,6 @@ export function MonthlyTimesheet({
                     setSelectedDay(null)
                     onAddEntry(day ?? undefined)
                   }}
-                  size='sm'
                 >
                   Log Time
                 </Button>

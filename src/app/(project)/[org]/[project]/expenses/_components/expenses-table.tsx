@@ -209,7 +209,6 @@ export function ExpensesTable({
               setFilterCategory('all')
               setFilterBillable('all')
             }}
-            size='sm'
             variant='ghost'
           >
             Clear filters

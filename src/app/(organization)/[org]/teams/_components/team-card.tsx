@@ -63,24 +63,15 @@ export default function TeamCard({
         </div>
         {canManage && (
           <div className='flex items-center gap-1'>
-            <Button
-              onClick={() => setAddMemberOpen(true)}
-              size='sm'
-              variant='ghost'
-            >
+            <Button onClick={() => setAddMemberOpen(true)} variant='ghost'>
               <Plus className='size-4 text-muted-foreground' />
             </Button>
-            <Button
-              onClick={() => setRenameOpen(true)}
-              size='sm'
-              variant='ghost'
-            >
+            <Button onClick={() => setRenameOpen(true)} variant='ghost'>
               <Pencil className='size-4 text-muted-foreground' />
             </Button>
             {!isLastTeam && (
               <Button
                 onClick={() => executeDelete({ teamId: team.teamId })}
-                size='sm'
                 variant='ghost'
               >
                 <Trash2 className='size-4 text-muted-foreground' />

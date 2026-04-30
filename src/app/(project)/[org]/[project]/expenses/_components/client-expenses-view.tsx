@@ -132,7 +132,6 @@ export function ClientExpensesView({
               <Button
                 disabled={selectedIds.size === 0 || respondAction.isPending}
                 onClick={() => setRejectOpen(true)}
-                size='sm'
                 variant='outline'
               >
                 <XCircle className='size-4' />
@@ -147,7 +146,6 @@ export function ClientExpensesView({
                     action: 'approve',
                   })
                 }
-                size='sm'
               >
                 <CheckCircle2 className='size-4' />
                 Approve

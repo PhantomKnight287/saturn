@@ -1,5 +1,3 @@
-'use client'
-
 import { useRouter } from '@bprogress/next/app'
 import { useAction } from 'next-safe-action/hooks'
 import { useState } from 'react'
@@ -38,7 +36,7 @@ export default function AssignProjectDialog({
   const [selectedProjectId, setSelectedProjectId] = useState('')
 
   const availableProjects = projects.filter(
-    (p) => !existingProjectIds.includes(p.projectId)
+    (p) => !existingProjectIds.includes(p.id)
   )
 
   const { execute, isPending } = useAction(assignClientToProjectAction, {
@@ -74,8 +72,8 @@ export default function AssignProjectDialog({
               </SelectTrigger>
               <SelectContent>
                 {availableProjects.map((p) => (
-                  <SelectItem key={p.projectId} value={p.projectId}>
-                    {p.projectName}
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name}
                   </SelectItem>
                 ))}
               </SelectContent>

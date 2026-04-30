@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { format } from 'date-fns'
 import { CalendarIcon } from 'lucide-react'
-import type { Dispatch, SetStateAction } from 'react'
+import { type Dispatch, type SetStateAction, useEffect } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import type z from 'zod'
 import { Button } from '@/components/ui/button'
@@ -54,6 +54,19 @@ export default function CreateProjectDialog({
       description: '',
     },
   })
+
+  useEffect(() => {
+    if (!dialogOpen) {
+      form.reset({
+        organizationId,
+        orgSlug,
+        name: '',
+        description: '',
+        dueDate: undefined,
+      })
+    }
+  }, [dialogOpen, form, organizationId, orgSlug])
+
   return (
     <Dialog onOpenChange={setDialogOpen} open={dialogOpen}>
       <DialogContent>
@@ -74,7 +87,9 @@ export default function CreateProjectDialog({
                   <Input
                     {...field}
                     aria-invalid={fieldState.invalid}
+                    autoComplete='off'
                     autoFocus
+                    name='project-title'
                     onChange={(e) => {
                       field.onChange(e.target.value)
                     }}
@@ -100,6 +115,8 @@ export default function CreateProjectDialog({
                   <Input
                     {...field}
                     aria-invalid={fieldState.invalid}
+                    autoComplete='off'
+                    name='project-description'
                     placeholder='Optional description'
                   />
                   <FieldDescription>

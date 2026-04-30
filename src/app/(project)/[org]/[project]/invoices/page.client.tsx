@@ -45,17 +45,13 @@ export function InvoicesClient({
               className='rounded-r-none'
               kbd='c'
               onClick={() => router.push(newUrl as unknown as string)}
-              size='sm'
             >
               <Plus className='size-4' />
               New Invoice
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button
-                  className='rounded-l-none border-l border-l-primary-foreground/20 px-1.5'
-                  size='sm'
-                >
+                <Button className='rounded-l-none border-l border-l-primary-foreground/20 px-1.5'>
                   <ChevronDown className='size-4' />
                 </Button>
               </DropdownMenuTrigger>

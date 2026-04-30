@@ -71,7 +71,7 @@ export function MilestonesClient({
       <div className='mb-6 flex items-center justify-between'>
         <h1 className='font-semibold text-2xl'>Milestones</h1>
         {canCreate && milestones.length > 0 && (
-          <Button kbd='c' onClick={() => setDialogOpen(true)} size='sm'>
+          <Button kbd='c' onClick={() => setDialogOpen(true)}>
             <Plus className='h-4 w-4' />
             New Milestone
           </Button>

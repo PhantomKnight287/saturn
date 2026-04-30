@@ -55,11 +55,7 @@ export default function PendingInvitationsBlock({
                 </div>
               </div>
             </div>
-            <Button
-              onClick={() => handleCancel(inv.id)}
-              size='sm'
-              variant='ghost'
-            >
+            <Button onClick={() => handleCancel(inv.id)} variant='ghost'>
               <X className='size-4 text-muted-foreground' />
             </Button>
           </div>

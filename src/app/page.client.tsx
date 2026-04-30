@@ -315,7 +315,7 @@ export default function LandingPageClient({
               features={proPlanFeatures}
               name='Pro'
               price='$3'
-              suffix='/ month'
+              suffix='/ month + taxes'
             />
           </div>
           <p className='mt-6 font-mono text-[11px] text-muted-foreground uppercase tracking-[0.18em]'>

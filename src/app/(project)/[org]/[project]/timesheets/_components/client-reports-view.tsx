@@ -230,7 +230,6 @@ function TimesheetCard({
             <Button
               disabled={actionPending}
               onClick={() => onDispute(report.id)}
-              size='sm'
               variant='outline'
             >
               <MessageSquareWarning className='mr-1.5 size-4' />
@@ -239,7 +238,6 @@ function TimesheetCard({
             <Button
               disabled={actionPending}
               onClick={() => onApprove(report.id)}
-              size='sm'
             >
               <CheckCircle2 className='mr-1.5 size-4' />
               Approve

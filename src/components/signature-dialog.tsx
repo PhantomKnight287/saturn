@@ -180,7 +180,6 @@ export function SignatureDialog({
                 {hasMedia && (
                   <Button
                     onClick={() => setLibraryOpen(true)}
-                    size='sm'
                     type='button'
                     variant='outline'
                   >
@@ -209,12 +208,7 @@ export function SignatureDialog({
               </div>
 
               <div className='flex justify-end'>
-                <Button
-                  onClick={switchToPad}
-                  size='sm'
-                  type='button'
-                  variant='outline'
-                >
+                <Button onClick={switchToPad} type='button' variant='outline'>
                   <Pen className='size-3.5' />
                   Draw instead
                 </Button>

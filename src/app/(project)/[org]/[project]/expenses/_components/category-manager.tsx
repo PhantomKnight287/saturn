@@ -179,7 +179,6 @@ function CategoryRow({
         <Button
           className='h-7 px-2 text-xs'
           onClick={() => setEditing(true)}
-          size='sm'
           variant='ghost'
         >
           Edit
@@ -286,7 +285,6 @@ export function CategoryManager({
               <Button
                 className='w-full text-muted-foreground text-xs'
                 onClick={() => setShowArchived(!showArchived)}
-                size='sm'
                 variant='ghost'
               >
                 {showArchived ? 'Hide' : 'Show'} archived (
@@ -361,7 +359,7 @@ export function CategoryManager({
               </Field>
             )}
           />
-          <Button disabled={createAction.isPending} size='sm' type='submit'>
+          <Button disabled={createAction.isPending} type='submit'>
             <Plus className='size-4' />
             Add
           </Button>

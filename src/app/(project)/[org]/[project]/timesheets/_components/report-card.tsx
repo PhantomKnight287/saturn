@@ -104,7 +104,7 @@ export function ReportCard({
           <TimesheetStatusBadge status={report.status} />
           {invoiceUrl && (
             <a href={invoiceUrl}>
-              <Button className='h-7 text-xs' size='sm' variant='outline'>
+              <Button className='h-7 text-xs' variant='outline'>
                 <Receipt className='size-3' />
                 Create Invoice
               </Button>
@@ -146,7 +146,6 @@ export function ReportCard({
                   e.stopPropagation()
                   onResend()
                 }}
-                size='sm'
               >
                 <RefreshCw className='size-4' />
                 {isResending ? 'Resending...' : 'Resend'}

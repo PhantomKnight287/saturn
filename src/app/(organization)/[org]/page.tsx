@@ -28,18 +28,21 @@ import { StatCard } from '@/components/dashboard/stat-card'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { createMetadata } from '@/lib/metadata'
+import {
+  classifyInvoices,
+  classifyMilestones,
+  getGreeting,
+  summarizeTime,
+  toOverdueInvoiceEntries,
+} from '@/lib/overview-stats'
 import type { RouteImpl } from '@/types'
 import { resolveOrgContext } from './cache'
 
 export const metadata: Metadata = createMetadata({
   title: 'Overview',
   description: 'Your workspace at a glance — projects, invoices, and activity.',
-  openGraph: {
-    images: ['/api/og?page=Overview'],
-  },
-  twitter: {
-    images: ['/api/og?page=Overview'],
-  },
+  openGraph: { images: ['/api/og?page=Overview'] },
+  twitter: { images: ['/api/og?page=Overview'] },
 })
 
 export default async function OrganizationPage(props: PageProps<'/[org]'>) {
@@ -94,77 +97,39 @@ export default async function OrganizationPage(props: PageProps<'/[org]'>) {
         : Promise.resolve({ team: 0, client: 0 }),
     ])
 
-  const projectBySlug = new Map(projectList.map((p) => [p.id, p]))
-
-  const invoicesOverdue = invoiceList.filter(
-    (i) => i.status === 'sent' && i.dueDate && new Date(i.dueDate) < new Date()
+  const projectsById = new Map(projectList.map((p) => [p.id, p]))
+  const invoiceBuckets = classifyInvoices(invoiceList)
+  const milestoneBuckets = classifyMilestones(milestoneList)
+  const time = summarizeTime(timeEntryList)
+  const overdueInvoiceEntries = toOverdueInvoiceEntries(
+    invoiceBuckets.overdue,
+    projectsById
   )
-  const invoicesDraft = invoiceList.filter((i) => i.status === 'draft')
-  const invoicesDisputed = invoiceList.filter((i) => i.status === 'disputed')
-  const invoicesPaid = invoiceList.filter((i) => i.status === 'paid')
-  const invoicesSent = invoiceList.filter((i) => i.status === 'sent')
-
-  const overdueInvoiceEntries = invoicesOverdue
-    .map((inv) => {
-      const project = projectBySlug.get(inv.projectId)
-      if (!project) {
-        return null
-      }
-      return {
-        id: inv.id,
-        invoiceNumber: inv.invoiceNumber,
-        totalAmount: inv.totalAmount,
-        currency: inv.currency,
-        dueDate: new Date(inv.dueDate!),
-        projectSlug: project.slug,
-        projectName: project.name,
-      }
-    })
-    .filter((e): e is NonNullable<typeof e> => e !== null)
-
-  const minutesThisMonth = timeEntryList.reduce(
-    (sum, e) => sum + e.durationMinutes,
-    0
-  )
-  const hoursThisMonth = Math.floor(minutesThisMonth / 60)
-  const minutesRemainder = minutesThisMonth % 60
-
-  const milestonesOverdue = milestoneList.filter(
-    (m) =>
-      m.dueDate && new Date(m.dueDate) < new Date() && m.status !== 'completed'
-  )
-  const milestonesBlocked = milestoneList.filter((m) => m.status === 'blocked')
-  const milestonesCompleted = milestoneList.filter(
-    (m) => m.status === 'completed'
-  ).length
-  const milestoneProgress = milestoneList.length
-    ? Math.round((milestonesCompleted / milestoneList.length) * 100)
-    : 0
 
   const { team: teamCount, client: clientCount } = memberCounts
-
   const projectsWithDueDate = projectList.filter((p) => p.dueDate).length
 
   const hasActionItems =
     overdueInvoiceEntries.length > 0 ||
-    invoicesDisputed.length > 0 ||
+    invoiceBuckets.disputed.length > 0 ||
     (canReadMilestones &&
-      (milestonesOverdue.length > 0 || milestonesBlocked.length > 0)) ||
-    (isAdmin && invoicesDraft.length > 0)
+      (milestoneBuckets.overdue.length > 0 ||
+        milestoneBuckets.blocked.length > 0)) ||
+    (isAdmin && invoiceBuckets.draft.length > 0)
 
   const userName = (session as { name?: string }).name?.split(' ')[0] ?? ''
   const greeting = getGreeting()
 
   return (
-    <div className='w-full space-y-6'>
-      <div className='flex flex-wrap items-start justify-between gap-4'>
+    <div className='w-full space-y-8'>
+      <header className='flex flex-wrap items-start justify-between gap-4'>
         <div>
-          <h1 className='font-semibold text-2xl'>
+          <h1 className='font-semibold text-2xl tracking-tight'>
             {greeting}
             {userName && `, ${userName}`}
           </h1>
           <p className='mt-1 text-muted-foreground text-sm'>
-            Here's what's happening in {organization.name}
+            Here's what's happening in {organization.name}.
           </p>
         </div>
         <div className='flex flex-wrap items-center gap-2'>
@@ -182,12 +147,14 @@ export default async function OrganizationPage(props: PageProps<'/[org]'>) {
             </Badge>
           )}
         </div>
-      </div>
+      </header>
 
       {!hasProjects && (
         <Card>
-          <CardContent className='flex flex-col items-center gap-3 py-10 text-center'>
-            <Briefcase className='size-8 text-muted-foreground' />
+          <CardContent className='flex flex-col items-center gap-3 py-12 text-center'>
+            <div className='flex size-12 items-center justify-center rounded-full bg-muted'>
+              <Briefcase className='size-6 text-muted-foreground' />
+            </div>
             <p className='text-muted-foreground text-sm'>
               No projects yet.{' '}
               {isAdmin
@@ -199,11 +166,60 @@ export default async function OrganizationPage(props: PageProps<'/[org]'>) {
                 className='text-primary text-sm underline-offset-4 hover:underline'
                 href={`/${org}/projects?newProject=1` as RouteImpl}
               >
-                Create a project
+                Create a project →
               </Link>
             )}
           </CardContent>
         </Card>
+      )}
+
+      {hasActionItems && (
+        <section className='space-y-3'>
+          <SectionLabel>Needs your attention</SectionLabel>
+          <NeedsAttentionCard>
+            {overdueInvoiceEntries.length > 0 && (
+              <OverdueInvoicesAccordion
+                invoices={overdueInvoiceEntries}
+                orgSlug={org}
+                showProjectName
+              />
+            )}
+            {invoiceBuckets.disputed.length > 0 && (
+              <ActionItemLink
+                count={invoiceBuckets.disputed.length}
+                href={`/${org}/projects`}
+                icon={FileSpreadsheet}
+                label='Disputed invoices'
+                variant='destructive'
+              />
+            )}
+            {canReadMilestones && milestoneBuckets.overdue.length > 0 && (
+              <ActionItemLink
+                count={milestoneBuckets.overdue.length}
+                href={`/${org}/projects`}
+                icon={MilestoneIcon}
+                label='Overdue milestones'
+                variant='destructive'
+              />
+            )}
+            {canReadMilestones && milestoneBuckets.blocked.length > 0 && (
+              <ActionItemLink
+                count={milestoneBuckets.blocked.length}
+                href={`/${org}/projects`}
+                icon={ClipboardList}
+                label='Blocked milestones'
+              />
+            )}
+            {isAdmin && invoiceBuckets.draft.length > 0 && (
+              <ActionItemLink
+                count={invoiceBuckets.draft.length}
+                href={`/${org}/projects`}
+                icon={FileText}
+                label='Draft invoices'
+              />
+            )}
+          </NeedsAttentionCard>
+        </section>
       )}
 
       {hasProjects && canReadInvoices && orgMember.role !== 'client' && (
@@ -217,105 +233,63 @@ export default async function OrganizationPage(props: PageProps<'/[org]'>) {
       )}
 
       {hasProjects && (
-        <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-4'>
-          <StatCard
-            href={`/${org}/projects`}
-            icon={Briefcase}
-            label='Projects'
-            sublabel={
-              projectList.length > 0
-                ? `${projectsWithDueDate} with due date`
-                : undefined
-            }
-            value={projectList.length}
-          />
-          {canReadTimesheets && (
+        <section className='space-y-3'>
+          <SectionLabel>At a glance</SectionLabel>
+          <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-4'>
             <StatCard
-              icon={Clock}
-              label='Logged this month'
-              sublabel={`${timeEntryList.length} ${timeEntryList.length === 1 ? 'entry' : 'entries'}`}
-              value={`${hoursThisMonth}h ${minutesRemainder}m`}
-            />
-          )}
-          {canReadMilestones && milestoneList.length > 0 && (
-            <StatCard
-              icon={MilestoneIcon}
-              label='Milestones'
-              sublabel={`${milestonesCompleted}/${milestoneList.length} completed`}
-              value={`${milestoneProgress}%`}
-            />
-          )}
-          {canReadInvoices && (
-            <StatCard
-              icon={FileSpreadsheet}
-              label='Invoices'
+              accent='violet'
+              href={`/${org}/projects`}
+              icon={Briefcase}
+              label='Projects'
               sublabel={
-                invoiceList.length > 0
-                  ? `${invoicesPaid.length} paid · ${invoicesSent.length} sent`
+                projectList.length > 0
+                  ? `${projectsWithDueDate} with due date`
                   : undefined
               }
-              value={invoiceList.length}
+              value={projectList.length}
             />
-          )}
-        </div>
-      )}
-
-      {hasActionItems && (
-        <NeedsAttentionCard>
-          {overdueInvoiceEntries.length > 0 && (
-            <OverdueInvoicesAccordion
-              invoices={overdueInvoiceEntries}
-              orgSlug={org}
-              showProjectName
-            />
-          )}
-          {invoicesDisputed.length > 0 && (
-            <ActionItemLink
-              count={invoicesDisputed.length}
-              href={`/${org}/projects`}
-              icon={FileSpreadsheet}
-              label='Disputed invoices'
-              variant='destructive'
-            />
-          )}
-          {canReadMilestones && milestonesOverdue.length > 0 && (
-            <ActionItemLink
-              count={milestonesOverdue.length}
-              href={`/${org}/projects`}
-              icon={MilestoneIcon}
-              label='Overdue milestones'
-              variant='destructive'
-            />
-          )}
-          {canReadMilestones && milestonesBlocked.length > 0 && (
-            <ActionItemLink
-              count={milestonesBlocked.length}
-              href={`/${org}/projects`}
-              icon={ClipboardList}
-              label='Blocked milestones'
-            />
-          )}
-          {isAdmin && invoicesDraft.length > 0 && (
-            <ActionItemLink
-              count={invoicesDraft.length}
-              href={`/${org}/projects`}
-              icon={FileText}
-              label='Draft invoices'
-            />
-          )}
-        </NeedsAttentionCard>
+            {canReadTimesheets && (
+              <StatCard
+                accent='sky'
+                icon={Clock}
+                label='Logged this month'
+                sublabel={`${time.entryCount} ${time.entryCount === 1 ? 'entry' : 'entries'}`}
+                value={`${time.hours}h ${time.minutes}m`}
+              />
+            )}
+            {canReadMilestones && milestoneList.length > 0 && (
+              <StatCard
+                accent='amber'
+                icon={MilestoneIcon}
+                label='Milestones'
+                sublabel={`${milestoneBuckets.completed}/${milestoneList.length} completed`}
+                value={`${milestoneBuckets.completionPercent}%`}
+              />
+            )}
+            {canReadInvoices && (
+              <StatCard
+                accent='teal'
+                icon={FileSpreadsheet}
+                label='Invoices'
+                sublabel={
+                  invoiceList.length > 0
+                    ? `${invoiceBuckets.paid.length} paid · ${invoiceBuckets.sent.length} sent`
+                    : undefined
+                }
+                value={invoiceList.length}
+              />
+            )}
+          </div>
+        </section>
       )}
     </div>
   )
 }
 
-function getGreeting() {
-  const hour = new Date().getHours()
-  if (hour < 12) {
-    return 'Good morning'
-  }
-  if (hour < 18) {
-    return 'Good afternoon'
-  }
-  return 'Good evening'
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className='font-medium text-muted-foreground text-sm uppercase tracking-wider'>
+      {children}
+    </h2>
+  )
 }

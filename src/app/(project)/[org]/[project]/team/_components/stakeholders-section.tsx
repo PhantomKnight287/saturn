@@ -146,7 +146,6 @@ export default function StakeholdersSection({
                           projectSlug,
                         })
                       }
-                      size='sm'
                       variant='ghost'
                     >
                       <X className='size-4 text-muted-foreground' />

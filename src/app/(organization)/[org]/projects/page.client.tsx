@@ -61,7 +61,7 @@ export function ProjectsClient({
       <div className='mb-6 flex items-center justify-between'>
         <h1 className='font-semibold text-2xl'>Projects</h1>
         {canCreate && projects.length > 0 && (
-          <Button onClick={() => setDialogOpen(true)} size='sm'>
+          <Button onClick={() => setDialogOpen(true)}>
             <Plus className='h-4 w-4' />
             New Project
           </Button>

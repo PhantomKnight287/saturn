@@ -231,7 +231,7 @@ export function InvoiceClientView({
   return (
     <div className='mx-auto w-full max-w-3xl'>
       <div className='mb-6 flex items-center justify-between gap-4'>
-        <Button asChild size='sm' variant='ghost'>
+        <Button asChild variant='ghost'>
           <Link href={backUrl}>
             <ArrowLeft className='mr-1 size-4' />
             Back
@@ -242,18 +242,13 @@ export function InvoiceClientView({
           <Button
             disabled={isDownloading}
             onClick={handleDownloadPdf}
-            size='sm'
             variant='outline'
           >
             <Download className='mr-1 size-4' />
             {isDownloading ? 'Generating...' : 'Download PDF'}
           </Button>
           {canDispute && (
-            <Button
-              onClick={() => setDisputeOpen(true)}
-              size='sm'
-              variant='outline'
-            >
+            <Button onClick={() => setDisputeOpen(true)} variant='outline'>
               <AlertTriangle className='mr-1 size-4' />
               Dispute
             </Button>
@@ -262,7 +257,6 @@ export function InvoiceClientView({
             <Button
               loading={isMarkingPaid}
               onClick={() => executeMarkPaid({ invoiceId: invoice.id })}
-              size='sm'
             >
               <CheckCircle2 className='mr-1 size-4' />
               Mark as Paid

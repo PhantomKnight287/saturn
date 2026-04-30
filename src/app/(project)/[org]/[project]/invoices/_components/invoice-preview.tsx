@@ -90,12 +90,7 @@ export default function InvoicePreview({ data }: InvoicePreviewProps) {
           PDF Preview
         </h3>
         <div className='flex items-center gap-2'>
-          <Button
-            disabled={loading}
-            onClick={generate}
-            size='sm'
-            variant='ghost'
-          >
+          <Button disabled={loading} onClick={generate} variant='ghost'>
             <RefreshCw
               className={`size-3.5 ${loading ? 'animate-spin' : ''}`}
             />
@@ -103,7 +98,6 @@ export default function InvoicePreview({ data }: InvoicePreviewProps) {
           <Button
             disabled={!blobUrl || loading}
             onClick={handleDownload}
-            size='sm'
             variant='outline'
           >
             <Download className='size-4' />
@@ -119,7 +113,7 @@ export default function InvoicePreview({ data }: InvoicePreviewProps) {
         ) : error ? (
           <div className='flex h-[400px] flex-col items-center justify-center gap-3'>
             <p className='text-muted-foreground text-sm'>{error}</p>
-            <Button onClick={generate} size='sm' variant='outline'>
+            <Button onClick={generate} variant='outline'>
               <RefreshCw className='size-3.5' />
               Retry
             </Button>

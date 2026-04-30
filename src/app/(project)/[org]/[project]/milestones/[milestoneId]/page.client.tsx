@@ -265,18 +265,13 @@ export function MilestoneDetailClient({
             <Button
               disabled={isCompleting}
               onClick={() => executeComplete({ milestoneId: milestone.id })}
-              size='sm'
             >
               <CheckCircle2 className='size-4' />
               {isCompleting ? 'Completing...' : 'Mark as Complete'}
             </Button>
           )}
           {canUpdate && milestone.status !== 'blocked' && (
-            <Button
-              onClick={() => setBlockDialogOpen(true)}
-              size='sm'
-              variant='outline'
-            >
+            <Button onClick={() => setBlockDialogOpen(true)} variant='outline'>
               <AlertOctagon className='size-4' />
               Mark as Blocked
             </Button>
@@ -289,7 +284,6 @@ export function MilestoneDetailClient({
                   status: 'in_progress',
                 })
               }
-              size='sm'
               variant='outline'
             >
               Unblock
@@ -303,7 +297,6 @@ export function MilestoneDetailClient({
                   status: 'in_progress',
                 })
               }
-              size='sm'
               variant='outline'
             >
               <Loader2 className='size-4' />
@@ -313,7 +306,6 @@ export function MilestoneDetailClient({
           {canDelete && (
             <Button
               onClick={() => setDeleteDialogOpen(true)}
-              size='sm'
               variant='destructive'
             >
               <Trash2 className='size-4' />
@@ -355,11 +347,7 @@ export function MilestoneDetailClient({
             Linked Requirements
           </h2>
           {canUpdate && unlinkableRequirements.length > 0 && (
-            <Button
-              onClick={() => setLinkDialogOpen(true)}
-              size='sm'
-              variant='outline'
-            >
+            <Button onClick={() => setLinkDialogOpen(true)} variant='outline'>
               <Plus className='size-4' />
               Link Requirement
             </Button>
@@ -397,7 +385,6 @@ export function MilestoneDetailClient({
                           requirementId: lr.requirementId,
                         })
                       }
-                      size='sm'
                       variant='ghost'
                     >
                       <Link2Off className='size-3.5' />

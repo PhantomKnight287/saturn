@@ -174,7 +174,6 @@ export default function MembersSection({
                             projectSlug,
                           })
                         }
-                        size='sm'
                         variant='ghost'
                       >
                         <X className='size-4 text-muted-foreground' />

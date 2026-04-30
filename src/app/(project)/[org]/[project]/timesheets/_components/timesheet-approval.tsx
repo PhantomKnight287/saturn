@@ -105,7 +105,6 @@ export function TimesheetApproval({
           <Button
             disabled={selectedIds.size === 0 || rejectAction.isPending}
             onClick={() => setRejectOpen(true)}
-            size='sm'
             variant='outline'
           >
             <XCircle className='size-4' />
@@ -116,7 +115,6 @@ export function TimesheetApproval({
             onClick={() =>
               approveAction.execute({ timeEntryIds: [...selectedIds] })
             }
-            size='sm'
           >
             <CheckCircle2 className='size-4' />
             {approveAction.isPending ? 'Approving...' : 'Approve'}

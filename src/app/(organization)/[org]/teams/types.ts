@@ -1,41 +1,25 @@
-export interface OrgMember {
-  createdAt: Date
-  memberId: string
-  role: string
-  userEmail: string
-  userId: string
-  userImage: string | null
-  userName: string
-}
+import type { teamService } from '@/app/api/teams/service'
+import type { auth } from '@/server/auth'
 
-export interface OrgTeamWithMembers {
-  createdAt: Date
-  members: {
-    teamMemberId: string
-    userEmail: string
-    userId: string
-    userImage: string | null
-    userName: string
-  }[]
-  teamId: string
-  teamName: string
-}
+export type OrgTeamWithMembers = Awaited<
+  ReturnType<typeof teamService.getOrgTeamsWithMembers>
+>[number]
 
-export interface PendingInvitation {
-  email: string
-  expiresAt: Date
-  id: string
-  role: string
-  status: string
-}
+export type OrgMember = Awaited<
+  ReturnType<typeof teamService.getOrgMembers>
+>[number]
+
+export type PendingInvitation = Awaited<
+  ReturnType<typeof auth.api.listInvitations>
+>[number]
 
 export interface TeamsPageClientProps {
   canManage: boolean
   currentMemberId: string
   defaultCurrency: string
   defaultMemberRate: number
-  invitations: PendingInvitation[]
-  members: OrgMember[]
+  invitations: Awaited<ReturnType<typeof auth.api.listInvitations>>
+  members: Awaited<ReturnType<typeof teamService.getOrgMembers>>
   organizationId: string
   orgSlug: string
   teams: OrgTeamWithMembers[]

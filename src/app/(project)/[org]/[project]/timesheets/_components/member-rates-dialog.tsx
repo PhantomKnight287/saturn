@@ -45,8 +45,8 @@ interface MemberRatesDialogProps {
   projectMembers: ProjectMember[]
 }
 
-function formatCents(cents: number): string {
-  return (cents / 100).toFixed(2)
+function formatRate(thousandths: number): string {
+  return (thousandths / 1000).toFixed(3)
 }
 
 function getCurrentRate(
@@ -116,8 +116,10 @@ export function MemberRatesDialog({
   })
 
   function handleSaveRate(values: MemberRateFormValues) {
-    const rateCents = Math.round(Number.parseFloat(values.hourlyRate) * 100)
-    if (Number.isNaN(rateCents) || rateCents <= 0) {
+    const rateThousandths = Math.round(
+      Number.parseFloat(values.hourlyRate) * 1000
+    )
+    if (Number.isNaN(rateThousandths) || rateThousandths <= 0) {
       toast.error('Enter a valid hourly rate')
       return
     }
@@ -125,7 +127,7 @@ export function MemberRatesDialog({
     setRateAction.execute({
       memberId: values.memberId,
       projectId: values.isProjectSpecific ? projectId : null,
-      hourlyRate: rateCents,
+      hourlyRate: rateThousandths,
       currency: values.currency,
       effectiveFrom: values.effectiveFrom,
     })
@@ -150,7 +152,7 @@ export function MemberRatesDialog({
     rateForm.setValue('memberId', memberId, { shouldValidate: true })
     const current = getCurrentRate(existingRates, memberId)
     if (current) {
-      rateForm.setValue('hourlyRate', formatCents(current.hourlyRate))
+      rateForm.setValue('hourlyRate', formatRate(current.hourlyRate))
       rateForm.setValue('currency', current.currency)
       rateForm.setValue('isProjectSpecific', !!current.projectId)
     }
@@ -227,7 +229,7 @@ export function MemberRatesDialog({
                           <div className='flex items-center gap-2'>
                             <Badge className='text-xs' variant='outline'>
                               {current.currency}{' '}
-                              {formatCents(current.hourlyRate)}/h
+                              {formatRate(current.hourlyRate)}/h
                             </Badge>
                             {current.projectId && (
                               <Badge className='text-xs' variant='secondary'>
@@ -255,7 +257,7 @@ export function MemberRatesDialog({
                                   })}
                                 </span>
                                 <span className='text-xs'>
-                                  {rate.currency} {formatCents(rate.hourlyRate)}
+                                  {rate.currency} {formatRate(rate.hourlyRate)}
                                   /h
                                   {rate.projectId ? ' (project)' : ' (org)'}
                                 </span>
@@ -303,8 +305,8 @@ export function MemberRatesDialog({
                     <Input
                       id={`${ids}-rate`}
                       min='0'
-                      placeholder='0.00'
-                      step='0.01'
+                      placeholder='0.000'
+                      step='0.001'
                       type='number'
                       {...rateForm.register('hourlyRate')}
                     />

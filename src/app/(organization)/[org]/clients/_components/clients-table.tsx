@@ -151,7 +151,6 @@ export default function ClientsTable({
                         client.projects.map((p) => p.projectId)
                       )
                     }
-                    size='sm'
                     title='Assign to project'
                     variant='ghost'
                   >
@@ -161,7 +160,6 @@ export default function ClientsTable({
                     onClick={() =>
                       executeRemoveFromOrg({ memberId: client.memberId })
                     }
-                    size='sm'
                     title='Remove from workspace'
                     variant='ghost'
                   >
