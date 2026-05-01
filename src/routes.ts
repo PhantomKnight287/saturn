@@ -9,7 +9,7 @@ export const PUBLIC_ROUTES: string[] = [
   '/sitemap.xml',
   '/manifest.webmanifest',
 ]
-export const PUBLIC_PREFIXES: string[] = ['/changelog']
+export const PUBLIC_PREFIXES: string[] = ['/changelog', '/blog']
 export const AUTH_PREFIX: string = '/auth'
 export const API_AUTH_PREFIX: string = '/api/auth'
 export const ERROR_PREFIX: string = '/error/'

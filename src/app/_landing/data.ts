@@ -35,7 +35,7 @@ export const modules: {
   },
   {
     name: 'Clients',
-    blurb: 'One record per client. Everything tied to it.',
+    blurb: 'One record per client. Or skip it — clients are optional.',
     icon: Briefcase,
   },
   {
@@ -74,7 +74,7 @@ export const howItWorks = [
   {
     step: '01',
     title: 'Spin up a project',
-    body: 'Add the client, scope, and team. Takes under a minute.',
+    body: 'Add the scope and team — and a client, if there is one. Takes under a minute.',
   },
   {
     step: '02',
@@ -83,8 +83,8 @@ export const howItWorks = [
   },
   {
     step: '03',
-    title: 'Invoice and get paid',
-    body: 'Hours and expenses roll into an invoice in one click. Export a PDF, mark it paid, move on.',
+    title: 'Invoice or just track it',
+    body: 'Roll hours and expenses into an invoice in one click — or just keep the log for yourself.',
   },
 ]
 
@@ -129,7 +129,11 @@ export const comparison = [
 export const faq = [
   {
     q: 'Who is Saturn for?',
-    a: 'Independent freelancers and small agencies running 1–20 active client projects. If you freelance or run a boutique studio, this is built for you.',
+    a: 'Independent freelancers, small agencies, and solo builders. If you freelance, run a boutique studio, or just want one place to track your own personal projects, this is built for you. Clients are optional — every workspace lets you toggle client involvement on or off per module.',
+  },
+  {
+    q: 'Can I use Saturn without any clients?',
+    a: 'Yes. Turn client involvement off and Saturn becomes a personal project tracker — projects, time tracking, timesheets, expenses, and invoices that are just for you.',
   },
   {
     q: 'Do I have to pay per team member or per workspace?',

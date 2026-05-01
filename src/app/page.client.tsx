@@ -37,18 +37,18 @@ export default function LandingPageClient({
           <div className='max-w-3xl'>
             <div className='mb-6 inline-flex items-center gap-2 font-mono text-[11px] text-muted-foreground uppercase tracking-[0.18em]'>
               <span className='h-px w-6 bg-muted-foreground/40' />
-              Saturn — for freelancers & small agencies
+              Saturn — for freelancers, agencies & solo builders
             </div>
             <h1 className='font-semibold text-5xl text-foreground leading-[0.98] tracking-[-0.04em] sm:text-6xl'>
-              Run your freelance business
+              Run your projects
               <br />
               <span className='text-muted-foreground/80 italic'>
                 from one tab.
               </span>
             </h1>
             <p className='mt-8 max-w-xl text-lg text-muted-foreground leading-relaxed'>
-              Projects, clients, proposals, time tracking, timesheets, expenses,
-              and invoices — one login instead of seven subscriptions.
+              Projects, proposals, time, timesheets, expenses, and invoices —
+              one login instead of seven subscriptions.
             </p>
             <div className='mt-10 flex items-center gap-3'>
               <Link
@@ -203,6 +203,64 @@ export default function LandingPageClient({
           >
             <MockInvoiceCard />
           </BentoCard>
+        </div>
+      </section>
+
+      <section className='border-border/60 border-t'>
+        <div className='mx-auto max-w-6xl px-6 py-24 sm:py-28'>
+          <div className='grid grid-cols-1 items-center gap-12 lg:grid-cols-2'>
+            <div className='max-w-xl'>
+              <div className='font-mono text-[11px] text-muted-foreground uppercase tracking-[0.18em]'>
+                / clients optional
+              </div>
+              <h2 className='mt-3 font-semibold text-4xl leading-[1.02] tracking-[-0.03em] sm:text-5xl'>
+                Working solo?{' '}
+                <span className='text-muted-foreground/70 italic'>
+                  Toggle clients off.
+                </span>
+              </h2>
+              <p className='mt-6 text-lg text-muted-foreground leading-relaxed'>
+                Saturn works just as well for personal projects as it does for
+                client work. Decide per workspace which modules involve clients
+                — or turn them off entirely and keep the projects, time
+                tracking, and invoices for yourself.
+              </p>
+            </div>
+            <div className='rounded-2xl border border-border/60 bg-card p-6 sm:p-8'>
+              <div className='mb-4 flex items-center justify-between font-mono text-[11px] text-muted-foreground uppercase tracking-[0.14em]'>
+                <span>Client involvement</span>
+                <span>Per project/workspace</span>
+              </div>
+              <div className='divide-y divide-border/60'>
+                {[
+                  ['Proposals', true],
+                  ['Requirements', true],
+                  ['Milestones', false],
+                  ['Timesheets', true],
+                  ['Expenses', false],
+                  ['Invoices', true],
+                ].map(([label, on]) => (
+                  <div
+                    className='flex items-center justify-between py-3'
+                    key={label as string}
+                  >
+                    <span className='font-medium text-foreground text-sm'>
+                      {label}
+                    </span>
+                    <span
+                      className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider ${
+                        on
+                          ? 'bg-primary/10 text-primary'
+                          : 'bg-muted/60 text-muted-foreground'
+                      }`}
+                    >
+                      {on ? 'on' : 'off'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
