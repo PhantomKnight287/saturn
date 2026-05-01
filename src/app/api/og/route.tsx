@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
   const subtitle =
     subtitleParam ??
     subtitles[page] ??
-    'The operating system for your freelance business'
+    'Run your projects from one tab'
 
   const { bold, regular } = await loadGeistFont()
 
