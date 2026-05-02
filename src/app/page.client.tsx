@@ -5,6 +5,7 @@ import { ArrowDown, ArrowRight, Check, Github, Minus } from 'lucide-react'
 import Link from 'next/link'
 
 import { SaturnLogo } from '@/components/icons/saturn-logo'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { buttonVariants } from '@/components/ui/button'
 import {
   comparison,
@@ -13,6 +14,7 @@ import {
   howItWorks,
   modules,
   proPlanFeatures,
+  testimonials,
 } from './_landing/data'
 import { LandingNav } from './_landing/landing-nav'
 import { MockAnalytics } from './_landing/mock-analytics'
@@ -337,6 +339,50 @@ export default function LandingPageClient({
               </span>
             </div>
           ))}
+        </div>
+      </section>
+
+      <section className='border-border/60 border-t'>
+        <div className='mx-auto max-w-6xl px-6 py-24 sm:py-28'>
+          <div className='mb-14 max-w-2xl'>
+            <div className='font-mono text-[11px] text-muted-foreground uppercase tracking-[0.18em]'>
+              / loved by operators
+            </div>
+            <h2 className='mt-3 font-semibold text-4xl leading-[1.02] tracking-[-0.03em] sm:text-5xl'>
+              Used by people who{' '}
+              <span className='text-muted-foreground/70 italic'>
+                bill their own hours.
+              </span>
+            </h2>
+          </div>
+          <div className='grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3'>
+            {testimonials.map((t) => (
+              <figure
+                className='flex h-full flex-col rounded-2xl border border-border/60 bg-card p-7'
+                key={t.name}
+              >
+                <blockquote className='flex-1 text-foreground/90 text-sm leading-relaxed'>
+                  “{t.quote}”
+                </blockquote>
+                <figcaption className='mt-6 flex items-center gap-3 border-border/60 border-t pt-5'>
+                  <Avatar className='size-9'>
+                    <AvatarImage alt={t.name} src={t.avatar} />
+                    <AvatarFallback className='bg-primary/10 font-mono text-[11px] text-primary tracking-wider'>
+                      {t.initials}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className='flex flex-col'>
+                    <span className='font-medium text-foreground text-sm tracking-tight'>
+                      {t.name}
+                    </span>
+                    <span className='text-muted-foreground text-xs'>
+                      {t.role}
+                    </span>
+                  </div>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
         </div>
       </section>
 

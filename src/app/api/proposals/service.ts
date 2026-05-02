@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, not } from 'drizzle-orm'
+import { and, asc, desc, eq, getTableColumns, inArray, not } from 'drizzle-orm'
 import type { ReadonlyHeaders } from 'next/dist/server/web/spec-extension/adapters/headers'
 import { getCachedActiveOrgMember } from '@/app/(organization)/[org]/cache'
 import { db } from '@/server/db'
@@ -20,12 +20,19 @@ const listByProject = async (projectId: string, headers: ReadonlyHeaders) => {
   const activeMember = await getCachedActiveOrgMember(headers)
   if (activeMember.role === 'client') {
     return db
-      .select()
+      .select(getTableColumns(proposals))
       .from(proposals)
       .where(
         and(
           eq(proposals.projectId, projectId),
           not(eq(proposals.status, 'draft'))
+        )
+      )
+      .innerJoin(
+        proposalRecipients,
+        and(
+          eq(proposalRecipients.proposalId, proposals.id),
+          eq(proposalRecipients.clientMemberId, activeMember.id)
         )
       )
       .orderBy(desc(proposals.updatedAt))
@@ -37,12 +44,33 @@ const listByProject = async (projectId: string, headers: ReadonlyHeaders) => {
     .orderBy(desc(proposals.updatedAt))
 }
 
-const getBySlug = async (projectId: string, slug: string) => {
-  const [proposal] = await db
-    .select()
-    .from(proposals)
-    .where(and(eq(proposals.projectId, projectId), eq(proposals.slug, slug)))
-
+const getBySlug = async (
+  projectId: string,
+  slug: string,
+  headers: ReadonlyHeaders
+) => {
+  const activeMember = await getCachedActiveOrgMember(headers)
+  let proposal: typeof proposals.$inferSelect | undefined
+  if (activeMember.role === 'client') {
+    const proposalArray = await db
+      .select(getTableColumns(proposals))
+      .from(proposals)
+      .where(and(eq(proposals.projectId, projectId), eq(proposals.slug, slug)))
+      .innerJoin(
+        proposalRecipients,
+        and(
+          eq(proposalRecipients.proposalId, proposals.id),
+          eq(proposalRecipients.clientMemberId, activeMember.id)
+        )
+      )
+    proposal = proposalArray[0]
+  } else {
+    const proposalArray = await db
+      .select()
+      .from(proposals)
+      .where(and(eq(proposals.projectId, projectId), eq(proposals.slug, slug)))
+    proposal = proposalArray[0]
+  }
   return proposal ?? null
 }
 

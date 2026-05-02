@@ -126,6 +126,32 @@ export const comparison = [
   },
 ]
 
+export const testimonials: {
+  quote: string
+  name: string
+  role: string
+  initials: string
+  avatar: string
+}[] = [
+  {
+    quote: 'Nice.',
+    name: 'gravityexploitz',
+    role: 'Developer',
+    initials: 'GE',
+    avatar:
+      'https://cdn.discordapp.com/avatars/173557815326015488/7c39c3cfa6ffa22c1d171564ee573558.png',
+  },
+  {
+    quote:
+      "Genuinely the cleanest workflow tool I've used in years. Replaced three of my subscriptions in a weekend.",
+    name: 'Lumpus',
+    role: 'Developer',
+    initials: 'LM',
+    avatar:
+      'https://cdn.discordapp.com/avatars/607399373638205450/71f02af1f6f099f30ac8a52fa1dcfdf2.png',
+  },
+]
+
 export const faq = [
   {
     q: 'Who is Saturn for?',

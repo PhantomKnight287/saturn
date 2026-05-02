@@ -225,7 +225,7 @@ export const auth = betterAuth({
               slug: env.POLAR_PRODUCT_SLUG,
             },
           ],
-          successUrl: '/success?checkout_id={CHECKOUT_ID}',
+          successUrl: `${env.NEXT_PUBLIC_BASE_URL}/success?checkout_id={CHECKOUT_ID}`,
           authenticatedUsersOnly: true,
         }),
         portal(),

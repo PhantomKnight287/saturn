@@ -1,6 +1,7 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useEffect } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import type z from 'zod'
 import { Button } from '@/components/ui/button'
@@ -57,6 +58,13 @@ export function CreateMilestoneDialog({
   const handleSubmit = (data: z.infer<typeof createMilestoneSchema>) => {
     onSubmit(data)
   }
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Not needed
+  useEffect(() => {
+    if (open === false) {
+      form.reset()
+    }
+  }, [open])
 
   return (
     <Dialog
@@ -177,6 +185,7 @@ export function CreateMilestoneDialog({
                     <Input
                       {...field}
                       aria-invalid={fieldState.invalid}
+                      max={21_474_836}
                       onChange={(e) => {
                         const raw = e.target.value
                         if (raw === '') {
@@ -185,13 +194,13 @@ export function CreateMilestoneDialog({
                         }
                         const value = Number.parseInt(raw, 10)
                         if (!Number.isNaN(value)) {
-                          field.onChange(value)
+                          field.onChange(value * 100)
                         }
                       }}
                       placeholder='e.g. 1000'
                       step='1'
                       type='number'
-                      value={field.value ?? ''}
+                      value={field.value == null ? '' : field.value / 100}
                     />
                     {fieldState.invalid && (
                       <FieldError errors={[fieldState.error]} />
@@ -212,6 +221,7 @@ export function CreateMilestoneDialog({
                   <Input
                     {...field}
                     aria-invalid={fieldState.invalid}
+                    max={35_791_394}
                     onChange={(e) => {
                       const raw = e.target.value
                       if (raw === '') {
@@ -220,13 +230,13 @@ export function CreateMilestoneDialog({
                       }
                       const value = Number.parseInt(raw, 10)
                       if (!Number.isNaN(value)) {
-                        field.onChange(value)
+                        field.onChange(value * 60)
                       }
                     }}
                     placeholder='e.g. 100'
                     step='1'
                     type='number'
-                    value={field.value ?? ''}
+                    value={field.value == null ? '' : field.value / 60}
                   />
                   {fieldState.invalid && (
                     <FieldError errors={[fieldState.error]} />

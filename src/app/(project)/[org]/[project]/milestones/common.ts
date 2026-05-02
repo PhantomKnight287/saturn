@@ -5,8 +5,8 @@ export const createMilestoneSchema = z.object({
   name: z.string().min(1, 'Milestone name is required'),
   description: z.string().optional(),
   dueDate: z.date().optional(),
-  budgetMinutes: z.number().int().positive().optional(),
-  budgetAmountCents: z.number().int().positive().optional(),
+  budgetMinutes: z.number().int().positive().max(2_147_483_647).optional(),
+  budgetAmountCents: z.number().int().positive().max(2_147_483_647).optional(),
   currency: z.string().min(1, 'Currency is required'),
 })
 
@@ -17,8 +17,20 @@ export const updateMilestoneSchema = z.object({
   dueDate: z.date().nullable().optional(),
   status: z.enum(['pending', 'in_progress', 'completed', 'blocked']).optional(),
   blockReason: z.string().optional(),
-  budgetMinutes: z.number().int().positive().nullable().optional(),
-  budgetAmountCents: z.number().int().positive().nullable().optional(),
+  budgetMinutes: z
+    .number()
+    .int()
+    .positive()
+    .max(2_147_483_647)
+    .nullable()
+    .optional(),
+  budgetAmountCents: z
+    .number()
+    .int()
+    .positive()
+    .max(2_147_483_647)
+    .nullable()
+    .optional(),
   currency: z.string().min(1, 'Currency is required').optional(),
 })
 

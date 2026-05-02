@@ -119,17 +119,7 @@ export function MilestonesClient({
           defaultCurrency={defaultCurrency}
           isPending={isPending}
           onOpenChange={setDialogOpen}
-          onSubmit={(data) =>
-            execute({
-              ...data,
-              budgetAmountCents: data.budgetAmountCents
-                ? data.budgetAmountCents * 100
-                : undefined,
-              budgetMinutes: data.budgetMinutes
-                ? data.budgetMinutes * 60
-                : undefined,
-            })
-          }
+          onSubmit={(data) => execute(data)}
           open={dialogOpen}
           projectId={projectId}
         />

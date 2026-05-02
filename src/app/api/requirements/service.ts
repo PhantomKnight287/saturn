@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, not } from 'drizzle-orm'
+import { and, asc, desc, eq, getTableColumns, inArray, not } from 'drizzle-orm'
 import type { ReadonlyHeaders } from 'next/dist/server/web/spec-extension/adapters/headers'
 import { getCachedActiveOrgMember } from '@/app/(organization)/[org]/cache'
 import { db } from '@/server/db'
@@ -6,6 +6,7 @@ import {
   media as mediaTable,
   members as membersTable,
   requirementChangeRequests as requirementChangeRequestsTable,
+  requirementRecipients,
   requirementRecipients as requirementRecipientsTable,
   requirementSignatures as requirementSignaturesTable,
   requirements,
@@ -20,12 +21,19 @@ const listByProject = async (projectId: string, headers: ReadonlyHeaders) => {
   const activeMember = await getCachedActiveOrgMember(headers)
   if (activeMember.role === 'client') {
     return db
-      .select()
+      .select(getTableColumns(requirements))
       .from(requirements)
       .where(
         and(
           eq(requirements.projectId, projectId),
           not(eq(requirements.status, 'draft'))
+        )
+      )
+      .innerJoin(
+        requirementRecipients,
+        and(
+          eq(requirementRecipients.requirementId, requirements.id),
+          eq(requirementRecipients.clientMemberId, activeMember.id)
         )
       )
       .orderBy(desc(requirements.updatedAt))
@@ -64,13 +72,37 @@ const getById = async (
   return requirement
 }
 
-const getBySlug = async (projectId: string, slug: string) => {
-  const [requirement] = await db
-    .select()
-    .from(requirements)
-    .where(
-      and(eq(requirements.projectId, projectId), eq(requirements.slug, slug))
-    )
+const getBySlug = async (
+  projectId: string,
+  slug: string,
+  headers: ReadonlyHeaders
+) => {
+  const activeMember = await getCachedActiveOrgMember(headers)
+  let requirement: typeof requirements.$inferSelect | undefined
+  if (activeMember.role === 'client') {
+    const requiredRequirements = await db
+      .select(getTableColumns(requirements))
+      .from(requirements)
+      .where(
+        and(eq(requirements.projectId, projectId), eq(requirements.slug, slug))
+      )
+      .innerJoin(
+        requirementRecipients,
+        and(
+          eq(requirementRecipients.requirementId, requirements.id),
+          eq(requirementRecipients.clientMemberId, activeMember.id)
+        )
+      )
+    requirement = requiredRequirements[0]
+  } else {
+    const requiredRequirements = await db
+      .select()
+      .from(requirements)
+      .where(
+        and(eq(requirements.projectId, projectId), eq(requirements.slug, slug))
+      )
+    requirement = requiredRequirements[0]
+  }
 
   return requirement ?? null
 }

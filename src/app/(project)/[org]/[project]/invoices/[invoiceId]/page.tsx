@@ -47,6 +47,7 @@ export default async function InvoiceDetail({
     invoiceId,
     projectId: currentProject.id,
     organizationId: organization.id,
+    headers: await headers(),
   })
 
   if (!invoice) {

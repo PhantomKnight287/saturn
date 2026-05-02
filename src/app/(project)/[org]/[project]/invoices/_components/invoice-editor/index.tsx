@@ -134,7 +134,8 @@ export default function InvoiceEditor({
   )
   const rateMap = new Map(Object.entries(memberRateMap))
   const isEditable =
-    mode === 'create' || (canEdit && invoice?.status === 'draft')
+    mode === 'create' ||
+    (canEdit && (invoice?.status === 'draft' || invoice?.status === 'disputed'))
 
   const form = useForm<z.infer<typeof invoiceFormSchema>>({
     resolver: zodResolver(invoiceFormSchema),

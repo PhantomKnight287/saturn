@@ -124,6 +124,7 @@ export default async function NewInvoice({
         invoiceId: extend,
         projectId: currentProject.id,
         organizationId: organization.id,
+        headers: await headers(),
       }),
       invoicesService.getItems(extend),
       invoicesService.getRecipients(extend),
