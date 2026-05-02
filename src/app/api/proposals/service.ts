@@ -1,9 +1,6 @@
 import { and, asc, desc, eq, getTableColumns, inArray, not } from 'drizzle-orm'
 import type { ReadonlyHeaders } from 'next/dist/server/web/spec-extension/adapters/headers'
-import {
-  getCachedActiveOrgMember,
-  getCachedOrganization,
-} from '@/app/(organization)/[org]/cache'
+import { getCachedActiveOrgMember } from '@/app/(organization)/[org]/cache'
 import { db } from '@/server/db'
 import {
   media as mediaTable,

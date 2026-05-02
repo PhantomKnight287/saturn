@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
 import { projectsService } from '@/app/api/projects/service'
@@ -9,7 +10,6 @@ import { threadService } from '@/app/api/threads/service'
 import { createMetadata } from '@/lib/metadata'
 import type { Role } from '@/types'
 import ProposalEditor from '../_components/proposal-editor'
-import { headers } from 'next/headers'
 
 export const metadata: Metadata = createMetadata({
   title: 'Proposal',

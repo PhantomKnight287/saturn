@@ -1,6 +1,7 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useEffect } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import type z from 'zod'
 import { Button } from '@/components/ui/button'
@@ -23,7 +24,6 @@ import {
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { createMilestoneSchema } from '../common'
-import { useEffect } from 'react'
 
 interface CreateMilestoneDialogProps {
   defaultCurrency?: string
@@ -185,6 +185,7 @@ export function CreateMilestoneDialog({
                     <Input
                       {...field}
                       aria-invalid={fieldState.invalid}
+                      max={21_474_836}
                       onChange={(e) => {
                         const raw = e.target.value
                         if (raw === '') {
@@ -196,7 +197,6 @@ export function CreateMilestoneDialog({
                           field.onChange(value * 100)
                         }
                       }}
-                      max={21_474_836}
                       placeholder='e.g. 1000'
                       step='1'
                       type='number'
@@ -221,6 +221,7 @@ export function CreateMilestoneDialog({
                   <Input
                     {...field}
                     aria-invalid={fieldState.invalid}
+                    max={35_791_394}
                     onChange={(e) => {
                       const raw = e.target.value
                       if (raw === '') {
@@ -232,7 +233,6 @@ export function CreateMilestoneDialog({
                         field.onChange(value * 60)
                       }
                     }}
-                    max={35_791_394}
                     placeholder='e.g. 100'
                     step='1'
                     type='number'

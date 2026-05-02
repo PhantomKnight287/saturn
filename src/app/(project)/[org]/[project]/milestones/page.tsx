@@ -5,7 +5,6 @@ import { milestonesService } from '@/app/api/milestones/service'
 import { projectsService } from '@/app/api/projects/service'
 import { createMetadata } from '@/lib/metadata'
 import { MilestonesClient } from './page.client'
-import { headers } from 'next/headers'
 
 export const metadata: Metadata = createMetadata({
   title: 'Milestones',

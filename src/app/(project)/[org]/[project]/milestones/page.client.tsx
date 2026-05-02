@@ -59,9 +59,7 @@ export function MilestonesClient({
     },
     onError({ error }) {
       if (error.validationErrors) {
-        toast.error(
-          'Please check your input and try again.'
-        )
+        toast.error('Please check your input and try again.')
       } else {
         toast.error(error.serverError ?? 'Failed to create milestone.')
       }
