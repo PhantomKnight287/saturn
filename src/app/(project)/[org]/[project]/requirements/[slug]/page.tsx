@@ -9,6 +9,7 @@ import { teamService } from '@/app/api/teams/service'
 import { createMetadata } from '@/lib/metadata'
 import type { Role } from '@/types'
 import RequirementEditor from '../_components/requirement-editor'
+import { headers } from 'next/headers'
 
 export const metadata: Metadata = createMetadata({
   title: 'Requirement',
@@ -40,7 +41,8 @@ export default async function RequirementDetail({
 
   const requirement = await requirementsService.getBySlug(
     currentProject.id,
-    slug
+    slug,
+    await headers()
   )
 
   if (!requirement) {

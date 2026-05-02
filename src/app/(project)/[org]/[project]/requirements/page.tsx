@@ -45,6 +45,7 @@ export default async function Requirements({
     orgMember.organizationId,
     currentProject.id
   )
+
   return (
     <RequirementsClient
       canCreate={canCreate}

@@ -23,6 +23,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { createMilestoneSchema } from '../common'
+import { useEffect } from 'react'
 
 interface CreateMilestoneDialogProps {
   defaultCurrency?: string
@@ -57,6 +58,13 @@ export function CreateMilestoneDialog({
   const handleSubmit = (data: z.infer<typeof createMilestoneSchema>) => {
     onSubmit(data)
   }
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Not needed
+  useEffect(() => {
+    if (open === false) {
+      form.reset()
+    }
+  }, [open])
 
   return (
     <Dialog
@@ -185,13 +193,14 @@ export function CreateMilestoneDialog({
                         }
                         const value = Number.parseInt(raw, 10)
                         if (!Number.isNaN(value)) {
-                          field.onChange(value)
+                          field.onChange(value * 100)
                         }
                       }}
+                      max={21_474_836}
                       placeholder='e.g. 1000'
                       step='1'
                       type='number'
-                      value={field.value ?? ''}
+                      value={field.value == null ? '' : field.value / 100}
                     />
                     {fieldState.invalid && (
                       <FieldError errors={[fieldState.error]} />
@@ -220,13 +229,14 @@ export function CreateMilestoneDialog({
                       }
                       const value = Number.parseInt(raw, 10)
                       if (!Number.isNaN(value)) {
-                        field.onChange(value)
+                        field.onChange(value * 60)
                       }
                     }}
+                    max={35_791_394}
                     placeholder='e.g. 100'
                     step='1'
                     type='number'
-                    value={field.value ?? ''}
+                    value={field.value == null ? '' : field.value / 60}
                   />
                   {fieldState.invalid && (
                     <FieldError errors={[fieldState.error]} />

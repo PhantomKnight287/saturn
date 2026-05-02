@@ -1,4 +1,15 @@
-import { and, asc, desc, eq, gte, inArray, isNull, lte, sum } from 'drizzle-orm'
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  getTableColumns,
+  gte,
+  inArray,
+  isNull,
+  lte,
+  sum,
+} from 'drizzle-orm'
 import type { ReadonlyHeaders } from 'next/dist/server/web/spec-extension/adapters/headers'
 import { getCachedActiveOrgMember } from '@/app/(organization)/[org]/cache'
 import { db } from '@/server/db'

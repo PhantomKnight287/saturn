@@ -9,6 +9,7 @@ import { threadService } from '@/app/api/threads/service'
 import { createMetadata } from '@/lib/metadata'
 import type { Role } from '@/types'
 import ProposalEditor from '../_components/proposal-editor'
+import { headers } from 'next/headers'
 
 export const metadata: Metadata = createMetadata({
   title: 'Proposal',
@@ -38,7 +39,11 @@ export default async function ProposalDetail({
     )
   }
 
-  const proposal = await proposalsService.getBySlug(currentProject.id, slug)
+  const proposal = await proposalsService.getBySlug(
+    currentProject.id,
+    slug,
+    await headers()
+  )
 
   if (!proposal) {
     redirect(`/error/404?message=${encodeURIComponent('Proposal not found')}`)

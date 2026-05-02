@@ -1,6 +1,15 @@
-import { and, asc, count, desc, eq, inArray } from 'drizzle-orm'
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  getTableColumns,
+  inArray,
+} from 'drizzle-orm'
 import type { ReadonlyHeaders } from 'next/dist/server/web/spec-extension/adapters/headers'
 import { getCachedActiveOrgMember } from '@/app/(organization)/[org]/cache'
+
 import { db } from '@/server/db'
 import {
   invoiceItems,
@@ -25,12 +34,19 @@ const listByProject = async (projectId: string, headers: ReadonlyHeaders) => {
   let invoicesList: (typeof invoices.$inferSelect)[]
   if (activeMember?.role === 'client') {
     invoicesList = await db
-      .select()
+      .select(getTableColumns(invoices))
       .from(invoices)
       .where(
         and(
           eq(invoices.projectId, projectId),
           inArray(invoices.status, ['disputed', 'paid', 'sent', 'cancelled'])
+        )
+      )
+      .innerJoin(
+        invoiceRecipients,
+        and(
+          eq(invoiceRecipients.invoiceId, invoices.id),
+          eq(invoiceRecipients.clientMemberId, activeMember.id)
         )
       )
       .orderBy(desc(invoices.createdAt))
@@ -80,10 +96,12 @@ const getById = async ({
   invoiceId,
   organizationId,
   projectId,
+  headers,
 }: {
   invoiceId: string
   projectId: string
   organizationId: string
+  headers: ReadonlyHeaders
 }) => {
   const [project] = await db
     .select()
@@ -97,9 +115,33 @@ const getById = async ({
   if (!project) {
     return null
   }
-  const invoice = (await db.query.invoices.findFirst({
-    where: and(eq(invoices.id, invoiceId), eq(invoices.projectId, project.id)),
-  })) as unknown as InvoiceWithMedia | null
+
+  const activeMember = await getCachedActiveOrgMember(headers)
+  let invoice: InvoiceWithMedia | null
+  if (activeMember?.role === 'client') {
+    const [row] = await db
+      .select(getTableColumns(invoices))
+      .from(invoices)
+      .where(
+        and(eq(invoices.id, invoiceId), eq(invoices.projectId, project.id))
+      )
+      .innerJoin(
+        invoiceRecipients,
+        and(
+          eq(invoiceRecipients.invoiceId, invoices.id),
+          eq(invoiceRecipients.clientMemberId, activeMember.id)
+        )
+      )
+      .limit(1)
+    invoice = (row ?? null) as unknown as InvoiceWithMedia | null
+  } else {
+    invoice = (await db.query.invoices.findFirst({
+      where: and(
+        eq(invoices.id, invoiceId),
+        eq(invoices.projectId, project.id)
+      ),
+    })) as unknown as InvoiceWithMedia | null
+  }
   if (invoice) {
     if (invoice.senderLogo) {
       invoice.senderLogoObject = await db.query.media.findFirst({

@@ -478,6 +478,19 @@ export const requestChangesAction = authedActionClient
     if (!requirement) {
       throw new Error('Requirement not found')
     }
+    const [recipientRow] = await db
+      .select({ id: requirementRecipients.id })
+      .from(requirementRecipients)
+      .where(
+        and(
+          eq(requirementRecipients.requirementId, requirementId),
+          eq(requirementRecipients.clientMemberId, orgMember.id)
+        )
+      )
+      .limit(1)
+    if (!recipientRow) {
+      throw new Error('You are not a recipient of this requirement')
+    }
     await db.transaction(async (tx) => {
       await tx.insert(requirementChangeRequests).values({
         requirementId,

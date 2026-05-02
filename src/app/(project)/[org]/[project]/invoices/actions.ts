@@ -663,6 +663,20 @@ export const createInvoiceThreadAction = authedActionClient
         )
       }
 
+      const [recipientRow] = await db
+        .select({ id: invoiceRecipients.id })
+        .from(invoiceRecipients)
+        .where(
+          and(
+            eq(invoiceRecipients.invoiceId, invoiceId),
+            eq(invoiceRecipients.clientMemberId, orgMember.id)
+          )
+        )
+        .limit(1)
+      if (!recipientRow) {
+        throw new Error('Only an invoice recipient can raise a dispute')
+      }
+
       const thread = await db.transaction(async (tx) => {
         const [t] = await tx
           .insert(threads)
