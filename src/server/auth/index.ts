@@ -13,6 +13,7 @@ import type { NextRequest } from 'next/server'
 import { getUserBillingStatus } from '@/cache/billing'
 import { BillingCacheKeys } from '@/cache/billing/keys'
 import InvitationEmail from '@/emails/templates/invitation'
+import VerifyEmail from '@/emails/templates/verify-email'
 import { env } from '@/env'
 import { polarClient } from '@/lib/polar'
 import { FREE_PLAN_LIMITS } from '@/limits'
@@ -41,6 +42,30 @@ export const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
+    requireEmailVerification: true,
+  },
+  emailVerification: {
+    sendOnSignUp: true,
+    autoSignInAfterVerification: true,
+    expiresIn: 60 * 60,
+    async sendVerificationEmail({ user, url }) {
+      const verifyUrl = new URL(url)
+      verifyUrl.searchParams.set(
+        'callbackURL',
+        `${env.NEXT_PUBLIC_BASE_URL}/dashboard`
+      )
+      const html = await render(
+        VerifyEmail({
+          name: user.name,
+          verifyUrl: verifyUrl.toString(),
+        })
+      )
+      await emailService.sendEmail({
+        to: user.email,
+        subject: 'Verify your email for Saturn',
+        html,
+      })
+    },
   },
   plugins: [
     apiKey({
