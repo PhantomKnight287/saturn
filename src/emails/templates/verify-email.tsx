@@ -1,10 +1,6 @@
 import { Text } from '@react-email/components'
 import { env } from '@/env'
-import {
-  ActionButton,
-  EmailLayout,
-  text,
-} from '../components/layout'
+import { ActionButton, EmailLayout, text } from '../components/layout'
 
 const baseUrl = env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'
 
