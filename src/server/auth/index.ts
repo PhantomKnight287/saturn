@@ -12,6 +12,7 @@ import { headers } from 'next/headers'
 import type { NextRequest } from 'next/server'
 import { getUserBillingStatus } from '@/cache/billing'
 import { BillingCacheKeys } from '@/cache/billing/keys'
+import ForgotPasswordEmail from '@/emails/templates/forgot-password'
 import InvitationEmail from '@/emails/templates/invitation'
 import VerifyEmail from '@/emails/templates/verify-email'
 import { env } from '@/env'
@@ -43,6 +44,20 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,
+    resetPasswordTokenExpiresIn: 60 * 60,
+    async sendResetPassword({ user, url }) {
+      const html = await render(
+        ForgotPasswordEmail({
+          name: user.name,
+          resetUrl: url,
+        })
+      )
+      await emailService.sendEmail({
+        to: user.email,
+        subject: 'Reset your Saturn password',
+        html,
+      })
+    },
   },
   emailVerification: {
     sendOnSignUp: true,
