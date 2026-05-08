@@ -186,15 +186,14 @@ const getThreads = async (projectId: string, entityId: string) => {
   })
 }
 
-const getRecipients = async (requirementId: string) => {
-  return await db
+const getRecipients = async (requirementId: string) =>
+  await db
     .select()
     .from(requirementRecipientsTable)
     .where(eq(requirementRecipientsTable.requirementId, requirementId))
-}
 
-const getSignatures = async (requirementId: string) => {
-  return await db
+const getSignatures = async (requirementId: string) =>
+  await db
     .select({
       id: requirementSignaturesTable.id,
       requirementId: requirementSignaturesTable.requirementId,
@@ -213,7 +212,6 @@ const getSignatures = async (requirementId: string) => {
     )
     .leftJoin(users, eq(membersTable.userId, users.id))
     .where(eq(requirementSignaturesTable.requirementId, requirementId))
-}
 
 const getChangeRequests = async (requirementId: string) => {
   const rows = await db
@@ -267,8 +265,8 @@ export const getThreadById = async (threadId: string, projectId: string) => {
   return thread ?? null
 }
 
-const getSignatureMediaForMember = async (memberId: string) => {
-  return await db
+const getSignatureMediaForMember = async (memberId: string) =>
+  await db
     .select({
       id: mediaTable.id,
       name: mediaTable.name,
@@ -283,7 +281,6 @@ const getSignatureMediaForMember = async (memberId: string) => {
     .where(eq(requirementSignaturesTable.clientMemberId, memberId))
     .groupBy(mediaTable.id)
     .orderBy(desc(mediaTable.createdAt))
-}
 
 export const requirementsService = {
   listByProject,

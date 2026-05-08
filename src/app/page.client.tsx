@@ -327,7 +327,7 @@ export default function LandingPageClient({
           {comparison.map((row, i) => (
             <div
               className={`grid grid-cols-[1.2fr_1fr_1fr] items-center px-5 py-4 text-sm ${
-                i !== comparison.length - 1 ? 'border-border/60 border-b' : ''
+                i === comparison.length - 1 ? '' : 'border-border/60 border-b'
               }`}
               key={row.need}
             >

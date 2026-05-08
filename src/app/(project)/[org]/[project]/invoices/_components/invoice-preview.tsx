@@ -61,16 +61,17 @@ export default function InvoicePreview({ data }: InvoicePreviewProps) {
   }, [JSON.stringify(data)])
 
   // Cleanup blob URL on unmount
-  useEffect(() => {
-    return () => {
+  useEffect(
+    () => () => {
       setBlobUrl((prev) => {
         if (prev) {
           URL.revokeObjectURL(prev)
         }
         return null
       })
-    }
-  }, [])
+    },
+    []
+  )
 
   const handleDownload = () => {
     if (!blobUrl) {

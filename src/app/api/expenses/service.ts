@@ -79,13 +79,12 @@ const listByProject = async (projectId: string, headers: ReadonlyHeaders) => {
     .orderBy(desc(expenses.date))
 }
 
-const listCategoriesByOrg = async (organizationId: string) => {
-  return await db
+const listCategoriesByOrg = async (organizationId: string) =>
+  await db
     .select()
     .from(expenseCategories)
     .where(eq(expenseCategories.organizationId, organizationId))
     .orderBy(asc(expenseCategories.sortOrder))
-}
 
 const listUnpaidExpensesByProject = async (
   organizationId: string,

@@ -257,94 +257,93 @@ export function TeamEntriesTable({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map((entry) => {
-                    return (
-                      <TableRow key={entry.id}>
-                        {selectable && (
-                          <TableCell>
-                            {entry.status === 'admin_accepted' &&
-                            !entry.invoiceId ? (
-                              <Checkbox
-                                checked={selectedIds?.has(entry.id) ?? false}
-                                onCheckedChange={() => toggleEntry(entry.id)}
-                              />
-                            ) : (
-                              <span />
-                            )}
-                          </TableCell>
-                        )}
-                        <TableCell className='text-sm'>
-                          {entry.memberName ?? entry.memberEmail}
-                        </TableCell>
+                  {filtered.map((entry) => (
+                    <TableRow key={entry.id}>
+                      {selectable && (
                         <TableCell>
-                          <div className='flex items-center gap-1'>
-                            <span className='line-clamp-1 max-w-52 text-sm'>
-                              {entry.description}
-                            </span>
-                            {entry.billable && (
-                              <Tooltip>
-                                <TooltipTrigger>
-                                  <DollarSign className='size-3 text-primary' />
-                                </TooltipTrigger>
-                                <TooltipContent>Billable</TooltipContent>
-                              </Tooltip>
-                            )}
-                          </div>
+                          {entry.status === 'admin_accepted' &&
+                          !entry.invoiceId ? (
+                            <Checkbox
+                              checked={selectedIds?.has(entry.id) ?? false}
+                              onCheckedChange={() => toggleEntry(entry.id)}
+                            />
+                          ) : (
+                            <span />
+                          )}
                         </TableCell>
-                        <TableCell className='text-muted-foreground text-sm'>
-                          <span className='line-clamp-1 max-w-36'>
-                            {entry.requirementTitle ? (
-                              <a
-                                className='hover:underline'
-                                href={`/${params.org}/${params.project}/requirements/${entry.requirementSlug}`}
-                                target='_blank'
-                              >
-                                {entry.requirementTitle}
-                              </a>
-                            ) : (
-                              '—'
-                            )}
+                      )}
+                      <TableCell className='text-sm'>
+                        {entry.memberName ?? entry.memberEmail}
+                      </TableCell>
+                      <TableCell>
+                        <div className='flex items-center gap-1'>
+                          <span className='line-clamp-1 max-w-52 text-sm'>
+                            {entry.description}
                           </span>
-                        </TableCell>
-                        <TableCell className='whitespace-nowrap text-sm'>
-                          {formatShortDate(entry.date)}
-                        </TableCell>
-                        <TableCell className='text-right font-medium text-sm'>
-                          {formatMinutes(entry.durationMinutes)}
-                        </TableCell>
-                        <TableCell className='text-center'>
-                          <StatusBadgeWithReason
-                            entry={entry}
-                            isClientInvolved={isClientInvolved}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <div className='flex items-center gap-1'>
-                            <Button
-                              className='size-7'
-                              onClick={() => setEditEntry(entry)}
-                              size='icon'
-                              variant='ghost'
+                          {entry.billable && (
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <DollarSign className='size-3 text-primary' />
+                              </TooltipTrigger>
+                              <TooltipContent>Billable</TooltipContent>
+                            </Tooltip>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className='text-muted-foreground text-sm'>
+                        <span className='line-clamp-1 max-w-36'>
+                          {entry.requirementTitle ? (
+                            <a
+                              className='hover:underline'
+                              href={`/${params.org}/${params.project}/requirements/${entry.requirementSlug}`}
+                              rel='noopener'
+                              target='_blank'
                             >
-                              <Pencil className='size-3.5' />
-                            </Button>
-                            <Button
-                              className='size-7 text-destructive'
-                              onClick={() =>
-                                deleteAction.execute({
-                                  timeEntryId: entry.id,
-                                })
-                              }
-                              size='icon'
-                              variant='ghost'
-                            >
-                              <Trash2 className='size-3.5' />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
+                              {entry.requirementTitle}
+                            </a>
+                          ) : (
+                            '—'
+                          )}
+                        </span>
+                      </TableCell>
+                      <TableCell className='whitespace-nowrap text-sm'>
+                        {formatShortDate(entry.date)}
+                      </TableCell>
+                      <TableCell className='text-right font-medium text-sm'>
+                        {formatMinutes(entry.durationMinutes)}
+                      </TableCell>
+                      <TableCell className='text-center'>
+                        <StatusBadgeWithReason
+                          entry={entry}
+                          isClientInvolved={isClientInvolved}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <div className='flex items-center gap-1'>
+                          <Button
+                            className='size-7'
+                            onClick={() => setEditEntry(entry)}
+                            size='icon'
+                            variant='ghost'
+                          >
+                            <Pencil className='size-3.5' />
+                          </Button>
+                          <Button
+                            className='size-7 text-destructive'
+                            onClick={() =>
+                              deleteAction.execute({
+                                timeEntryId: entry.id,
+                              })
+                            }
+                            size='icon'
+                            variant='ghost'
+                          >
+                            <Trash2 className='size-3.5' />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </div>

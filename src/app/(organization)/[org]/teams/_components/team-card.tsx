@@ -58,7 +58,7 @@ export default function TeamCard({
           <span className='font-medium'>{team.teamName}</span>
           <Badge className='text-xs' variant='secondary'>
             {team.members.length} member
-            {team.members.length !== 1 ? 's' : ''}
+            {team.members.length === 1 ? '' : 's'}
           </Badge>
         </div>
         {canManage && (

@@ -12,12 +12,11 @@ import {
 
 export const PROJECTS_CACHE_TAG = 'projects'
 
-const listByOrganization = async (organizationId: string) => {
-  return await db
+const listByOrganization = async (organizationId: string) =>
+  await db
     .select()
     .from(projects)
     .where(eq(projects.organizationId, organizationId))
-}
 
 const getBySlug = async (organizationId: string, slug: string) => {
   const [project] = await db

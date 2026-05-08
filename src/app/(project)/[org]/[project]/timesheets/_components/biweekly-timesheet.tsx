@@ -246,6 +246,7 @@ export function BiweeklyTimesheet({
                         <a
                           className='hover:underline'
                           href={`/${params.org}/${params.project}/requirements/${entry.requirementSlug}`}
+                          rel='noopener'
                           target='_blank'
                         >
                           {entry.requirementTitle ?? '—'}

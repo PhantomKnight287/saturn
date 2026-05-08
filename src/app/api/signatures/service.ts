@@ -15,8 +15,8 @@ export interface SignatureMedia {
 
 const getSignatureMediaForMember = async (
   memberId: string
-): Promise<SignatureMedia[]> => {
-  return await db
+): Promise<SignatureMedia[]> =>
+  await db
     .select({
       id: mediaTable.id,
       name: mediaTable.name,
@@ -48,7 +48,6 @@ const getSignatureMediaForMember = async (
     )
     .groupBy(mediaTable.id)
     .orderBy(desc(mediaTable.createdAt))
-}
 
 export const signaturesService = {
   getSignatureMediaForMember,

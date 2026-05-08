@@ -32,7 +32,7 @@ export const env = createEnv({
       if (typeof val === 'string') {
         const s = val.trim()
         if (s === '') {
-          return undefined
+          return
         }
         try {
           const parsed = JSON.parse(s)

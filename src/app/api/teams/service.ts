@@ -165,8 +165,8 @@ const getProjectMembers = async (projectId: string) => {
   return [...seen.values()]
 }
 
-const getProjectClients = async (projectId: string) => {
-  return await db
+const getProjectClients = async (projectId: string) =>
+  await db
     .select({
       assignmentId: projectClientAssignments.id,
       memberId: projectClientAssignments.memberId,
@@ -180,7 +180,6 @@ const getProjectClients = async (projectId: string) => {
     .innerJoin(members, eq(projectClientAssignments.memberId, members.id))
     .innerJoin(users, eq(members.userId, users.id))
     .where(eq(projectClientAssignments.projectId, projectId))
-}
 const getProjectTeams = async (projectId: string) => {
   const assignments = await db
     .select({
@@ -214,15 +213,14 @@ const getProjectTeams = async (projectId: string) => {
   return teamsWithMembers
 }
 
-const getOrgTeams = async (organizationId: string) => {
-  return await db
+const getOrgTeams = async (organizationId: string) =>
+  await db
     .select({
       teamId: teams.id,
       teamName: teams.name,
     })
     .from(teams)
     .where(eq(teams.organizationId, organizationId))
-}
 
 const getClientMemberById = async (memberId: string) => {
   const [clientMember] = await db
@@ -237,8 +235,8 @@ const getClientMemberById = async (memberId: string) => {
 
   return clientMember
 }
-export const getAdminAndOwners = async (organizationId: string) => {
-  return await db
+export const getAdminAndOwners = async (organizationId: string) =>
+  await db
     .select()
     .from(members)
     .innerJoin(users, eq(members.userId, users.id))
@@ -248,13 +246,9 @@ export const getAdminAndOwners = async (organizationId: string) => {
         inArray(members.role, ['admin', 'owner'])
       )
     )
-}
 
-const getOrgMembers = async (
-  organizationId: string,
-  excludeClients = false
-) => {
-  return await db
+const getOrgMembers = async (organizationId: string, excludeClients = false) =>
+  await db
     .select({
       memberId: members.id,
       userId: users.id,
@@ -272,7 +266,6 @@ const getOrgMembers = async (
         notInArray(members.role, excludeClients ? ['client'] : [])
       )
     )
-}
 
 const getOrgTeamsWithMembers = async (organizationId: string) => {
   const orgTeams = await db

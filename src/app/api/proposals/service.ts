@@ -74,13 +74,12 @@ const getBySlug = async (
   return proposal ?? null
 }
 
-const getDeliverables = async (proposalId: string) => {
-  return await db
+const getDeliverables = async (proposalId: string) =>
+  await db
     .select()
     .from(proposalDeliverables)
     .where(eq(proposalDeliverables.proposalId, proposalId))
     .orderBy(asc(proposalDeliverables.sortOrder))
-}
 
 const getThreads = async (projectId: string, entityId: string) => {
   const rows = await db
@@ -153,15 +152,14 @@ const getThreads = async (projectId: string, entityId: string) => {
     }
   })
 }
-const getRecipients = async (proposalId: string) => {
-  return await db
+const getRecipients = async (proposalId: string) =>
+  await db
     .select()
     .from(proposalRecipients)
     .where(eq(proposalRecipients.proposalId, proposalId))
-}
 
-const getSignatures = async (proposalId: string) => {
-  return await db
+const getSignatures = async (proposalId: string) =>
+  await db
     .select({
       id: proposalSignatures.id,
       proposalId: proposalSignatures.proposalId,
@@ -179,10 +177,9 @@ const getSignatures = async (proposalId: string) => {
     )
     .leftJoin(users, eq(membersTable.userId, users.id))
     .where(eq(proposalSignatures.proposalId, proposalId))
-}
 
-const getSignatureMediaForMember = async (memberId: string) => {
-  return await db
+const getSignatureMediaForMember = async (memberId: string) =>
+  await db
     .select({
       id: mediaTable.id,
       name: mediaTable.name,
@@ -194,7 +191,6 @@ const getSignatureMediaForMember = async (memberId: string) => {
     .where(eq(proposalSignatures.clientMemberId, memberId))
     .groupBy(mediaTable.id)
     .orderBy(desc(mediaTable.createdAt))
-}
 
 export const proposalsService = {
   listByProject,

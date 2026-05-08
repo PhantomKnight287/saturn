@@ -88,11 +88,11 @@ export default async function NewInvoice({
       currentProject.id
     )
     if (report) {
-      if (report.report.status !== 'approved') {
-        timesheetWarning = "Can't generate invoice from unapproved timesheet"
-      } else {
+      if (report.report.status === 'approved') {
         billableEntries =
           await timesheetService.getBillableEntriesForReport(fromTimesheet)
+      } else {
+        timesheetWarning = "Can't generate invoice from unapproved timesheet"
       }
     }
   }

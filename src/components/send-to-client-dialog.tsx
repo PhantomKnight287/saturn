@@ -156,7 +156,7 @@ export default function SendToClientDialog({
               >
                 <Send className='size-4' />
                 Send to {selectedIds.size || ''} {recipientLabel}
-                {selectedIds.size !== 1 ? 's' : ''}
+                {selectedIds.size === 1 ? '' : 's'}
               </Button>
             </div>
           </div>

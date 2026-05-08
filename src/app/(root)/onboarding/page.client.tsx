@@ -120,9 +120,9 @@ export default function OnboardingPageClient() {
                           <span className='flex flex-wrap items-center gap-1'>
                             Your workspace URL will be
                             <code className='rounded bg-muted px-1.5 py-0.5 font-mono text-foreground text-xs'>
-                              {typeof window !== 'undefined'
-                                ? window.location.host
-                                : ''}
+                              {typeof window === 'undefined'
+                                ? ''
+                                : window.location.host}
                               /{slugPreview}
                             </code>
                           </span>

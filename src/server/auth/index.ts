@@ -295,8 +295,7 @@ export const auth = betterAuth({
   baseURL: env.NEXT_PUBLIC_BASE_URL,
 })
 
-export const getSession = async (request?: NextRequest) => {
-  return auth.api.getSession({
+export const getSession = async (request?: NextRequest) =>
+  auth.api.getSession({
     headers: request ? request.headers : await headers(),
   })
-}

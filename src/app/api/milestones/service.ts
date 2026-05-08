@@ -6,13 +6,12 @@ import {
   requirements,
 } from '@/server/db/schema'
 
-const listByProject = async (projectId: string) => {
-  return await db
+const listByProject = async (projectId: string) =>
+  await db
     .select()
     .from(milestones)
     .where(eq(milestones.projectId, projectId))
     .orderBy(asc(milestones.sortOrder), asc(milestones.createdAt))
-}
 
 const getById = async (milestoneId: string, projectId: string) => {
   const [milestone] = await db
@@ -25,8 +24,8 @@ const getById = async (milestoneId: string, projectId: string) => {
   return milestone ?? null
 }
 
-const getLinkedRequirements = async (milestoneId: string) => {
-  return await db
+const getLinkedRequirements = async (milestoneId: string) =>
+  await db
     .select({
       id: milestoneRequirements.id,
       milestoneId: milestoneRequirements.milestoneId,
@@ -43,7 +42,6 @@ const getLinkedRequirements = async (milestoneId: string) => {
     )
     .where(eq(milestoneRequirements.milestoneId, milestoneId))
     .orderBy(asc(milestoneRequirements.sortOrder))
-}
 
 const getProgress = async (milestoneId: string) => {
   const rows = await db

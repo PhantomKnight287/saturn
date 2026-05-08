@@ -158,8 +158,8 @@ const getById = async ({
   return invoice ?? null
 }
 
-const getRecipients = async (invoiceId: string) => {
-  return await db
+const getRecipients = async (invoiceId: string) =>
+  await db
     .select({
       id: invoiceRecipients.id,
       memberId: invoiceRecipients.clientMemberId,
@@ -170,18 +170,16 @@ const getRecipients = async (invoiceId: string) => {
     .innerJoin(members, eq(invoiceRecipients.clientMemberId, members.id))
     .innerJoin(users, eq(members.userId, users.id))
     .where(eq(invoiceRecipients.invoiceId, invoiceId))
-}
 
-const getItems = async (invoiceId: string) => {
-  return await db
+const getItems = async (invoiceId: string) =>
+  await db
     .select()
     .from(invoiceItems)
     .where(eq(invoiceItems.invoiceId, invoiceId))
     .orderBy(asc(invoiceItems.sortOrder))
-}
 
-const getLinkedRequirements = async (invoiceId: string) => {
-  return await db
+const getLinkedRequirements = async (invoiceId: string) =>
+  await db
     .select({
       id: invoiceRequirements.id,
       requirementId: requirements.id,
@@ -195,7 +193,6 @@ const getLinkedRequirements = async (invoiceId: string) => {
       eq(invoiceRequirements.requirementId, requirements.id)
     )
     .where(eq(invoiceRequirements.invoiceId, invoiceId))
-}
 
 const listByProjectIds = async (
   projectIds: string[],
