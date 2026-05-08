@@ -37,28 +37,19 @@ export function BillingCard() {
           referenceId: session.data?.user.id,
         },
       })
-      .then(
-        ({
-          data,
-        }: {
-          data: {
-            result: {
-              items: { currentPeriodEnd?: string; productName?: string }[]
-            }
-          } | null
-        }) => {
-          const sub = data?.result?.items?.[0]
-          if (sub) {
-            setSubscription({
-              status: 'active',
-              currentPeriodEnd: sub.currentPeriodEnd,
-              productName: sub.productName,
-            })
-          } else {
-            setSubscription({ status: 'free' })
-          }
+      .then(({ data }) => {
+        const sub = data?.result?.items?.[0]
+        if (sub) {
+          setSubscription({
+            status: 'active',
+            currentPeriodEnd: sub.currentPeriodEnd.toISOString(),
+            productName:
+              'productName' in sub ? (sub.productName as string) : 'Pro',
+          })
+        } else {
+          setSubscription({ status: 'free' })
         }
-      )
+      })
       .catch(() => {
         setSubscription({ status: 'free' })
       })

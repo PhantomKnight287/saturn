@@ -52,7 +52,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
           trackErrors={true}
           trackInteractions={true}
           trackOutgoingLinks={true}
-          trackScrollDepth={true}
+          trackPerformance
           trackWebVitals={true}
         />
       </body>

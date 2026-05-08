@@ -1,9 +1,9 @@
 /** biome-ignore-all lint/correctness/useUniqueElementIds: anchor ids for in-page nav */
 
 'use client'
-import { ArrowDown, ArrowRight, Check, Github, Minus } from 'lucide-react'
+import { ArrowDown, ArrowRight, Check, Minus } from 'lucide-react'
 import Link from 'next/link'
-
+import { GitHub } from '@/components/icons/github'
 import { SaturnLogo } from '@/components/icons/saturn-logo'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { buttonVariants } from '@/components/ui/button'
@@ -502,7 +502,7 @@ export default function LandingPageClient({
               rel='noreferrer noopener'
               target='_blank'
             >
-              <Github className='size-3.5' />
+              <GitHub className='size-3.5' />
               GitHub
             </a>
             <p className='font-mono text-[11px] text-muted-foreground uppercase tracking-[0.18em]'>
