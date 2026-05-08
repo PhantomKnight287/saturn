@@ -61,6 +61,7 @@
       },
       "style": {
         "noNonNullAssertion": "off",
+        "noSubstr": "off",
         "useSelfClosingElements": {
           "fix": "safe",
           "level": "info",
