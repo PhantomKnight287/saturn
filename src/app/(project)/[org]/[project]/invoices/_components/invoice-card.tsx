@@ -39,6 +39,7 @@ export default function InvoiceCard({
         <div className='mb-1.5 flex items-center justify-between gap-2'>
           <InvoiceStatusBadge
             isClientInvolved={isClientInvolved}
+            recipient={invoice.recipient}
             role={role}
             status={invoice.status}
           />

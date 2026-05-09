@@ -204,6 +204,13 @@
       "when": 1777373767800,
       "tag": "0028_lucky_dagger",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1778305055882,
+      "tag": "0029_sweet_wind_dancer",
+      "breakpoints": true
     }
   ]
 }

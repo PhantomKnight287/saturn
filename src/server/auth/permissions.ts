@@ -176,7 +176,7 @@ export const memberRole = ac.newRole({
   ac: ['read'],
   project: ['read'],
   requirement: ['create', 'read', 'update'],
-  invoice: [],
+  invoice: ['read'],
   thread: ['create', 'read', 'update'],
   time_entry: ['create', 'read', 'update', 'delete', 'submit'],
   member_rate: ['read'],

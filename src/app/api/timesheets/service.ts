@@ -318,7 +318,10 @@ const listReportsByProject = async (projectId: string) => {
   return reports
 }
 
-const listReportsForClient = async (clientMemberId: string) => {
+const listReportsForClient = async (
+  clientMemberId: string,
+  projectId: string
+) => {
   const reports = await db
     .select({
       id: timesheetReports.id,
@@ -340,7 +343,12 @@ const listReportsForClient = async (clientMemberId: string) => {
       timesheetReports,
       eq(timesheetReportRecipients.reportId, timesheetReports.id)
     )
-    .where(eq(timesheetReportRecipients.clientMemberId, clientMemberId))
+    .where(
+      and(
+        eq(timesheetReportRecipients.clientMemberId, clientMemberId),
+        eq(timesheetReports.projectId, projectId)
+      )
+    )
     .orderBy(desc(timesheetReports.createdAt))
 
   return reports
@@ -449,7 +457,15 @@ const getReportById = async (reportId: string, projectId: string) => {
 
   return { report, entries }
 }
-const getBillableEntriesForReport = async (reportId: string) => {
+const getBillableEntriesForReport = async (
+  reportId: string,
+  memberId?: string
+) => {
+  const conditions = [eq(timesheetReportEntries.reportId, reportId)]
+  if (memberId) {
+    conditions.push(eq(timeEntries.memberId, memberId))
+  }
+
   const entries = await db
     .select({
       id: timeEntries.id,
@@ -470,7 +486,7 @@ const getBillableEntriesForReport = async (reportId: string) => {
     .innerJoin(members, eq(timeEntries.memberId, members.id))
     .innerJoin(users, eq(members.userId, users.id))
     .leftJoin(requirements, eq(timeEntries.requirementId, requirements.id))
-    .where(eq(timesheetReportEntries.reportId, reportId))
+    .where(and(...conditions))
     .orderBy(asc(users.name), asc(timeEntries.date))
 
   return entries

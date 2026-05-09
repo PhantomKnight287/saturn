@@ -6,6 +6,7 @@ import {
   eq,
   getTableColumns,
   inArray,
+  or,
 } from 'drizzle-orm'
 import type { ReadonlyHeaders } from 'next/dist/server/web/spec-extension/adapters/headers'
 import { getCachedActiveOrgMember } from '@/app/(organization)/[org]/cache'
@@ -46,7 +47,27 @@ const listByProject = async (projectId: string, headers: ReadonlyHeaders) => {
         invoiceRecipients,
         and(
           eq(invoiceRecipients.invoiceId, invoices.id),
-          eq(invoiceRecipients.clientMemberId, activeMember.id)
+          eq(invoiceRecipients.memberId, activeMember.id)
+        )
+      )
+      .orderBy(desc(invoices.createdAt))
+  } else if (activeMember?.role === 'member') {
+    // Members see all client-recipient invoices in the project, plus
+    // member-recipient invoices addressed to them.
+    const memberRecipientInvoiceIds = db
+      .select({ id: invoiceRecipients.invoiceId })
+      .from(invoiceRecipients)
+      .where(eq(invoiceRecipients.memberId, activeMember.id))
+    invoicesList = await db
+      .select()
+      .from(invoices)
+      .where(
+        and(
+          eq(invoices.projectId, projectId),
+          or(
+            eq(invoices.recipient, 'client'),
+            inArray(invoices.id, memberRecipientInvoiceIds)
+          )
         )
       )
       .orderBy(desc(invoices.createdAt))
@@ -63,7 +84,7 @@ const listByProject = async (projectId: string, headers: ReadonlyHeaders) => {
       const recipients = await db
         .select({
           assignmentId: projectClientAssignments.id,
-          memberId: invoiceRecipients.clientMemberId,
+          memberId: invoiceRecipients.memberId,
           userName: users.name,
           userEmail: users.email,
           assignedAt: members.createdAt,
@@ -71,7 +92,7 @@ const listByProject = async (projectId: string, headers: ReadonlyHeaders) => {
           userImage: users.image,
         })
         .from(invoiceRecipients)
-        .innerJoin(members, eq(invoiceRecipients.clientMemberId, members.id))
+        .innerJoin(members, eq(invoiceRecipients.memberId, members.id))
         .innerJoin(users, eq(members.userId, users.id))
         .innerJoin(
           projectClientAssignments,
@@ -129,11 +150,35 @@ const getById = async ({
         invoiceRecipients,
         and(
           eq(invoiceRecipients.invoiceId, invoices.id),
-          eq(invoiceRecipients.clientMemberId, activeMember.id)
+          eq(invoiceRecipients.memberId, activeMember.id)
         )
       )
       .limit(1)
     invoice = (row ?? null) as unknown as InvoiceWithMedia | null
+  } else if (activeMember?.role === 'member') {
+    // Members can view any client-recipient invoice in the project, but
+    // only member-recipient invoices that are addressed to them.
+    const candidate = (await db.query.invoices.findFirst({
+      where: and(
+        eq(invoices.id, invoiceId),
+        eq(invoices.projectId, project.id)
+      ),
+    })) as unknown as InvoiceWithMedia | null
+    if (candidate?.recipient === 'member') {
+      const [recipientRow] = await db
+        .select({ id: invoiceRecipients.id })
+        .from(invoiceRecipients)
+        .where(
+          and(
+            eq(invoiceRecipients.invoiceId, candidate.id),
+            eq(invoiceRecipients.memberId, activeMember.id)
+          )
+        )
+        .limit(1)
+      invoice = recipientRow ? candidate : null
+    } else {
+      invoice = candidate
+    }
   } else {
     invoice = (await db.query.invoices.findFirst({
       where: and(
@@ -162,12 +207,12 @@ const getRecipients = async (invoiceId: string) =>
   await db
     .select({
       id: invoiceRecipients.id,
-      memberId: invoiceRecipients.clientMemberId,
+      memberId: invoiceRecipients.memberId,
       userName: users.name,
       userEmail: users.email,
     })
     .from(invoiceRecipients)
-    .innerJoin(members, eq(invoiceRecipients.clientMemberId, members.id))
+    .innerJoin(members, eq(invoiceRecipients.memberId, members.id))
     .innerJoin(users, eq(members.userId, users.id))
     .where(eq(invoiceRecipients.invoiceId, invoiceId))
 

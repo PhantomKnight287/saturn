@@ -23,7 +23,7 @@ import {
 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAction } from 'next-safe-action/hooks'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Controller, useFieldArray, useForm } from 'react-hook-form'
@@ -100,8 +100,11 @@ export default function InvoiceEditor({
   defaultCurrency,
   suggestedInvoiceNumber,
   isClientInvolved = true,
+  recipientType,
+  member,
 }: InvoiceEditorProps) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const backUrl = `/${orgSlug}/${projectSlug}/invoices` as RouteImpl
   const [importOpen, setImportOpen] = useState(false)
   const [sendOpen, setSendOpen] = useState(false)
@@ -154,7 +157,8 @@ export default function InvoiceEditor({
       senderAddress: extendData?.senderAddress ?? invoice?.senderAddress ?? '',
       senderCustomFields:
         extendData?.senderCustomFields ?? invoice?.senderCustomFields ?? [],
-      clientName: extendData?.clientName ?? invoice?.clientName ?? '',
+      clientName:
+        member?.name ?? extendData?.clientName ?? invoice?.clientName ?? '',
       clientAddress: extendData?.clientAddress ?? invoice?.clientAddress ?? '',
       clientCustomFields:
         extendData?.clientCustomFields ?? invoice?.clientCustomFields ?? [],
@@ -414,8 +418,13 @@ export default function InvoiceEditor({
       return
     }
 
+    const effectiveClientMemberIds =
+      mode === 'create' && recipientType === 'member' && member?.id
+        ? [member.id]
+        : v.clientMemberIds
+
     const payload = {
-      clientMemberIds: v.clientMemberIds,
+      clientMemberIds: effectiveClientMemberIds,
       invoiceNumber: v.invoiceNumber.trim(),
       issueDate: v.issueDate,
       dueDate: v.dueDate || undefined,
@@ -445,7 +454,7 @@ export default function InvoiceEditor({
     }
 
     if (mode === 'create') {
-      executeCreate({ ...payload, projectId })
+      executeCreate({ ...payload, projectId, recipientType })
     } else if (invoice) {
       executeUpdate({ ...payload, invoiceId: invoice.id })
     }
@@ -487,6 +496,7 @@ export default function InvoiceEditor({
           {mode === 'edit' && invoice && (
             <InvoiceStatusBadge
               isClientInvolved={isClientInvolved}
+              recipient={recipientType}
               role={role}
               status={invoice.status}
             />
@@ -561,6 +571,34 @@ export default function InvoiceEditor({
               {extendData.sourceInvoiceNumber || 'previous invoice'}
             </Link>
           </span>
+        </div>
+      )}
+      {recipientType === 'member' && mode === 'create' && (
+        <div className='mb-4 flex items-center justify-between gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm dark:border-blue-900 dark:bg-blue-950/50'>
+          <div className='flex items-center gap-2'>
+            <Info className='size-4 shrink-0 text-blue-600 dark:text-blue-400' />
+            <span>
+              Generating an invoice for{' '}
+              <span className='font-bold'>{member?.name ?? 'this member'}</span>
+              . Only their time entries are shown.
+            </span>
+          </div>
+          <Button
+            onClick={() => {
+              const params = new URLSearchParams(searchParams.toString())
+              params.delete('memberId')
+              const qs = params.toString()
+              router.push(
+                `/${orgSlug}/${projectSlug}/invoices/new${qs ? `?${qs}` : ''}` as Parameters<
+                  typeof router.push
+                >[0]
+              )
+            }}
+            size='sm'
+            variant='outline'
+          >
+            Include all members
+          </Button>
         </div>
       )}
 
@@ -771,7 +809,9 @@ export default function InvoiceEditor({
                 <h3 className='font-semibold text-sm'>Bill To</h3>
               </div>
               <span className='text-muted-foreground text-xs'>
-                Client details
+                {recipientType === 'client'
+                  ? 'Client details'
+                  : 'Member details'}
               </span>
             </header>
             <div className='space-y-4 p-4'>
@@ -786,7 +826,11 @@ export default function InvoiceEditor({
                     render={({ field }) => (
                       <Input
                         {...field}
-                        placeholder='Client / company name'
+                        placeholder={
+                          recipientType === 'client'
+                            ? 'Client / company name'
+                            : 'Member name'
+                        }
                         readOnly={!isEditable}
                       />
                     )}
@@ -802,7 +846,11 @@ export default function InvoiceEditor({
                     render={({ field }) => (
                       <Input
                         {...field}
-                        placeholder='Client address'
+                        placeholder={
+                          recipientType === 'client'
+                            ? 'Client address'
+                            : 'Member address'
+                        }
                         readOnly={!isEditable}
                       />
                     )}

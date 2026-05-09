@@ -42,6 +42,7 @@ const invoiceDetailsBase = z.object({
 
 export const createInvoiceSchema = invoiceDetailsBase.extend({
   projectId: z.string().min(1),
+  recipientType: z.enum(['member', 'client']).default('client'),
 })
 
 export const updateInvoiceSchema = invoiceDetailsBase.extend({

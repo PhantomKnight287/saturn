@@ -247,6 +247,7 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
             {isClientInvolved && (
               <TabsContent value='reports'>
                 <SentReportsList
+                  isAdmin={isAdmin}
                   orgSlug={orgSlug}
                   projectName={projectName}
                   projectSlug={projectSlug}

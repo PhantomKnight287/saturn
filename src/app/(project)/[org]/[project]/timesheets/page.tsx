@@ -102,7 +102,10 @@ export default async function TimeTracking({
   let clientReports: ClientReportWithEntries[] = []
 
   if (isClient) {
-    const rawReports = await timesheetService.listReportsForClient(orgMember.id)
+    const rawReports = await timesheetService.listReportsForClient(
+      orgMember.id,
+      currentProject.id
+    )
     const clientReportIds = rawReports.map((r) => r.id)
     const entriesMap =
       await timesheetService.getReportEntriesBatch(clientReportIds)

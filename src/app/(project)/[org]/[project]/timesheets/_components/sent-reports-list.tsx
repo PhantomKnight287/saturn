@@ -21,6 +21,7 @@ import type {
 import { ReportCard } from './report-card'
 
 interface SentReportsListProps {
+  isAdmin: boolean
   orgSlug: string
   projectName: string
   projectSlug: string
@@ -35,6 +36,7 @@ export function SentReportsList({
   reportRecipientsMap,
   orgSlug,
   projectSlug,
+  isAdmin,
 }: SentReportsListProps) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
   const router = useRouter()
@@ -94,6 +96,7 @@ export function SentReportsList({
             <ReportCard
               entries={reportEntriesMap[report.id] ?? []}
               expanded={expandedIds.has(report.id)}
+              isAdmin={isAdmin}
               isResending={resendAction.isPending}
               key={report.id}
               onResend={() =>
@@ -102,6 +105,8 @@ export function SentReportsList({
                 })
               }
               onToggle={() => toggleExpand(report.id)}
+              orgSlug={orgSlug}
+              projectSlug={projectSlug}
               recipients={reportRecipientsMap[report.id] ?? []}
               report={report}
             />
@@ -118,8 +123,11 @@ export function SentReportsList({
             <ReportCard
               entries={reportEntriesMap[report.id] ?? []}
               expanded={expandedIds.has(report.id)}
+              isAdmin={isAdmin}
               key={report.id}
               onToggle={() => toggleExpand(report.id)}
+              orgSlug={orgSlug}
+              projectSlug={projectSlug}
               recipients={reportRecipientsMap[report.id] ?? []}
               report={report}
             />
@@ -137,12 +145,15 @@ export function SentReportsList({
               entries={reportEntriesMap[report.id] ?? []}
               expanded={expandedIds.has(report.id)}
               invoiceUrl={
-                report.status === 'approved'
+                isAdmin && report.status === 'approved'
                   ? `/${orgSlug}/${projectSlug}/invoices/new?fromTimesheet=${report.id}`
                   : undefined
               }
+              isAdmin={isAdmin}
               key={report.id}
               onToggle={() => toggleExpand(report.id)}
+              orgSlug={orgSlug}
+              projectSlug={projectSlug}
               recipients={reportRecipientsMap[report.id] ?? []}
               report={report}
             />

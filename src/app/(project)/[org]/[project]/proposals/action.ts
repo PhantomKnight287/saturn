@@ -249,15 +249,23 @@ export const sendProposalAction = authedActionClient
         .set({ status: 'submitted_to_client' })
         .where(eq(proposals.id, proposalId))
 
-      const recipientsToSend: { email: string; name: string }[] = []
+      const recipientsToSend: {
+        email: string
+        name: string
+        memberId: string
+      }[] = []
       for (const recipient of recipients) {
-        const clientMember = await teamService.getClientMemberById(recipient)
+        const clientMember = await teamService.getClientMemberById(
+          organization.id,
+          recipient
+        )
         if (!clientMember) {
           continue
         }
         recipientsToSend.push({
           email: clientMember.users.email,
           name: clientMember.users.name,
+          memberId: clientMember.members.id,
         })
       }
 
@@ -292,9 +300,9 @@ export const sendProposalAction = authedActionClient
       await tx
         .insert(proposalRecipients)
         .values(
-          recipients.map((recipient) => ({
+          recipientsToSend.map(({ memberId }) => ({
             proposalId,
-            clientMemberId: recipient,
+            clientMemberId: memberId,
           }))
         )
         .onConflictDoNothing()

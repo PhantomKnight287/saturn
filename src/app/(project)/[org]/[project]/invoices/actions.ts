@@ -62,6 +62,7 @@ export const createInvoiceAction = authedActionClient
         terms,
         discountLabel,
         discountAmount,
+        recipientType,
       },
       ctx: { role, user, orgMember },
     }) => {
@@ -75,6 +76,32 @@ export const createInvoiceAction = authedActionClient
       )
       if (!hasProjectAccess.success) {
         throw new Error('You do not have access to this project')
+      }
+
+      if (recipientType === 'member' && clientMemberIds.length !== 1) {
+        throw new Error(
+          'Member invoices must have exactly one recipient member'
+        )
+      }
+
+      if (clientMemberIds.length) {
+        const allowedRoles =
+          recipientType === 'member' ? ['member', 'admin', 'owner'] : ['client']
+        const validMembers = await db
+          .select({ id: members.id })
+          .from(members)
+          .where(
+            and(
+              inArray(members.id, clientMemberIds),
+              eq(members.organizationId, orgMember.organizationId),
+              inArray(members.role, allowedRoles)
+            )
+          )
+        if (validMembers.length !== clientMemberIds.length) {
+          throw new Error(
+            'One or more recipients are invalid for this organization'
+          )
+        }
       }
 
       const totalAmount = items
@@ -119,6 +146,8 @@ export const createInvoiceAction = authedActionClient
             terms: terms || null,
             discountLabel: discountLabel || null,
             discountAmount: discountAmount || null,
+            recipient: recipientType,
+            status: recipientType === 'member' ? 'sent' : 'draft',
           })
           .returning()
 
@@ -126,7 +155,7 @@ export const createInvoiceAction = authedActionClient
           await tx.insert(invoiceRecipients).values(
             clientMemberIds.map((clientMemberId) => ({
               invoiceId: insertedInvoice!.id,
-              clientMemberId,
+              memberId: clientMemberId,
             }))
           )
         }
@@ -163,6 +192,63 @@ export const createInvoiceAction = authedActionClient
 
         return insertedInvoice
       })
+
+      if (recipientType === 'member' && clientMemberIds?.length && invoice) {
+        try {
+          const recipients = await db
+            .select({
+              userName: users.name,
+              userEmail: users.email,
+            })
+            .from(invoiceRecipients)
+            .innerJoin(members, eq(invoiceRecipients.memberId, members.id))
+            .innerJoin(users, eq(members.userId, users.id))
+            .where(eq(invoiceRecipients.invoiceId, invoice.id))
+
+          const { projectName, projectSlug, orgSlug } =
+            await projectsService.getProjectDetails(projectId)
+
+          const formatDateLong = (d: Date) =>
+            d.toLocaleDateString('en-US', {
+              month: 'long',
+              day: 'numeric',
+              year: 'numeric',
+            })
+
+          await sendEmailsToRecipients(
+            recipients.map((r) => ({ email: r.userEmail, name: r.userName })),
+            async (recipient) => {
+              const html = await render(
+                InvoiceSentEmail({
+                  recipientName: recipient.name ?? 'there',
+                  invoiceNumber: invoice.invoiceNumber,
+                  projectName,
+                  senderName: user.name ?? 'there',
+                  totalAmount: Number(invoice.totalAmount).toLocaleString(
+                    'en-US',
+                    { minimumFractionDigits: 2 }
+                  ),
+                  currency: invoice.currency,
+                  issueDate: formatDateLong(invoice.issueDate),
+                  dueDate: invoice.dueDate
+                    ? formatDateLong(invoice.dueDate)
+                    : 'No due date',
+                  orgSlug: orgSlug ?? '',
+                  projectSlug,
+                  invoiceId: invoice.id,
+                })
+              )
+              return {
+                to: recipient.email,
+                subject: `Invoice ${invoice.invoiceNumber} — ${invoice.currency} ${Number(invoice.totalAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+                html,
+              }
+            }
+          )
+        } catch (err) {
+          console.error('Failed to send member invoice email', err)
+        }
+      }
 
       return invoice
     }
@@ -206,6 +292,7 @@ export const updateInvoiceAction = authedActionClient
         .select({
           status: invoices.status,
           projectId: invoices.projectId,
+          recipient: invoices.recipient,
         })
         .from(invoices)
         .where(eq(invoices.id, invoiceId))
@@ -222,8 +309,39 @@ export const updateInvoiceAction = authedActionClient
       if (!hasProjectAccess.success) {
         throw new Error('Invoice not found')
       }
-      if (existing.status !== 'draft') {
-        throw new Error('Only draft invoices can be edited')
+      const isMemberInvoice = existing.recipient === 'member'
+      const editableStatuses: (typeof existing.status)[] = isMemberInvoice
+        ? ['draft', 'sent', 'disputed']
+        : ['draft']
+      if (!editableStatuses.includes(existing.status)) {
+        throw new Error('This invoice can no longer be edited')
+      }
+
+      if (isMemberInvoice && clientMemberIds.length !== 1) {
+        throw new Error(
+          'Member invoices must have exactly one recipient member'
+        )
+      }
+
+      if (clientMemberIds.length) {
+        const allowedRoles = isMemberInvoice
+          ? ['member', 'admin', 'owner']
+          : ['client']
+        const validMembers = await db
+          .select({ id: members.id })
+          .from(members)
+          .where(
+            and(
+              inArray(members.id, clientMemberIds),
+              eq(members.organizationId, orgMember.organizationId),
+              inArray(members.role, allowedRoles)
+            )
+          )
+        if (validMembers.length !== clientMemberIds.length) {
+          throw new Error(
+            'One or more recipients are invalid for this organization'
+          )
+        }
       }
 
       const totalAmount = items
@@ -268,7 +386,7 @@ export const updateInvoiceAction = authedActionClient
             await tx.insert(invoiceRecipients).values(
               clientMemberIds.map((clientMemberId) => ({
                 invoiceId: insertedInvoice!.id,
-                clientMemberId,
+                memberId: clientMemberId,
               }))
             )
           }
@@ -395,9 +513,9 @@ export const sendInvoiceAction = authedActionClient
       await db
         .insert(invoiceRecipients)
         .values(
-          clientMemberIds.map((clientMemberId) => ({
+          clientMemberIds.map((memberId) => ({
             invoiceId,
-            clientMemberId,
+            memberId,
           }))
         )
         .onConflictDoNothing()
@@ -405,12 +523,12 @@ export const sendInvoiceAction = authedActionClient
       // Load recipients for email
       const recipients = await db
         .select({
-          memberId: invoiceRecipients.clientMemberId,
+          memberId: invoiceRecipients.memberId,
           userName: users.name,
           userEmail: users.email,
         })
         .from(invoiceRecipients)
-        .innerJoin(members, eq(invoiceRecipients.clientMemberId, members.id))
+        .innerJoin(members, eq(invoiceRecipients.memberId, members.id))
         .innerJoin(users, eq(members.userId, users.id))
         .where(eq(invoiceRecipients.invoiceId, invoiceId))
 
@@ -481,6 +599,7 @@ export const markInvoicePaidAction = authedActionClient
           status: invoices.status,
           totalAmount: invoices.totalAmount,
           currency: invoices.currency,
+          recipient: invoices.recipient,
         })
         .from(invoices)
         .where(eq(invoices.id, invoiceId))
@@ -504,8 +623,11 @@ export const markInvoicePaidAction = authedActionClient
       )
       const clientOff = settings.clientInvolvement.invoices === 'off'
       const isAdmin = orgMember.role === 'owner' || orgMember.role === 'admin'
+      const isMemberInvoice = invoice.recipient === 'member'
 
-      if (clientOff) {
+      // Member invoices are internal: admins/owners can mark them paid
+      // regardless of the project's clientInvolvement setting.
+      if (clientOff || isMemberInvoice) {
         if (!isAdmin) {
           throw new Error('Only admins can mark invoices as paid')
         }
@@ -517,7 +639,7 @@ export const markInvoicePaidAction = authedActionClient
           throw new Error('Only sent invoices can be marked as paid')
         }
         const allRecipients = await db
-          .select({ memberId: invoiceRecipients.clientMemberId })
+          .select({ memberId: invoiceRecipients.memberId })
           .from(invoiceRecipients)
           .where(eq(invoiceRecipients.invoiceId, invoiceId))
         const isRecipient = allRecipients.some(
@@ -585,7 +707,11 @@ export const deleteInvoiceAction = authedActionClient
       }
 
       const invoice = await db
-        .select({ status: invoices.status, projectId: invoices.projectId })
+        .select({
+          status: invoices.status,
+          projectId: invoices.projectId,
+          recipient: invoices.recipient,
+        })
         .from(invoices)
         .where(eq(invoices.id, invoiceId))
         .then((r) => r[0])
@@ -601,8 +727,12 @@ export const deleteInvoiceAction = authedActionClient
       if (!hasProjectAccess.success) {
         throw new Error('Invoice not found')
       }
-      if (invoice.status !== 'draft') {
-        throw new Error('Only draft invoices can be deleted')
+      const deletableStatuses: (typeof invoice.status)[] =
+        invoice.recipient === 'member'
+          ? ['draft', 'sent', 'disputed']
+          : ['draft']
+      if (!deletableStatuses.includes(invoice.status)) {
+        throw new Error('This invoice can no longer be deleted')
       }
 
       await db.delete(invoices).where(eq(invoices.id, invoiceId))
@@ -669,7 +799,7 @@ export const createInvoiceThreadAction = authedActionClient
         .where(
           and(
             eq(invoiceRecipients.invoiceId, invoiceId),
-            eq(invoiceRecipients.clientMemberId, orgMember.id)
+            eq(invoiceRecipients.memberId, orgMember.id)
           )
         )
         .limit(1)
@@ -973,12 +1103,12 @@ export const changeInvoiceStatusAction = authedActionClient
       if (invoice.status === 'paid' && status === 'sent') {
         const recipients = await db
           .select({
-            memberId: invoiceRecipients.clientMemberId,
+            memberId: invoiceRecipients.memberId,
             userName: users.name,
             userEmail: users.email,
           })
           .from(invoiceRecipients)
-          .innerJoin(members, eq(invoiceRecipients.clientMemberId, members.id))
+          .innerJoin(members, eq(invoiceRecipients.memberId, members.id))
           .innerJoin(users, eq(members.userId, users.id))
           .where(eq(invoiceRecipients.invoiceId, invoiceId))
 
