@@ -599,6 +599,7 @@ export const markInvoicePaidAction = authedActionClient
           status: invoices.status,
           totalAmount: invoices.totalAmount,
           currency: invoices.currency,
+          recipient: invoices.recipient,
         })
         .from(invoices)
         .where(eq(invoices.id, invoiceId))
@@ -622,8 +623,11 @@ export const markInvoicePaidAction = authedActionClient
       )
       const clientOff = settings.clientInvolvement.invoices === 'off'
       const isAdmin = orgMember.role === 'owner' || orgMember.role === 'admin'
+      const isMemberInvoice = invoice.recipient === 'member'
 
-      if (clientOff) {
+      // Member invoices are internal: admins/owners can mark them paid
+      // regardless of the project's clientInvolvement setting.
+      if (clientOff || isMemberInvoice) {
         if (!isAdmin) {
           throw new Error('Only admins can mark invoices as paid')
         }

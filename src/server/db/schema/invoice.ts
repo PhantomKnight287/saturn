@@ -70,7 +70,7 @@ export const invoices = pgTable(
     discountLabel: text('discount_label'),
     discountAmount: numeric('discount_amount', { precision: 16, scale: 4 }),
 
-    recipient: invoiceRecipientEnum().default('client'),
+    recipient: invoiceRecipientEnum().default('client').notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()

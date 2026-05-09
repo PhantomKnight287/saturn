@@ -139,12 +139,12 @@ export function ReportCard({
           )}
           <div className='flex items-center gap-2'>
             {invoiceUrl && (
-              <a href={invoiceUrl}>
-                <Button size='sm' variant='outline'>
+              <Button asChild size='sm' variant='outline'>
+                <a href={invoiceUrl}>
                   <Receipt className='size-3.5' />
                   Create Invoice
-                </Button>
-              </a>
+                </a>
+              </Button>
             )}
             {showClientActions && (
               <>
@@ -257,12 +257,12 @@ export function ReportCard({
                         )}
                       </div>
                       {memberInvoiceUrl && (
-                        <a href={memberInvoiceUrl}>
-                          <Button size='sm' variant='outline'>
+                        <Button asChild size='sm' variant='outline'>
+                          <a href={memberInvoiceUrl}>
                             <ReceiptText className='size-3.5' />
                             Create Member Invoice
-                          </Button>
-                        </a>
+                          </a>
+                        </Button>
                       )}
                     </div>
                   )}

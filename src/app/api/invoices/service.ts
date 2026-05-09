@@ -6,6 +6,7 @@ import {
   eq,
   getTableColumns,
   inArray,
+  or,
 } from 'drizzle-orm'
 import type { ReadonlyHeaders } from 'next/dist/server/web/spec-extension/adapters/headers'
 import { getCachedActiveOrgMember } from '@/app/(organization)/[org]/cache'
@@ -51,15 +52,22 @@ const listByProject = async (projectId: string, headers: ReadonlyHeaders) => {
       )
       .orderBy(desc(invoices.createdAt))
   } else if (activeMember?.role === 'member') {
+    // Members see all client-recipient invoices in the project, plus
+    // member-recipient invoices addressed to them.
+    const memberRecipientInvoiceIds = db
+      .select({ id: invoiceRecipients.invoiceId })
+      .from(invoiceRecipients)
+      .where(eq(invoiceRecipients.memberId, activeMember.id))
     invoicesList = await db
-      .select(getTableColumns(invoices))
+      .select()
       .from(invoices)
-      .where(eq(invoices.projectId, projectId))
-      .innerJoin(
-        invoiceRecipients,
+      .where(
         and(
-          eq(invoiceRecipients.invoiceId, invoices.id),
-          eq(invoiceRecipients.memberId, activeMember.id)
+          eq(invoices.projectId, projectId),
+          or(
+            eq(invoices.recipient, 'client'),
+            inArray(invoices.id, memberRecipientInvoiceIds)
+          )
         )
       )
       .orderBy(desc(invoices.createdAt))
@@ -131,7 +139,7 @@ const getById = async ({
 
   const activeMember = await getCachedActiveOrgMember(headers)
   let invoice: InvoiceWithMedia | null
-  if (activeMember?.role === 'client' || activeMember?.role === 'member') {
+  if (activeMember?.role === 'client') {
     const [row] = await db
       .select(getTableColumns(invoices))
       .from(invoices)
@@ -147,6 +155,30 @@ const getById = async ({
       )
       .limit(1)
     invoice = (row ?? null) as unknown as InvoiceWithMedia | null
+  } else if (activeMember?.role === 'member') {
+    // Members can view any client-recipient invoice in the project, but
+    // only member-recipient invoices that are addressed to them.
+    const candidate = (await db.query.invoices.findFirst({
+      where: and(
+        eq(invoices.id, invoiceId),
+        eq(invoices.projectId, project.id)
+      ),
+    })) as unknown as InvoiceWithMedia | null
+    if (candidate?.recipient === 'member') {
+      const [recipientRow] = await db
+        .select({ id: invoiceRecipients.id })
+        .from(invoiceRecipients)
+        .where(
+          and(
+            eq(invoiceRecipients.invoiceId, candidate.id),
+            eq(invoiceRecipients.memberId, activeMember.id)
+          )
+        )
+        .limit(1)
+      invoice = recipientRow ? candidate : null
+    } else {
+      invoice = candidate
+    }
   } else {
     invoice = (await db.query.invoices.findFirst({
       where: and(

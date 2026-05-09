@@ -83,6 +83,12 @@ export default async function NewInvoice({
       : null,
   ])
 
+  if (memberId && !member) {
+    redirect(
+      `/error/404?message=${encodeURIComponent('Member not found in this organization')}`
+    )
+  }
+
   const suggestedInvoiceNumber =
     InvoiceNumberGeneratorEngine.generateInvoiceNumber(
       projectOrOrgSettings.invoiceNumberTemplate,
@@ -119,7 +125,7 @@ export default async function NewInvoice({
     string,
     { hourlyRate: number; currency: string }
   > = {}
-  for (const entry of [...billableEntries, ...allBillableEntries]) {
+  for (const entry of [...billableEntries, ...filteredAllBillableEntries]) {
     if (!memberRateMap[entry.memberId]) {
       const rate = await timesheetService.getMemberRate(
         entry.memberId,
