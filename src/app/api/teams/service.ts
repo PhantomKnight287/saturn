@@ -222,19 +222,28 @@ const getOrgTeams = async (organizationId: string) =>
     .from(teams)
     .where(eq(teams.organizationId, organizationId))
 
-const getClientMemberById = async (memberId: string) => {
-  const [clientMember] = await db
+const getMemberById = async (
+  organizationId: string,
+  memberId: string,
+  roles: string[]
+) => {
+  const [member] = await db
     .select()
     .from(members)
     .innerJoin(users, eq(members.userId, users.id))
-    .where(and(eq(members.id, memberId), eq(members.role, 'client')))
-
-  if (!clientMember) {
-    return null
-  }
-
-  return clientMember
+    .where(
+      and(
+        eq(members.id, memberId),
+        inArray(members.role, roles),
+        eq(members.organizationId, organizationId)
+      )
+    )
+  return member ?? null
 }
+
+const getClientMemberById = async (organizationId: string, memberId: string) =>
+  await getMemberById(organizationId, memberId, ['client'])
+
 export const getAdminAndOwners = async (organizationId: string) =>
   await db
     .select()
@@ -363,6 +372,7 @@ export const teamService = {
   getProjectClients,
   getProjectTeams,
   getOrgTeams,
+  getMemberById,
   getOrgMembers,
   getOrgMemberCounts,
   getOrgTeamsWithMembers,

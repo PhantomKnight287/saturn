@@ -1,11 +1,10 @@
 'use client'
 
 import { useRouter } from '@bprogress/next/app'
-import { CheckCircle2, FileText, MessageSquareWarning } from 'lucide-react'
+import { FileText } from 'lucide-react'
 import { useAction } from 'next-safe-action/hooks'
 import { useId, useState } from 'react'
 import { toast } from 'sonner'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -24,19 +23,10 @@ import {
 } from '@/components/ui/empty'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableFooter,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
 import { respondTimesheetReportAction } from '../actions'
-import { formatMinutes, formatShortDate } from '../common'
 import type { ClientReportWithEntries } from '../types'
+import { ReportCard } from './report-card'
 
 interface ClientReportsViewProps {
   reports: ClientReportWithEntries[]
@@ -46,6 +36,7 @@ export function ClientReportsView({ reports }: ClientReportsViewProps) {
   const [disputeOpen, setDisputeOpen] = useState(false)
   const [activeReportId, setActiveReportId] = useState<string | null>(null)
   const [disputeReason, setDisputeReason] = useState('')
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
   const formId = useId()
   const router = useRouter()
 
@@ -68,6 +59,18 @@ export function ClientReportsView({ reports }: ClientReportsViewProps) {
       },
     }
   )
+
+  function toggleExpand(id: string) {
+    setExpandedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+  }
 
   const handleApprove = (reportId: string) => {
     executeRespond({ reportId, action: 'approve' })
@@ -114,12 +117,17 @@ export function ClientReportsView({ reports }: ClientReportsViewProps) {
     <>
       <div className='space-y-8'>
         {pending.map((item) => (
-          <TimesheetCard
+          <ReportCard
             actionPending={isPending}
-            item={item}
+            entries={item.entries}
+            expanded={expandedIds.has(item.report.id)}
             key={item.report.id}
             onApprove={handleApprove}
             onDispute={openDispute}
+            onToggle={() => toggleExpand(item.report.id)}
+            recipients={[]}
+            report={item.report}
+            viewerRole='client'
           />
         ))}
 
@@ -129,7 +137,15 @@ export function ClientReportsView({ reports }: ClientReportsViewProps) {
             <div className='space-y-6'>
               <p className='text-muted-foreground text-sm'>Past timesheets</p>
               {history.map((item) => (
-                <TimesheetCard item={item} key={item.report.id} />
+                <ReportCard
+                  entries={item.entries}
+                  expanded={expandedIds.has(item.report.id)}
+                  key={item.report.id}
+                  onToggle={() => toggleExpand(item.report.id)}
+                  recipients={[]}
+                  report={item.report}
+                  viewerRole='client'
+                />
               ))}
             </div>
           </>
@@ -176,135 +192,5 @@ export function ClientReportsView({ reports }: ClientReportsViewProps) {
         </DialogContent>
       </Dialog>
     </>
-  )
-}
-
-function TimesheetCard({
-  item,
-  actionPending,
-  onApprove,
-  onDispute,
-}: {
-  item: ClientReportWithEntries
-  actionPending?: boolean
-  onApprove?: (id: string) => void
-  onDispute?: (id: string) => void
-}) {
-  const { report, entries } = item
-  const isSent = report.status === 'sent'
-  const totalAmount = (report.totalAmount / 100).toLocaleString('en-US', {
-    style: 'currency',
-    currency: report.currency,
-  })
-
-  const sorted = [...entries].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-  )
-
-  return (
-    <div className='overflow-hidden rounded-lg border'>
-      <div className='flex items-center justify-between border-b bg-muted/30 px-2 py-3'>
-        <div>
-          <div className='flex items-center gap-2.5'>
-            <h3 className='font-semibold'>{report.title}</h3>
-            {report.status === 'approved' && (
-              <Badge variant='default'>Approved</Badge>
-            )}
-            {report.status === 'disputed' && (
-              <Badge variant='destructive'>Disputed</Badge>
-            )}
-          </div>
-          {report.sentAt && (
-            <p className='text-muted-foreground text-xs'>
-              Sent{' '}
-              {new Date(report.sentAt).toLocaleDateString('en-US', {
-                month: 'long',
-                day: 'numeric',
-                year: 'numeric',
-              })}
-            </p>
-          )}
-        </div>
-        {isSent && onApprove && onDispute && (
-          <div className='flex items-center gap-2'>
-            <Button
-              disabled={actionPending}
-              onClick={() => onDispute(report.id)}
-              variant='outline'
-            >
-              <MessageSquareWarning className='mr-1.5 size-4' />
-              Report Issue
-            </Button>
-            <Button
-              disabled={actionPending}
-              onClick={() => onApprove(report.id)}
-            >
-              <CheckCircle2 className='mr-1.5 size-4' />
-              Approve
-            </Button>
-          </div>
-        )}
-      </div>
-
-      {report.status === 'disputed' && report.disputeReason && (
-        <div className='border-b bg-destructive/5 px-4 py-3'>
-          <p className='mb-0.5 font-medium text-destructive text-sm'>
-            Your feedback
-          </p>
-          <p className='text-sm'>{report.disputeReason}</p>
-        </div>
-      )}
-
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className='w-[100px]'>Date</TableHead>
-            <TableHead>Person</TableHead>
-            <TableHead>Work done</TableHead>
-            <TableHead>Requirement</TableHead>
-            <TableHead className='w-[80px] text-center'>Billable</TableHead>
-            <TableHead className='w-[80px] text-right'>Hours</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {sorted.map((entry) => (
-            <TableRow key={entry.id}>
-              <TableCell className='whitespace-nowrap text-sm'>
-                {formatShortDate(entry.date)}
-              </TableCell>
-              <TableCell className='text-sm'>
-                {entry.memberName ?? 'Team member'}
-              </TableCell>
-              <TableCell className='text-sm'>{entry.description}</TableCell>
-              <TableCell className='text-muted-foreground text-sm'>
-                {entry.requirementTitle ?? '—'}
-              </TableCell>
-              <TableCell className='text-center'>
-                {entry.billable ? (
-                  <Badge className='text-xs' variant='outline'>
-                    Yes
-                  </Badge>
-                ) : (
-                  <span className='text-muted-foreground text-xs'>No</span>
-                )}
-              </TableCell>
-              <TableCell className='text-right font-mono text-sm'>
-                {formatMinutes(entry.durationMinutes)}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-        <TableFooter>
-          <TableRow>
-            <TableCell className='font-semibold text-sm' colSpan={5}>
-              Total — {totalAmount}
-            </TableCell>
-            <TableCell className='text-right font-mono font-semibold text-sm'>
-              {formatMinutes(report.totalMinutes)}
-            </TableCell>
-          </TableRow>
-        </TableFooter>
-      </Table>
-    </div>
   )
 }

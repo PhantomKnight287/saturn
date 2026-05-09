@@ -65,7 +65,9 @@ export default async function InvoiceDetail({
   ])
 
   const isRecipient = recipients.some((r) => r.memberId === orgMember.id)
-  const isClientInvolved = settings.clientInvolvement.invoices === 'on'
+  const isMemberInvoice = invoice.recipient === 'member'
+  const isClientInvolved =
+    !isMemberInvoice && settings.clientInvolvement.invoices === 'on'
   const isAdmin = orgMember.role === 'owner' || orgMember.role === 'admin'
   const canMarkPaid = isClientInvolved
     ? invoice.status === 'sent' && isRecipient
@@ -171,6 +173,7 @@ export default async function InvoiceDetail({
       projectId={currentProject.id}
       projectName={currentProject.name}
       projectSlug={projectSlug}
+      recipientType={isMemberInvoice ? 'member' : 'client'}
       requirements={requirementList}
       role={orgMember.role as Role}
       threads={threads}

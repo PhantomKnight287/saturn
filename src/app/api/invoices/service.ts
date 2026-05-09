@@ -46,7 +46,20 @@ const listByProject = async (projectId: string, headers: ReadonlyHeaders) => {
         invoiceRecipients,
         and(
           eq(invoiceRecipients.invoiceId, invoices.id),
-          eq(invoiceRecipients.clientMemberId, activeMember.id)
+          eq(invoiceRecipients.memberId, activeMember.id)
+        )
+      )
+      .orderBy(desc(invoices.createdAt))
+  } else if (activeMember?.role === 'member') {
+    invoicesList = await db
+      .select(getTableColumns(invoices))
+      .from(invoices)
+      .where(eq(invoices.projectId, projectId))
+      .innerJoin(
+        invoiceRecipients,
+        and(
+          eq(invoiceRecipients.invoiceId, invoices.id),
+          eq(invoiceRecipients.memberId, activeMember.id)
         )
       )
       .orderBy(desc(invoices.createdAt))
@@ -63,7 +76,7 @@ const listByProject = async (projectId: string, headers: ReadonlyHeaders) => {
       const recipients = await db
         .select({
           assignmentId: projectClientAssignments.id,
-          memberId: invoiceRecipients.clientMemberId,
+          memberId: invoiceRecipients.memberId,
           userName: users.name,
           userEmail: users.email,
           assignedAt: members.createdAt,
@@ -71,7 +84,7 @@ const listByProject = async (projectId: string, headers: ReadonlyHeaders) => {
           userImage: users.image,
         })
         .from(invoiceRecipients)
-        .innerJoin(members, eq(invoiceRecipients.clientMemberId, members.id))
+        .innerJoin(members, eq(invoiceRecipients.memberId, members.id))
         .innerJoin(users, eq(members.userId, users.id))
         .innerJoin(
           projectClientAssignments,
@@ -118,7 +131,7 @@ const getById = async ({
 
   const activeMember = await getCachedActiveOrgMember(headers)
   let invoice: InvoiceWithMedia | null
-  if (activeMember?.role === 'client') {
+  if (activeMember?.role === 'client' || activeMember?.role === 'member') {
     const [row] = await db
       .select(getTableColumns(invoices))
       .from(invoices)
@@ -129,7 +142,7 @@ const getById = async ({
         invoiceRecipients,
         and(
           eq(invoiceRecipients.invoiceId, invoices.id),
-          eq(invoiceRecipients.clientMemberId, activeMember.id)
+          eq(invoiceRecipients.memberId, activeMember.id)
         )
       )
       .limit(1)
@@ -162,12 +175,12 @@ const getRecipients = async (invoiceId: string) =>
   await db
     .select({
       id: invoiceRecipients.id,
-      memberId: invoiceRecipients.clientMemberId,
+      memberId: invoiceRecipients.memberId,
       userName: users.name,
       userEmail: users.email,
     })
     .from(invoiceRecipients)
-    .innerJoin(members, eq(invoiceRecipients.clientMemberId, members.id))
+    .innerJoin(members, eq(invoiceRecipients.memberId, members.id))
     .innerJoin(users, eq(members.userId, users.id))
     .where(eq(invoiceRecipients.invoiceId, invoiceId))
 

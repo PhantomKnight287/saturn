@@ -251,7 +251,10 @@ export const sendProposalAction = authedActionClient
 
       const recipientsToSend: { email: string; name: string }[] = []
       for (const recipient of recipients) {
-        const clientMember = await teamService.getClientMemberById(recipient)
+        const clientMember = await teamService.getClientMemberById(
+          organization.id,
+          recipient
+        )
         if (!clientMember) {
           continue
         }

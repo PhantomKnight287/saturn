@@ -23,6 +23,11 @@ export const invoiceStatusEnum = pgEnum('invoice_status', [
   'cancelled',
 ])
 
+export const invoiceRecipientEnum = pgEnum('invoice_recipient', [
+  'member',
+  'client',
+])
+
 export const invoices = pgTable(
   'invoices',
   {
@@ -64,6 +69,8 @@ export const invoices = pgTable(
     // Discount
     discountLabel: text('discount_label'),
     discountAmount: numeric('discount_amount', { precision: 16, scale: 4 }),
+
+    recipient: invoiceRecipientEnum().default('client'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()
@@ -85,7 +92,7 @@ export const invoiceRecipients = pgTable(
     invoiceId: text('invoice_id')
       .references(() => invoices.id, { onDelete: 'cascade' })
       .notNull(),
-    clientMemberId: text('client_member_id')
+    memberId: text('member_id')
       .references(() => members.id, { onDelete: 'cascade' })
       .notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -94,7 +101,7 @@ export const invoiceRecipients = pgTable(
       .$onUpdate(() => new Date())
       .notNull(),
   },
-  (t) => [unique().on(t.clientMemberId, t.invoiceId)]
+  (t) => [unique().on(t.memberId, t.invoiceId)]
 )
 
 export const invoiceItems = pgTable('invoice_items', {

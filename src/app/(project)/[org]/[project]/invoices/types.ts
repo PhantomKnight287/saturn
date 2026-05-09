@@ -1,8 +1,9 @@
 import type z from 'zod'
-import type { expenses } from '@/server/db/schema'
+import type { expenses, invoiceRecipientEnum } from '@/server/db/schema'
 import type { Role } from '@/types'
 import type { Thread } from '../requirements/types'
 import type { ProjectClient } from '../team/types'
+import type { ProjectMember } from '../timesheets/types'
 import type { invoiceFormSchema } from './common'
 
 export type InvoiceFormValues = z.infer<typeof invoiceFormSchema>
@@ -12,6 +13,7 @@ export interface Invoice {
   dueDate: Date | null
   id: string
   invoiceNumber: string
+  recipient: (typeof invoiceRecipientEnum.enumValues)[number] | null
   recipients: ProjectClient[]
   status: 'draft' | 'sent' | 'paid' | 'disputed' | 'cancelled'
   totalAmount: string
@@ -36,6 +38,7 @@ export interface InvoiceCardProps {
     currency: string
     dueDate: Date | null
     updatedAt: Date
+    recipient: (typeof invoiceRecipientEnum.enumValues)[number] | null
     recipients: ProjectClient[]
   }
   isClientInvolved?: boolean
@@ -92,6 +95,7 @@ export interface InvoiceData {
   issueDate: Date
   notes: string | null
   paymentTerms: string | null
+  recipient: (typeof invoiceRecipientEnum.enumValues)[number] | null
   senderAddress: string | null
   senderCustomFields: CustomField[] | null
   senderLogo: string | null
@@ -132,6 +136,7 @@ export interface InvoiceEditorProps {
   isClientInvolved?: boolean
   linkedRequirements?: LinkedRequirement[]
   mediaItems?: MediaItem[]
+  member?: ProjectMember | null
   memberRateMap?: Record<string, { hourlyRate: number; currency: string }>
   mode: 'create' | 'edit'
   orgName: string
@@ -139,6 +144,7 @@ export interface InvoiceEditorProps {
   projectId: string
   projectName: string
   projectSlug: string
+  recipientType: (typeof invoiceRecipientEnum.enumValues)[number]
   requirements: { id: string; title: string; slug: string }[]
   role: Role
   suggestedInvoiceNumber?: string

@@ -40,7 +40,7 @@ export function NavUser() {
 
   const themeMenu = (
     <DropdownMenuSub>
-      <DropdownMenuSubTrigger>
+      <DropdownMenuSubTrigger className='justify-start gap-0'>
         <Sun className='mr-2 size-4 scale-100 dark:scale-0' />
         <Moon className='mr-2 -ml-6 size-4 scale-0 dark:scale-100' />
         Theme

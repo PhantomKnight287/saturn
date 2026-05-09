@@ -31,6 +31,10 @@ export function Providers({ children }: { children: ReactNode }) {
             authClient={authClient}
             //@ts-expect-error
             Link={Link}
+            localization={{
+              EMAIL_NOT_VERIFIED:
+                'Please check your email for a verification link to continue.',
+            }}
             navigate={(href) =>
               router.push(href as unknown as Parameters<typeof router.push>[0])
             }

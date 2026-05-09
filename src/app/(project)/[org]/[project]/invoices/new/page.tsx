@@ -30,10 +30,14 @@ export default async function NewInvoice({
   params,
   searchParams,
 }: PageProps<'/[org]/[project]/invoices/new'> & {
-  searchParams: Promise<{ extend?: string; fromTimesheet?: string }>
+  searchParams: Promise<{
+    extend?: string
+    fromTimesheet?: string
+    memberId?: string
+  }>
 }) {
   const { org, project: projectSlug } = await params
-  const { extend, fromTimesheet } = await searchParams
+  const { extend, fromTimesheet, memberId } = await searchParams
   const {
     organization,
     project: currentProject,
@@ -57,6 +61,7 @@ export default async function NewInvoice({
     unpaidExpenses,
     projectOrOrgSettings,
     nextInvoiceSequence,
+    member,
   ] = await Promise.all([
     teamService.getProjectClients(currentProject.id),
     requirementsService.listByProject(currentProject.id, h),
@@ -69,6 +74,13 @@ export default async function NewInvoice({
     ),
     projectsService.getSettings(organization.id, currentProject.id),
     invoicesService.getNextSequence(currentProject.id),
+    memberId
+      ? teamService.getMemberById(organization.id, memberId, [
+          'member',
+          'admin',
+          'owner',
+        ])
+      : null,
   ])
 
   const suggestedInvoiceNumber =
@@ -89,13 +101,19 @@ export default async function NewInvoice({
     )
     if (report) {
       if (report.report.status === 'approved') {
-        billableEntries =
-          await timesheetService.getBillableEntriesForReport(fromTimesheet)
+        billableEntries = await timesheetService.getBillableEntriesForReport(
+          fromTimesheet,
+          memberId
+        )
       } else {
         timesheetWarning = "Can't generate invoice from unapproved timesheet"
       }
     }
   }
+
+  const filteredAllBillableEntries = memberId
+    ? allBillableEntries.filter((e) => e.memberId === memberId)
+    : allBillableEntries
 
   const memberRateMap: Record<
     string,
@@ -173,6 +191,15 @@ export default async function NewInvoice({
         projectOrOrgSettings.clientInvolvement.invoices === 'on'
       }
       mediaItems={usersMedia}
+      member={
+        member?.users && member?.members
+          ? {
+              id: member.members.id,
+              email: member.users.email,
+              name: member.users.name,
+            }
+          : null
+      }
       memberRateMap={memberRateMap}
       mode='create'
       orgName={organization.name}
@@ -180,11 +207,12 @@ export default async function NewInvoice({
       projectId={currentProject.id}
       projectName={currentProject.name}
       projectSlug={projectSlug}
+      recipientType={member ? 'member' : 'client'}
       requirements={requirementList}
       role={orgMember.role as Role}
       suggestedInvoiceNumber={suggestedInvoiceNumber}
       timesheetWarning={timesheetWarning}
-      unbilledTimeEntries={allBillableEntries}
+      unbilledTimeEntries={filteredAllBillableEntries}
       unpaidExpenses={unpaidExpenses}
     />
   )
