@@ -100,7 +100,6 @@ export default function ProposalEditor({
   orgSlug,
   projectSlug,
   proposal,
-  canEdit = true,
   canSend = false,
   canSign = false,
   hasSignedAlready = false,
