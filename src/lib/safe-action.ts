@@ -6,6 +6,7 @@ import { authClient } from './auth-client'
 
 export const actionClient = createSafeActionClient({
   handleServerError(error) {
+    console.error(error)
     return error.message
   },
 })

@@ -73,6 +73,7 @@ export default function InviteDialog({
   const setOrgDefaultId = useId()
   const [search, setSearch] = useState('')
   const [selectedMember, setSelectedMember] = useState<OrgMember | null>(null)
+  const [showEmailForm, setShowEmailForm] = useState(false)
   const [isInviting, setIsInviting] = useState(false)
   const showRoleSelect = role !== 'client'
   const showRateFields = role !== 'client'
@@ -155,6 +156,7 @@ export default function InviteDialog({
     form.reset(defaultValues)
     setSearch('')
     setSelectedMember(null)
+    setShowEmailForm(false)
     onOpenChange(false)
     router.refresh()
   }
@@ -269,11 +271,13 @@ export default function InviteDialog({
             <div className='space-y-2'>
               <Label>
                 Hourly rate
-                {defaultMemberRate && defaultMemberRate > 0 && (
-                  <span className='ml-1 font-normal text-muted-foreground'>
-                    (default: {(defaultMemberRate / 100).toFixed(2)})
-                  </span>
-                )}
+                {defaultMemberRate !== undefined &&
+                  defaultMemberRate !== null &&
+                  defaultMemberRate > 0 && (
+                    <span className='ml-1 font-normal text-muted-foreground'>
+                      (default: {(defaultMemberRate / 100).toFixed(2)})
+                    </span>
+                  )}
               </Label>
               <Input
                 {...field}
@@ -344,7 +348,7 @@ export default function InviteDialog({
           </DialogDescription>
         </DialogHeader>
         <div className='space-y-4'>
-          {showOrgList && !selectedMember ? (
+          {showOrgList && !selectedMember && !showEmailForm ? (
             <>
               <div className='relative'>
                 <Search className='absolute top-2.5 left-3 size-4 text-muted-foreground' />
@@ -432,7 +436,8 @@ export default function InviteDialog({
                     onClick={() => {
                       setSelectedMember(null)
                       form.setValue('email', '')
-                      setSearch('__show_email__')
+                      setSearch('')
+                      setShowEmailForm(true)
                     }}
                     variant='outline'
                   >
@@ -546,6 +551,7 @@ export default function InviteDialog({
                     onClick={() => {
                       setSearch('')
                       form.setValue('email', '')
+                      setShowEmailForm(false)
                     }}
                     type='button'
                     variant='ghost'

@@ -4,6 +4,7 @@ import {
   pgTable,
   text,
   timestamp,
+  unique,
   uniqueIndex,
 } from 'drizzle-orm/pg-core'
 import { members, organizations, teams } from './auth'
@@ -16,24 +17,28 @@ export const projectStatus = pgEnum('project_status', [
   'archived',
 ])
 
-export const projects = pgTable('projects', {
-  id: text('id')
-    .primaryKey()
-    .$defaultFn(() => `prj_${createId()}`),
-  name: text('name').notNull(),
-  description: text('description'),
-  slug: text('slug').notNull().unique(),
-  organizationId: text('organization_id')
-    .references(() => organizations.id, { onDelete: 'cascade' })
-    .notNull(),
-  status: projectStatus().default('planning').notNull(),
-  dueDate: timestamp('due_date'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at')
-    .defaultNow()
-    .$onUpdate(() => new Date())
-    .notNull(),
-})
+export const projects = pgTable(
+  'projects',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => `prj_${createId()}`),
+    name: text('name').notNull(),
+    description: text('description'),
+    slug: text('slug').notNull(),
+    organizationId: text('organization_id')
+      .references(() => organizations.id, { onDelete: 'cascade' })
+      .notNull(),
+    status: projectStatus().default('planning').notNull(),
+    dueDate: timestamp('due_date'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (t) => [unique().on(t.organizationId, t.slug)]
+)
 
 export const projectTeamAssignments = pgTable(
   'project_team_assignments',
