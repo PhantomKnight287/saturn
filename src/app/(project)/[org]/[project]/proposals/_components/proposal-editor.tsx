@@ -116,7 +116,13 @@ export default function ProposalEditor({
   const router = useRouter()
   const editorRef = useRef<EditorRef>(null)
   const backUrl = `/${orgSlug}/${projectSlug}/proposals` as RouteImpl
-  const isEditable = mode === 'create' || (canEdit && !isClientInvolved)
+  const isAdminOrOwner = role === 'admin' || role === 'owner'
+  const isEditable =
+    mode === 'create' ||
+    (mode === 'edit' &&
+      isAdminOrOwner &&
+      proposal?.status !== 'submitted_to_client' &&
+      proposal?.status !== 'client_accepted')
 
   const form = useForm({
     resolver: zodResolver(proposalFormSchema),
