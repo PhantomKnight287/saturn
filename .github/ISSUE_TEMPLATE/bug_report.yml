@@ -1,0 +1,62 @@
+name: Bug report
+description: Something is broken or behaving unexpectedly
+labels: ['bug']
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: One or two sentences describing the bug.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Exact steps so someone else can reproduce this.
+      placeholder: |
+        1. Go to '...'
+        2. Click '...'
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include error messages, stack traces, or screenshots if relevant.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Where did this happen?
+      options:
+        - Local development
+        - Staging
+        - Production
+        - Other (specify below)
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser / OS (if UI bug)
+      placeholder: e.g. Chrome 130 on macOS 15
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Org/project slug, user role, anything else that might help.

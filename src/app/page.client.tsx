@@ -5,7 +5,6 @@ import { ArrowDown, ArrowRight, Check, Minus } from 'lucide-react'
 import Link from 'next/link'
 import { GitHub } from '@/components/icons/github'
 import { SaturnLogo } from '@/components/icons/saturn-logo'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { buttonVariants } from '@/components/ui/button'
 import {
   comparison,
@@ -14,14 +13,13 @@ import {
   howItWorks,
   modules,
   proPlanFeatures,
-  testimonials,
 } from './_landing/data'
 import { LandingNav } from './_landing/landing-nav'
-import { MockAnalytics } from './_landing/mock-analytics'
 import { MockAppUI } from './_landing/mock-app-ui'
 import { MockExpenseCard } from './_landing/mock-expense-card'
 import { MockInvoiceCard } from './_landing/mock-invoice-card'
 import { MockProposalCard } from './_landing/mock-proposal-card'
+import { MockRequirementCard } from './_landing/mock-requirement-card'
 import { MockTimer } from './_landing/mock-timer'
 import { MockTimesheetCard } from './_landing/mock-timesheet-card'
 
@@ -48,7 +46,7 @@ export default function LandingPageClient({
                 from one tab.
               </span>
             </h1>
-            <p className='mt-8 max-w-xl text-lg text-muted-foreground leading-relaxed'>
+            <p className='mt-8 max-w-xl text-muted-foreground text-xl leading-relaxed'>
               Projects, proposals, time, timesheets, expenses, and invoices —
               one login instead of seven subscriptions.
             </p>
@@ -112,7 +110,7 @@ export default function LandingPageClient({
             <div className='font-mono text-[11px] text-muted-foreground uppercase tracking-[0.18em]'>
               / everything inside
             </div>
-            <h2 className='mt-3 font-semibold text-3xl leading-[1.05] tracking-[-0.03em] sm:text-4xl'>
+            <h2 className='mt-3 font-semibold text-4xl leading-[1.02] tracking-[-0.03em] sm:text-5xl'>
               Eight modules.{' '}
               <span className='text-muted-foreground/70'>One workspace.</span>
             </h2>
@@ -123,11 +121,11 @@ export default function LandingPageClient({
                 className='flex flex-col gap-2 border-border/60 border-t pt-5'
                 key={m.name}
               >
-                <m.icon className='size-4 text-primary' strokeWidth={1.75} />
-                <div className='mt-1 font-medium text-foreground text-sm tracking-tight'>
+                <m.icon className='size-5 text-primary' strokeWidth={1.75} />
+                <div className='mt-1 font-medium text-base text-foreground tracking-tight'>
                   {m.name}
                 </div>
-                <p className='text-muted-foreground text-sm leading-relaxed'>
+                <p className='text-base text-muted-foreground leading-relaxed'>
                   {m.blurb}
                 </p>
               </div>
@@ -140,71 +138,76 @@ export default function LandingPageClient({
         className='mx-auto max-w-6xl px-6 pt-24 pb-24 sm:pt-32'
         id='features'
       >
-        <div className='mb-14 flex items-end justify-between gap-6'>
-          <div>
-            <div className='font-mono text-[11px] text-muted-foreground uppercase tracking-[0.18em]'>
-              / a closer look
-            </div>
-            <h2 className='mt-3 max-w-2xl font-semibold text-4xl text-foreground leading-[1.02] tracking-[-0.03em] sm:text-5xl'>
-              A tab each for the work
-              <br />
-              <span className='text-muted-foreground/70'>
-                you used to do in seven.
-              </span>
-            </h2>
+        <div className='mb-20 max-w-3xl'>
+          <div className='font-mono text-[11px] text-muted-foreground uppercase tracking-[0.18em]'>
+            / a closer look
           </div>
+          <h2 className='mt-3 font-semibold text-4xl text-foreground leading-[1.02] tracking-[-0.03em] sm:text-5xl'>
+            A tab each for the work
+            <br />
+            <span className='text-muted-foreground/70 italic'>
+              you used to do in seven.
+            </span>
+          </h2>
         </div>
 
-        <div className='grid grid-cols-1 gap-3 md:grid-cols-6'>
-          <BentoCard
-            className='md:col-span-4 md:row-span-2'
-            description='Draft proposals inside Saturn, send them to clients, and collect signatures without a separate DocuSign tab.'
-            title='Write it. Send it. Get it signed.'
+        <div className='flex flex-col'>
+          <FeatureRow
+            description='Draft proposals inside Saturn, send them to clients, and collect signatures without a separate DocuSign tab. Status updates land in the project, not your inbox.'
+            label='01 — Proposals'
+            title='Write it. Send it.'
+            titleAccent='Get it signed.'
           >
-            <div className='relative mt-6 h-[250px] overflow-hidden rounded-lg border border-border/60 bg-card/60 p-6'>
-              <MockProposalCard />
-            </div>
-          </BentoCard>
+            <MockProposalCard />
+          </FeatureRow>
 
-          <BentoCard
-            className='md:col-span-2'
-            description='Time tracked inside the platform, auto-attached to the right project.'
+          <FeatureRow
+            description='Time tracked inside the platform, auto-attached to the right project. No separate Toggl tab to forget about.'
+            label='02 — Time tracking'
+            reverse
             title='Press record.'
+            titleAccent='Stop when done.'
           >
             <MockTimer />
-          </BentoCard>
+          </FeatureRow>
 
-          <BentoCard
-            className='md:col-span-2'
-            description='Revenue, hours, and overdue invoices the moment you log in.'
-            title='Know the month at a glance.'
+          <FeatureRow
+            description='Lock scope with clients. Capture feedback inline, track change requests, and keep the brief in one place — not buried in email threads.'
+            label='03 — Requirements'
+            title='Scope locked.'
+            titleAccent='Changes tracked.'
           >
-            <MockAnalytics />
-          </BentoCard>
+            <MockRequirementCard />
+          </FeatureRow>
 
-          <BentoCard
-            className='md:col-span-2'
-            description='Log weekly or let the timer do it. Export reports when clients ask.'
-            title='Hours that become invoice lines.'
+          <FeatureRow
+            description='Log weekly or let the timer do it. Export reports when clients ask. Hours flow into invoices in one click.'
+            label='04 — Timesheets'
+            reverse
+            title='Hours that become'
+            titleAccent='invoice lines.'
           >
             <MockTimesheetCard />
-          </BentoCard>
+          </FeatureRow>
 
-          <BentoCard
-            className='md:col-span-2'
-            description='Log what you spent, tag it billable, and attach it to the next invoice.'
-            title='Expenses that bill themselves.'
+          <FeatureRow
+            description='Log what you spent, tag it billable, and attach it to the next invoice. Receipts, software, lunches — all in one place.'
+            label='05 — Expenses'
+            title='Expenses that'
+            titleAccent='bill themselves.'
           >
             <MockExpenseCard />
-          </BentoCard>
+          </FeatureRow>
 
-          <BentoCard
-            className='md:col-span-2'
-            description='Lines pull from timesheets and expenses. Export PDF. Track paid status.'
-            title='One click from hours to paid.'
+          <FeatureRow
+            description='Lines pull from timesheets and expenses. Export PDF. Track paid status. The last step that finally feels like the first.'
+            label='06 — Invoices'
+            reverse
+            title='One click from'
+            titleAccent='hours to paid.'
           >
             <MockInvoiceCard />
-          </BentoCard>
+          </FeatureRow>
         </div>
       </section>
 
@@ -221,7 +224,7 @@ export default function LandingPageClient({
                   Toggle clients off.
                 </span>
               </h2>
-              <p className='mt-6 text-lg text-muted-foreground leading-relaxed'>
+              <p className='mt-6 text-muted-foreground text-xl leading-relaxed'>
                 Saturn works just as well for personal projects as it does for
                 client work. Decide per workspace which modules involve clients
                 — or turn them off entirely and keep the projects, time
@@ -246,7 +249,7 @@ export default function LandingPageClient({
                     className='flex items-center justify-between py-3'
                     key={label as string}
                   >
-                    <span className='font-medium text-foreground text-sm'>
+                    <span className='font-medium text-base text-foreground'>
                       {label}
                     </span>
                     <span
@@ -282,18 +285,37 @@ export default function LandingPageClient({
           <div className='grid grid-cols-1 gap-3 md:grid-cols-3'>
             {howItWorks.map((s) => (
               <div
-                className='flex flex-col rounded-2xl border border-border/60 bg-card p-7'
+                className='flex flex-col rounded-2xl border border-border/60 bg-card p-6'
                 key={s.step}
               >
-                <div className='font-mono text-[11px] text-muted-foreground uppercase tracking-[0.18em]'>
-                  {s.step}
+                <div className='flex items-center gap-3'>
+                  <div className='flex size-9 items-center justify-center rounded-full border border-border/60 bg-background'>
+                    <s.icon
+                      className='size-4 text-primary'
+                      strokeWidth={1.75}
+                    />
+                  </div>
+                  <span className='font-mono text-[11px] text-muted-foreground uppercase tracking-[0.18em]'>
+                    Step {s.step}
+                  </span>
                 </div>
-                <h3 className='mt-6 font-medium text-foreground text-xl tracking-[-0.02em]'>
+                <h3 className='mt-5 font-semibold text-2xl text-foreground tracking-[-0.02em]'>
                   {s.title}
                 </h3>
-                <p className='mt-2 text-muted-foreground text-sm leading-relaxed'>
+                <p className='mt-2 text-base text-muted-foreground leading-relaxed'>
                   {s.body}
                 </p>
+                <ul className='mt-5 space-y-2'>
+                  {s.highlights.map((h) => (
+                    <li
+                      className='flex items-center gap-2 text-foreground/80 text-sm'
+                      key={h}
+                    >
+                      <Check className='size-3.5 shrink-0 text-primary' />
+                      {h}
+                    </li>
+                  ))}
+                </ul>
               </div>
             ))}
           </div>
@@ -326,7 +348,7 @@ export default function LandingPageClient({
           </div>
           {comparison.map((row, i) => (
             <div
-              className={`grid grid-cols-[1.2fr_1fr_1fr] items-center px-5 py-4 text-sm ${
+              className={`grid grid-cols-[1.2fr_1fr_1fr] items-center px-5 py-4 text-base ${
                 i === comparison.length - 1 ? '' : 'border-border/60 border-b'
               }`}
               key={row.need}
@@ -334,55 +356,11 @@ export default function LandingPageClient({
               <span className='font-medium text-foreground'>{row.need}</span>
               <span className='text-muted-foreground'>{row.stack}</span>
               <span className='flex items-center gap-1.5 text-foreground'>
-                <Check className='size-3.5 text-primary' />
+                <Check className='size-4 text-primary' />
                 {row.saturn}
               </span>
             </div>
           ))}
-        </div>
-      </section>
-
-      <section className='border-border/60 border-t'>
-        <div className='mx-auto max-w-6xl px-6 py-24 sm:py-28'>
-          <div className='mb-14 max-w-2xl'>
-            <div className='font-mono text-[11px] text-muted-foreground uppercase tracking-[0.18em]'>
-              / loved by operators
-            </div>
-            <h2 className='mt-3 font-semibold text-4xl leading-[1.02] tracking-[-0.03em] sm:text-5xl'>
-              Used by people who{' '}
-              <span className='text-muted-foreground/70 italic'>
-                bill their own hours.
-              </span>
-            </h2>
-          </div>
-          <div className='grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3'>
-            {testimonials.map((t) => (
-              <figure
-                className='flex h-full flex-col rounded-2xl border border-border/60 bg-card p-7'
-                key={t.name}
-              >
-                <blockquote className='flex-1 text-foreground/90 text-sm leading-relaxed'>
-                  “{t.quote}”
-                </blockquote>
-                <figcaption className='mt-6 flex items-center gap-3 border-border/60 border-t pt-5'>
-                  <Avatar className='size-9'>
-                    <AvatarImage alt={t.name} src={t.avatar} />
-                    <AvatarFallback className='bg-primary/10 font-mono text-[11px] text-primary tracking-wider'>
-                      {t.initials}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className='flex flex-col'>
-                    <span className='font-medium text-foreground text-sm tracking-tight'>
-                      {t.name}
-                    </span>
-                    <span className='text-muted-foreground text-xs'>
-                      {t.role}
-                    </span>
-                  </div>
-                </figcaption>
-              </figure>
-            ))}
-          </div>
         </div>
       </section>
 
@@ -398,7 +376,7 @@ export default function LandingPageClient({
             <h2 className='mt-3 font-semibold text-4xl leading-[1.02] tracking-[-0.03em] sm:text-5xl'>
               Three dollars, no seats.
             </h2>
-            <p className='mt-4 text-lg text-muted-foreground'>
+            <p className='mt-4 text-muted-foreground text-xl'>
               Every feature works on Free. Pro removes the limits.
             </p>
           </div>
@@ -441,33 +419,17 @@ export default function LandingPageClient({
         <div className='divide-y divide-border/60 border-border/60 border-y'>
           {faq.map((item) => (
             <details className='group py-5' key={item.q}>
-              <summary className='flex cursor-pointer items-center justify-between gap-6 font-medium text-base text-foreground tracking-tight'>
+              <summary className='flex cursor-pointer items-center justify-between gap-6 font-medium text-foreground text-lg tracking-tight'>
                 {item.q}
-                <span className='font-mono text-muted-foreground text-xs transition-transform group-open:rotate-45'>
+                <span className='font-mono text-muted-foreground text-sm transition-transform group-open:rotate-45'>
                   +
                 </span>
               </summary>
-              <p className='mt-3 text-muted-foreground text-sm leading-relaxed'>
+              <p className='mt-3 text-base text-muted-foreground leading-relaxed'>
                 {item.a}
               </p>
             </details>
           ))}
-        </div>
-      </section>
-
-      <section className='mx-auto max-w-3xl px-6 py-28 text-center sm:py-36'>
-        <h2 className='font-semibold text-4xl leading-[1.02] tracking-[-0.04em] sm:text-6xl'>
-          Two minutes to
-          <br />
-          <span className='text-muted-foreground/80 italic'>
-            your first project.
-          </span>
-        </h2>
-        <div className='mt-10 flex items-center justify-center gap-3'>
-          <Link className={buttonVariants({ size: 'lg' })} href='/auth/sign-up'>
-            Start for free
-            <ArrowRight className='size-4' />
-          </Link>
         </div>
       </section>
 
@@ -515,28 +477,44 @@ export default function LandingPageClient({
   )
 }
 
-function BentoCard({
-  className,
+function FeatureRow({
+  label,
   title,
+  titleAccent,
   description,
+  reverse = false,
   children,
 }: {
-  className?: string
+  label: string
   title: string
+  titleAccent: string
   description: string
+  reverse?: boolean
   children: React.ReactNode
 }) {
   return (
-    <div
-      className={`group relative flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-card p-7 transition-colors hover:border-border ${className ?? ''}`}
-    >
-      <h3 className='font-medium text-foreground text-xl tracking-[-0.02em]'>
-        {title}
-      </h3>
-      <p className='mt-2 max-w-md text-muted-foreground text-sm leading-relaxed'>
-        {description}
-      </p>
-      <div className='mt-6 flex-1'>{children}</div>
+    <div className='grid grid-cols-1 items-center gap-10 border-border/60 border-t py-16 first:border-t-0 first:pt-0 sm:py-20 lg:grid-cols-2 lg:gap-16'>
+      <div className={reverse ? 'lg:order-2' : ''}>
+        <div className='font-mono text-[11px] text-muted-foreground uppercase tracking-[0.18em]'>
+          / {label}
+        </div>
+        <h3 className='mt-4 font-semibold text-3xl text-foreground leading-[1.05] tracking-[-0.03em] sm:text-4xl'>
+          {title}{' '}
+          <span className='text-muted-foreground/70 italic'>{titleAccent}</span>
+        </h3>
+        <p className='mt-5 text-base text-muted-foreground leading-relaxed sm:text-lg'>
+          {description}
+        </p>
+      </div>
+      <div className={reverse ? 'lg:order-1' : ''}>
+        <div className='relative overflow-hidden rounded-2xl border border-border/60 bg-card p-7 sm:p-8'>
+          <div
+            aria-hidden
+            className='pointer-events-none absolute inset-x-0 top-0 -z-10 h-32 bg-primary/5 blur-3xl'
+          />
+          {children}
+        </div>
+      </div>
     </div>
   )
 }
@@ -563,7 +541,7 @@ function PricingCard({
   return (
     <div className='flex flex-col rounded-2xl border border-border/60 bg-card p-7'>
       <div className='flex items-center gap-2'>
-        <span className='font-medium text-base tracking-tight'>{name}</span>
+        <span className='font-medium text-lg tracking-tight'>{name}</span>
         {badge && (
           <span className='rounded-full bg-primary/10 px-2 py-0.5 font-mono text-[10px] text-primary uppercase tracking-wider'>
             {badge}
@@ -574,16 +552,16 @@ function PricingCard({
         <span className='font-semibold text-5xl tracking-[-0.04em]'>
           {price}
         </span>
-        <span className='text-muted-foreground text-sm'>{suffix}</span>
+        <span className='text-base text-muted-foreground'>{suffix}</span>
       </div>
-      <p className='mt-3 text-muted-foreground text-sm'>{description}</p>
+      <p className='mt-3 text-base text-muted-foreground'>{description}</p>
       <div className='mt-6 space-y-2.5 border-border/60 border-t pt-6'>
         {features.map((f) => (
           <div
-            className='flex items-center gap-2.5 text-foreground/80 text-sm'
+            className='flex items-center gap-2.5 text-base text-foreground/80'
             key={f}
           >
-            <Check className='size-3.5 shrink-0 text-primary' />
+            <Check className='size-4 shrink-0 text-primary' />
             {f}
           </div>
         ))}

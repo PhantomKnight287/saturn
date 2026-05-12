@@ -8,7 +8,7 @@ export function MockTimesheetCard() {
   ]
   const max = 8.25
   return (
-    <div className='flex h-full flex-col justify-end'>
+    <div className='flex h-full flex-col justify-center'>
       <div className='font-mono text-[11px] text-muted-foreground uppercase tracking-wider'>
         Apr 14 – 18
       </div>
