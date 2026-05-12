@@ -4,7 +4,10 @@ import {
   FileText,
   FolderKanban,
   type LucideIcon,
+  PlayCircle,
   Receipt,
+  Send,
+  Sparkles,
   Timer,
   Users,
 } from 'lucide-react'
@@ -70,21 +73,33 @@ export const modules: {
   },
 ]
 
-export const howItWorks = [
+export const howItWorks: {
+  step: string
+  title: string
+  body: string
+  icon: LucideIcon
+  highlights: string[]
+}[] = [
   {
     step: '01',
     title: 'Spin up a project',
     body: 'Add the scope and team — and a client, if there is one. Takes under a minute.',
+    icon: Sparkles,
+    highlights: ['Scope & team', 'Optional client', 'Toggle modules'],
   },
   {
     step: '02',
     title: 'Do the work',
-    body: 'Track time, log expenses, and send proposals as you go. Everything sticks to the project.',
+    body: 'Track time, log expenses, and send proposals as you go.',
+    icon: PlayCircle,
+    highlights: ['Timer & timesheets', 'Expenses', 'Proposals & signatures'],
   },
   {
     step: '03',
     title: 'Invoice or just track it',
-    body: 'Roll hours and expenses into an invoice in one click — or just keep the log for yourself.',
+    body: 'Roll hours and expenses into an invoice in one click — or keep the log for yourself.',
+    icon: Send,
+    highlights: ['One-click invoice', 'Export PDF', 'Track paid status'],
   },
 ]
 
@@ -123,32 +138,6 @@ export const comparison = [
     need: 'Monthly cost',
     stack: '$40–80+',
     saturn: '$0–3',
-  },
-]
-
-export const testimonials: {
-  quote: string
-  name: string
-  role: string
-  initials: string
-  avatar: string
-}[] = [
-  {
-    quote: 'Nice.',
-    name: 'gravityexploitz',
-    role: 'Developer',
-    initials: 'GE',
-    avatar:
-      'https://cdn.discordapp.com/avatars/173557815326015488/7c39c3cfa6ffa22c1d171564ee573558.png',
-  },
-  {
-    quote:
-      "Genuinely the cleanest workflow tool I've used in years. Replaced three of my subscriptions in a weekend.",
-    name: 'Lumpus',
-    role: 'Developer',
-    initials: 'LM',
-    avatar:
-      'https://cdn.discordapp.com/avatars/607399373638205450/71f02af1f6f099f30ac8a52fa1dcfdf2.png',
   },
 ]
 

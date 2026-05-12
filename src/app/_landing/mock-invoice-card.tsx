@@ -5,7 +5,7 @@ export function MockInvoiceCard() {
     { label: 'Hosting', amount: '120' },
   ]
   return (
-    <div className='flex h-full flex-col justify-end'>
+    <div className='flex h-full flex-col justify-center'>
       <div className='flex items-baseline justify-between'>
         <div>
           <div className='font-mono text-[11px] text-muted-foreground uppercase tracking-wider'>
