@@ -1,6 +1,7 @@
 import { ImageResponse } from 'next/og'
 import type { NextRequest } from 'next/server'
 import { SaturnLogoLight } from '@/components/icons/saturn-logo'
+import { baseUrl } from '@/lib/metadata'
 
 export const runtime = 'edge'
 
@@ -17,13 +18,26 @@ const subtitles: Record<string, string> = {
   Settings: 'Configure your project and organization',
   Overview: 'Your project at a glance',
   Projects: 'Manage projects, requirements, and invoices',
+  Proposals: 'Draft, send, and get proposals signed',
+  Time: 'Track time against the right project',
 }
 
-async function loadGeistFont() {
+const moduleRail = [
+  'Projects',
+  'Clients',
+  'Proposals',
+  'Requirements',
+  'Timesheets',
+  'Expenses',
+  'Invoices',
+  'Milestones',
+]
+
+async function loadFonts() {
   const [bold, regular] = await Promise.all([
     fetch(
       new URL(
-        'https://cdn.jsdelivr.net/fontsource/fonts/geist-sans@latest/latin-700-normal.woff'
+        'https://cdn.jsdelivr.net/fontsource/fonts/geist-sans@latest/latin-600-normal.woff'
       )
     ).then((r) => r.arrayBuffer()),
     fetch(
@@ -36,118 +50,270 @@ async function loadGeistFont() {
 }
 
 export async function GET(request: NextRequest) {
-  const page = request.nextUrl.searchParams.get('page') || 'Saturn'
+  const page = request.nextUrl.searchParams.get('page')
   const subtitleParam = request.nextUrl.searchParams.get('subtitle')
-  const subtitle =
-    subtitleParam ?? subtitles[page] ?? 'Run your projects from one tab'
 
-  const { bold, regular } = await loadGeistFont()
+  const isMarketing = !page || page === 'Saturn'
+  const headlineLead = isMarketing ? 'Run your projects' : (page ?? 'Saturn')
+  const headlineAccent = isMarketing ? 'from one tab.' : null
+  const subtitle =
+    subtitleParam ??
+    (isMarketing
+      ? 'Projects, proposals, time, timesheets, expenses, and invoices — one login instead of seven subscriptions.'
+      : (page && subtitles[page]) || 'Run your projects from one tab.')
+
+  const eyebrow = isMarketing
+    ? 'For freelancers, agencies & solo builders'
+    : `/ ${page}`
+
+  const activeIndex = page
+    ? moduleRail.findIndex((m) => m.toLowerCase() === page.toLowerCase())
+    : -1
+  const domain = baseUrl.host
+
+  const { bold, regular } = await loadFonts()
 
   return new ImageResponse(
     <div
-      style={{
-        background:
-          'linear-gradient(145deg, #0a0a0f 0%, #0d0b1a 40%, #120e24 100%)',
-        overflow: 'hidden',
-      }}
+      style={{ background: '#0A0A0A', fontFamily: 'Geist' }}
       tw='flex w-full h-full relative'
     >
+      {/* grid */}
       <div
         style={{
-          right: -40,
+          inset: 0,
+          backgroundImage:
+            'linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)',
+          backgroundSize: '72px 72px',
+        }}
+        tw='absolute flex'
+      />
+
+      {/* purple glow — anchored to the seam between the two columns */}
+      <div
+        style={{
+          left: '52%',
           top: '50%',
-          transform: 'translateY(-50%)',
-          opacity: 0.04,
-        }}
-        tw='absolute flex'
-      >
-        <SaturnLogoLight height={580} />
-      </div>
-
-      <div
-        style={{
-          width: 900,
-          height: 900,
-          borderRadius: '50%',
-          border: '1px solid rgba(124,58,237,0.08)',
-          right: -300,
-          top: -140,
-        }}
-        tw='absolute flex'
-      />
-      <div
-        style={{
-          width: 700,
-          height: 700,
-          borderRadius: '50%',
-          border: '1px solid rgba(124,58,237,0.05)',
-          right: -200,
-          top: -40,
-        }}
-        tw='absolute flex'
-      />
-
-      <div
-        style={{
-          width: 500,
-          height: 500,
+          transform: 'translate(-50%, -50%)',
+          width: 760,
+          height: 760,
           borderRadius: '50%',
           background:
-            'radial-gradient(circle, rgba(124,58,237,0.18) 0%, rgba(124,58,237,0.05) 40%, transparent 70%)',
-          top: -100,
-          right: 50,
+            'radial-gradient(circle, rgba(124,58,237,0.32) 0%, rgba(124,58,237,0.08) 40%, transparent 70%)',
+          filter: 'blur(20px)',
         }}
         tw='absolute flex'
       />
 
+      {/* hairlines */}
       <div
         style={{
           left: 0,
+          right: 0,
           top: 0,
-          bottom: 0,
-          width: 5,
+          height: 1,
           background:
-            'linear-gradient(to bottom, transparent, #7c3aed, #a78bfa, #7c3aed, transparent)',
+            'linear-gradient(to right, transparent, rgba(255,255,255,0.14), transparent)',
+        }}
+        tw='absolute flex'
+      />
+      <div
+        style={{
+          left: 0,
+          right: 0,
+          bottom: 0,
+          height: 1,
+          background:
+            'linear-gradient(to right, transparent, rgba(255,255,255,0.14), transparent)',
         }}
         tw='absolute flex'
       />
 
+      {/* header rail */}
       <div
-        style={{ padding: '60px 72px' }}
-        tw='flex flex-col justify-between h-full w-full relative'
+        style={{
+          left: 64,
+          right: 64,
+          top: 44,
+        }}
+        tw='absolute flex items-center justify-between'
       >
-        <div style={{ gap: '14px' }} tw='flex items-center'>
-          <SaturnLogoLight height={38} />
+        <div style={{ gap: 12 }} tw='flex items-center'>
+          <SaturnLogoLight height={26} />
           <span
-            style={{ letterSpacing: '-0.5px' }}
-            tw='text-[28px] font-bold text-white'
+            style={{ letterSpacing: '-0.4px' }}
+            tw='text-[20px] font-semibold text-white'
           >
             Saturn
           </span>
         </div>
+        <div
+          style={{
+            letterSpacing: '2.4px',
+            color: 'rgba(255,255,255,0.4)',
+          }}
+          tw='flex text-[12px] uppercase'
+        >
+          {domain}
+        </div>
+      </div>
 
-        <div style={{ gap: '20px', maxWidth: 800 }} tw='flex flex-col'>
-          <h1
-            style={{ lineHeight: 1, letterSpacing: '-3px' }}
-            tw='text-[80px] font-bold text-white m-0'
-          >
-            {page}
-          </h1>
-          <p
-            style={{ letterSpacing: '-0.3px' }}
-            tw='text-[24px] text-white/40 m-0'
-          >
-            {subtitle}
-          </p>
+      {/* left: text column */}
+      <div
+        style={{ padding: '0 64px', width: 720, gap: 28 }}
+        tw='flex flex-col justify-center h-full relative'
+      >
+        <div
+          style={{
+            letterSpacing: '2.6px',
+            color: 'rgba(255,255,255,0.5)',
+          }}
+          tw='flex items-center text-[13px] uppercase'
+        >
+          <span
+            style={{
+              width: 28,
+              height: 1,
+              background: 'rgba(255,255,255,0.3)',
+              marginRight: 14,
+            }}
+            tw='flex'
+          />
+          {eyebrow}
         </div>
 
-        <div tw='flex items-center justify-between w-full'>
-          <span
-            style={{ letterSpacing: '3px', textTransform: 'uppercase' }}
-            tw='text-[14px] text-white/20'
-          >
-            saturn.procrastinator.fyi
-          </span>
+        <div
+          style={{
+            lineHeight: 0.96,
+            letterSpacing: '-3.4px',
+          }}
+          tw='flex flex-col text-[80px] font-semibold text-white'
+        >
+          <span>{headlineLead}</span>
+          {headlineAccent && (
+            <span
+              style={{
+                color: 'rgba(255,255,255,0.42)',
+                fontStyle: 'italic',
+              }}
+            >
+              {headlineAccent}
+            </span>
+          )}
+        </div>
+
+        <p
+          style={{
+            letterSpacing: '-0.3px',
+            color: 'rgba(255,255,255,0.55)',
+            margin: 0,
+            lineHeight: 1.4,
+            maxWidth: 560,
+          }}
+          tw='text-[21px]'
+        >
+          {subtitle}
+        </p>
+      </div>
+
+      {/* right: oversized module rail */}
+      <div
+        style={{
+          right: 0,
+          top: 0,
+          bottom: 0,
+          width: 420,
+          paddingRight: 64,
+          paddingTop: 110,
+          paddingBottom: 90,
+          borderLeft: '1px solid rgba(255,255,255,0.06)',
+          gap: 6,
+        }}
+        tw='absolute flex flex-col justify-center items-end'
+      >
+        <div
+          style={{
+            letterSpacing: '2.4px',
+            color: 'rgba(255,255,255,0.35)',
+            marginBottom: 14,
+          }}
+          tw='flex text-[11px] uppercase'
+        >
+          / one workspace
+        </div>
+        {moduleRail.map((m, i) => {
+          const active = i === activeIndex
+          const distance = activeIndex >= 0 ? Math.abs(i - activeIndex) : 0
+          return (
+            <div
+              key={m}
+              style={{
+                gap: 14,
+                color: active
+                  ? 'rgba(255,255,255,0.95)'
+                  : 'rgba(255,255,255,1)',
+                opacity:
+                  activeIndex < 0
+                    ? 0.32
+                    : active
+                      ? 1
+                      : Math.max(0.18, 0.4 - distance * 0.05),
+                letterSpacing: '-1.4px',
+                lineHeight: 1.05,
+              }}
+              tw='flex items-center text-[40px] font-semibold'
+            >
+              {active && (
+                <span
+                  style={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: 999,
+                    background: 'rgba(167,139,250,1)',
+                    boxShadow: '0 0 18px rgba(167,139,250,0.8)',
+                  }}
+                  tw='flex'
+                />
+              )}
+              <span style={active ? { fontStyle: 'italic' } : undefined}>
+                {m}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* fade behind module rail to blend into glow */}
+      <div
+        style={{
+          right: 0,
+          top: 0,
+          bottom: 0,
+          width: 420,
+          background:
+            'linear-gradient(to right, transparent, rgba(10,10,10,0.55))',
+          pointerEvents: 'none',
+        }}
+        tw='absolute flex'
+      />
+
+      {/* footer eyebrow */}
+      <div
+        style={{
+          left: 64,
+          right: 64,
+          bottom: 44,
+        }}
+        tw='absolute flex items-center'
+      >
+        <div
+          style={{
+            letterSpacing: '2.4px',
+            color: 'rgba(255,255,255,0.4)',
+          }}
+          tw='flex text-[12px] uppercase'
+        >
+          {isMarketing ? 'Projects · Time · Invoices · Done.' : `/ ${page}`}
         </div>
       </div>
     </div>,
@@ -158,7 +324,7 @@ export async function GET(request: NextRequest) {
           name: 'Geist',
           data: bold,
           style: 'normal' as const,
-          weight: 700 as const,
+          weight: 600 as const,
         },
         {
           name: 'Geist',
