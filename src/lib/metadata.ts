@@ -6,9 +6,9 @@ export function createMetadata(override: Metadata): Metadata {
   return {
     ...override,
     icons: {
-      icon: '/wordmark/logo_for_mark.png',
-      shortcut: '/wordmark/logo_for_mark.png',
-      apple: '/wordmark/logo_for_mark.png',
+      icon: '/icon.svg',
+      shortcut: '/icon.svg',
+      apple: '/icon.svg',
     },
     openGraph: {
       title: override.title ?? undefined,
