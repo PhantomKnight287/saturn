@@ -433,42 +433,146 @@ export default function LandingPageClient({
         </div>
       </section>
 
-      <footer className='border-border/60 border-t'>
-        <div className='mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-6'>
-          <div className='flex items-center gap-2'>
-            <SaturnLogo className='size-4 text-muted-foreground' />
-            <span className='text-muted-foreground text-sm'>Saturn</span>
+      <footer className='border-border/60 border-t bg-secondary/10'>
+        <div className='mx-auto max-w-6xl px-6 py-16 sm:py-20'>
+          <div className='grid grid-cols-1 gap-12 lg:grid-cols-[1.4fr_1fr_1fr_1fr]'>
+            <div className='max-w-sm'>
+              <div className='flex items-center gap-2.5'>
+                <SaturnLogo className='size-6 text-foreground' />
+                <span className='font-semibold text-foreground text-xl tracking-tight'>
+                  Saturn
+                </span>
+              </div>
+              <p className='mt-5 text-base text-muted-foreground leading-relaxed'>
+                Projects, proposals, time, timesheets, expenses, and invoices —
+                one login instead of seven subscriptions.
+              </p>
+              <Link
+                className={`${buttonVariants({ size: 'sm' })} mt-6`}
+                href='/auth/sign-up'
+              >
+                Start for free
+                <ArrowRight className='size-3.5' />
+              </Link>
+            </div>
+
+            <div>
+              <div className='font-mono text-[11px] text-muted-foreground uppercase tracking-[0.18em]'>
+                / Product
+              </div>
+              <ul className='mt-5 space-y-3'>
+                <li>
+                  <Link
+                    className='text-base text-foreground/80 transition-colors hover:text-foreground'
+                    href='#features'
+                  >
+                    Features
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    className='text-base text-foreground/80 transition-colors hover:text-foreground'
+                    href='#pricing'
+                  >
+                    Pricing
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    className='text-base text-foreground/80 transition-colors hover:text-foreground'
+                    href='#faq'
+                  >
+                    FAQ
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    className='text-base text-foreground/80 transition-colors hover:text-foreground'
+                    href='/changelogs'
+                  >
+                    Changelogs
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <div className='font-mono text-[11px] text-muted-foreground uppercase tracking-[0.18em]'>
+                / Legal
+              </div>
+              <ul className='mt-5 space-y-3'>
+                <li>
+                  <Link
+                    className='text-base text-foreground/80 transition-colors hover:text-foreground'
+                    href='/terms'
+                  >
+                    Terms
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    className='text-base text-foreground/80 transition-colors hover:text-foreground'
+                    href='/privacy'
+                  >
+                    Privacy
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <div className='font-mono text-[11px] text-muted-foreground uppercase tracking-[0.18em]'>
+                / Social
+              </div>
+              <ul className='mt-5 space-y-3'>
+                <li>
+                  <a
+                    className='inline-flex items-center gap-2 text-base text-foreground/80 transition-colors hover:text-foreground'
+                    href='https://github.com/phantomknight287/saturn'
+                    rel='noreferrer noopener'
+                    target='_blank'
+                  >
+                    <GitHub className='size-4' />
+                    GitHub
+                  </a>
+                </li>
+                <li>
+                  <a
+                    className='inline-flex items-center gap-2 text-base text-foreground/80 transition-colors hover:text-foreground'
+                    href='https://twitter.com/gurpalsingh287'
+                    rel='noreferrer noopener'
+                    target='_blank'
+                  >
+                    <svg
+                      aria-hidden
+                      className='size-3.5'
+                      fill='currentColor'
+                      viewBox='0 0 1200 1227'
+                      xmlns='http://www.w3.org/2000/svg'
+                    >
+                      <path d='M714.163 519.284 1160.89 0h-105.86L667.137 450.887 357.328 0H0l468.492 681.821L0 1226.37h105.866l409.625-476.152 327.181 476.152H1200L714.137 519.284h.026ZM569.165 687.828l-47.468-67.894-377.686-540.24h162.604l304.797 435.991 47.468 67.894 396.2 566.721H892.476L569.165 687.854v-.026Z' />
+                    </svg>
+                    @gurpalsingh287
+                  </a>
+                </li>
+              </ul>
+            </div>
           </div>
-          <div className='flex items-center gap-5'>
-            <Link
-              className='text-muted-foreground text-sm transition-colors hover:text-foreground'
-              href='/changelogs'
-            >
-              Changelogs
-            </Link>
-            <Link
-              className='text-muted-foreground text-sm transition-colors hover:text-foreground'
-              href='/terms'
-            >
-              Terms
-            </Link>
-            <Link
-              className='text-muted-foreground text-sm transition-colors hover:text-foreground'
-              href='/privacy'
-            >
-              Privacy
-            </Link>
-            <a
-              className='inline-flex items-center gap-1.5 text-muted-foreground text-sm transition-colors hover:text-foreground'
-              href='https://github.com/phantomknight287/saturn'
-              rel='noreferrer noopener'
-              target='_blank'
-            >
-              <GitHub className='size-3.5' />
-              GitHub
-            </a>
+
+          <div className='mt-14 flex flex-col items-start justify-between gap-4 border-border/60 border-t pt-8 sm:flex-row sm:items-center'>
             <p className='font-mono text-[11px] text-muted-foreground uppercase tracking-[0.18em]'>
-              &copy; {new Date().getFullYear()}
+              &copy; {new Date().getFullYear()} Saturn. All rights reserved.
+            </p>
+            <p className='font-mono text-[11px] text-muted-foreground uppercase tracking-[0.18em]'>
+              Made by{' '}
+              <a
+                className='text-foreground transition-colors hover:text-primary'
+                href='https://twitter.com/gurpalsingh287'
+                rel='noreferrer noopener'
+                target='_blank'
+              >
+                Gurpal Singh
+              </a>
             </p>
           </div>
         </div>
