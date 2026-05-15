@@ -3,11 +3,18 @@
 import type { Metadata } from 'next'
 import { getGithubStars } from '@/cache/github'
 import { createMetadata } from '@/lib/metadata'
+import { LandingStructuredData } from './_landing/structured-data'
 import LandingPageClient from './page.client'
 
 export const metadata: Metadata = createMetadata({
+  title: {
+    absolute: 'Saturn: The All-in-One Operating System for Freelancers and Agencies',
+  },
   description:
-    'Saturn brings projects, timesheets, invoices, and client management into one place — the operating system for your freelance business.',
+    'Manage your freelance business effortlessly with Saturn. Projects, timesheets, invoices, and client management all in one place. Start your free trial today!',
+  alternates: {
+    canonical: '/',
+  },
   openGraph: {
     images: ['/api/og?page=Saturn'],
   },
@@ -18,5 +25,10 @@ export const metadata: Metadata = createMetadata({
 
 export default async function LandingPage() {
   const githubStars = await getGithubStars('phantomknight287/saturn')
-  return <LandingPageClient githubStars={githubStars} />
+  return (
+    <>
+      <LandingStructuredData />
+      <LandingPageClient githubStars={githubStars} />
+    </>
+  )
 }

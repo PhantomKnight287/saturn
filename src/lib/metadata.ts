@@ -5,6 +5,17 @@ import { APP_DEFAULT_TITLE } from './constants'
 export function createMetadata(override: Metadata): Metadata {
   return {
     ...override,
+    alternates: {
+      canonical: '/',
+      ...override.alternates,
+    },
+    robots: {
+      index: true,
+      follow: true,
+      ...(typeof override.robots === 'object' && override.robots !== null
+        ? override.robots
+        : {}),
+    },
     icons: {
       icon: '/icon.svg',
       shortcut: '/icon.svg',
