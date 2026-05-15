@@ -8,7 +8,8 @@ import LandingPageClient from './page.client'
 
 export const metadata: Metadata = createMetadata({
   title: {
-    absolute: 'Saturn: The All-in-One Operating System for Freelancers and Agencies',
+    absolute:
+      'Saturn: The All-in-One Operating System for Freelancers and Agencies',
   },
   description:
     'Manage your freelance business effortlessly with Saturn. Projects, timesheets, invoices, and client management all in one place. Start your free trial today!',
