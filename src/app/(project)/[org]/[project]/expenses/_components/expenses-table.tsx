@@ -1,7 +1,14 @@
 'use client'
 
 import { useRouter } from '@bprogress/next/app'
-import { DollarSign, Filter, Paperclip, Pencil, Receipt, Trash2 } from 'lucide-react'
+import {
+  DollarSign,
+  Filter,
+  Paperclip,
+  Pencil,
+  Receipt,
+  Trash2,
+} from 'lucide-react'
 import { useAction } from 'next-safe-action/hooks'
 import { useState } from 'react'
 import { toast } from 'sonner'
