@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from '@bprogress/next/app'
-import { CheckCircle2, Receipt, XCircle } from 'lucide-react'
+import { CheckCircle2, Paperclip, Receipt, XCircle } from 'lucide-react'
 import { useAction } from 'next-safe-action/hooks'
 import { useId, useState } from 'react'
 import { toast } from 'sonner'
@@ -186,6 +186,7 @@ export function ClientExpensesView({
                     <TableHead>Category</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead className='text-right'>Amount</TableHead>
+                    <TableHead className='w-10' />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -251,6 +252,19 @@ export function ClientExpensesView({
                       <TableCell className='text-right font-medium text-sm'>
                         {formatCurrency(expense.amountCents, expense.currency)}
                       </TableCell>
+                      <TableCell>
+                        {expense.receiptMediaId && (
+                          <a
+                            className='inline-flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground'
+                            href={`/api/files/${expense.receiptMediaId}`}
+                            rel='noopener noreferrer'
+                            target='_blank'
+                            title='View receipt'
+                          >
+                            <Paperclip className='size-3.5' />
+                          </a>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -272,6 +286,7 @@ export function ClientExpensesView({
                     <TableHead>Category</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead className='text-right'>Amount</TableHead>
+                    <TableHead className='w-10' />
                     <TableHead className='text-center'>Status</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -337,6 +352,19 @@ export function ClientExpensesView({
                           {formatCurrency(
                             expense.amountCents,
                             expense.currency
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {expense.receiptMediaId && (
+                            <a
+                              className='inline-flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground'
+                              href={`/api/files/${expense.receiptMediaId}`}
+                              rel='noopener noreferrer'
+                              target='_blank'
+                              title='View receipt'
+                            >
+                              <Paperclip className='size-3.5' />
+                            </a>
                           )}
                         </TableCell>
                         <TableCell className='text-center'>

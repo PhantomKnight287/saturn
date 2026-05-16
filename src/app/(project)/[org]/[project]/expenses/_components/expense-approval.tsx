@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from '@bprogress/next/app'
-import { CheckCircle2, XCircle } from 'lucide-react'
+import { CheckCircle2, Paperclip, XCircle } from 'lucide-react'
 import { useAction } from 'next-safe-action/hooks'
 import { useId, useState } from 'react'
 import { toast } from 'sonner'
@@ -232,6 +232,17 @@ export function ExpenseApproval({ expenses }: ExpenseApprovalProps) {
                       </p>
                     </div>
                     <div className='flex items-center gap-2'>
+                      {expense.receiptMediaId && (
+                        <a
+                          className='inline-flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground'
+                          href={`/api/files/${expense.receiptMediaId}`}
+                          rel='noopener noreferrer'
+                          target='_blank'
+                          title='View receipt'
+                        >
+                          <Paperclip className='size-3.5' />
+                        </a>
+                      )}
                       {expense.billable && (
                         <Badge className='text-xs' variant='outline'>
                           Billable
