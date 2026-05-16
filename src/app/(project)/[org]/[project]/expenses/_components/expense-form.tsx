@@ -2,7 +2,10 @@
 
 import { useRouter } from '@bprogress/next/app'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { FileText, Paperclip, X } from 'lucide-react'
+import Image from 'next/image'
 import { useAction } from 'next-safe-action/hooks'
+import { useRef, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import z from 'zod'
@@ -34,8 +37,25 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { uploadFile } from '@/lib/upload'
 import { createExpenseAction, updateExpenseAction } from '../actions'
 import type { ExpenseCategory, ExpenseWithDetails } from '../types'
+
+const ACCEPTED_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+  'application/pdf',
+]
+const MAX_FILE_SIZE = 10 * 1024 * 1024
+
+interface ReceiptState {
+  file: File | null
+  name: string
+  previewUrl: string | null
+  type: 'image' | 'pdf'
+}
 
 const expenseFormSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -45,6 +65,7 @@ const expenseFormSchema = z.object({
   categoryId: z.string().min(1, 'Category is required'),
   billable: z.boolean(),
   description: z.string(),
+  receiptMediaId: z.string().nullable(),
 })
 
 type ExpenseFormValues = z.infer<typeof expenseFormSchema>
@@ -67,6 +88,19 @@ export function ExpenseForm({
   defaultCurrency,
 }: ExpenseFormProps) {
   const router = useRouter()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [receipt, setReceipt] = useState<ReceiptState | null>(
+    editExpense?.receiptMediaId
+      ? {
+          file: null,
+          name: 'Receipt',
+          type: 'image',
+          previewUrl: `/api/files/${editExpense.receiptMediaId}`,
+        }
+      : null
+  )
+
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseFormSchema),
     defaultValues: {
@@ -79,6 +113,7 @@ export function ExpenseForm({
       categoryId: editExpense?.categoryId ?? '',
       billable: editExpense?.billable ?? true,
       description: editExpense?.description ?? '',
+      receiptMediaId: editExpense?.receiptMediaId ?? null,
     },
   })
 
@@ -87,6 +122,7 @@ export function ExpenseForm({
       toast.success('Expense created')
       onOpenChange(false)
       form.reset()
+      cleanupReceipt()
       router.refresh()
     },
     onError: ({ error }) => {
@@ -98,6 +134,7 @@ export function ExpenseForm({
     onSuccess: () => {
       toast.success('Expense updated')
       onOpenChange(false)
+      cleanupReceipt()
       router.refresh()
     },
     onError: ({ error }) => {
@@ -105,13 +142,66 @@ export function ExpenseForm({
     },
   })
 
-  const isPending = createAction.isPending || updateAction.isPending
+  function handleFileSelect(file: File) {
+    if (!ACCEPTED_TYPES.includes(file.type)) {
+      toast.error('Only images and PDF files are allowed')
+      return
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error('File too large. Maximum size is 10MB.')
+      return
+    }
 
-  function handleSubmit(data: ExpenseFormValues) {
+    if (receipt?.previewUrl?.startsWith('blob:')) {
+      URL.revokeObjectURL(receipt.previewUrl)
+    }
+
+    const isPdf = file.type === 'application/pdf'
+    const previewUrl = isPdf ? null : URL.createObjectURL(file)
+    setReceipt({
+      file,
+      name: file.name,
+      type: isPdf ? 'pdf' : 'image',
+      previewUrl,
+    })
+  }
+
+  function removeReceipt() {
+    if (receipt?.previewUrl?.startsWith('blob:')) {
+      URL.revokeObjectURL(receipt.previewUrl)
+    }
+    setReceipt(null)
+    form.setValue('receiptMediaId', null)
+  }
+
+  function cleanupReceipt() {
+    if (receipt?.previewUrl?.startsWith('blob:')) {
+      URL.revokeObjectURL(receipt.previewUrl)
+    }
+    setReceipt(null)
+  }
+
+  async function handleSubmit(data: ExpenseFormValues) {
     const cents = Math.round(Number.parseFloat(data.amount) * 100)
     if (Number.isNaN(cents) || cents <= 0) {
       toast.error('Please enter a valid amount')
       return
+    }
+
+    setSubmitting(true)
+
+    let receiptMediaId = data.receiptMediaId
+    if (receipt?.file) {
+      try {
+        const { id } = await uploadFile(receipt.file, projectId)
+        receiptMediaId = id
+      } catch (err) {
+        toast.error(
+          err instanceof Error ? err.message : 'Receipt upload failed'
+        )
+        setSubmitting(false)
+        return
+      }
     }
 
     if (editExpense) {
@@ -124,6 +214,7 @@ export function ExpenseForm({
         categoryId: data.categoryId,
         billable: data.billable,
         description: data.description || null,
+        receiptMediaId,
       })
     } else {
       createAction.execute({
@@ -135,8 +226,11 @@ export function ExpenseForm({
         categoryId: data.categoryId,
         billable: data.billable,
         description: data.description || undefined,
+        receiptMediaId: receiptMediaId ?? undefined,
       })
     }
+
+    setSubmitting(false)
   }
 
   return (
@@ -284,6 +378,62 @@ export function ExpenseForm({
               )}
             />
 
+            <Field>
+              <FieldLabel>Receipt</FieldLabel>
+              <input
+                accept='image/*,application/pdf'
+                className='hidden'
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) {
+                    handleFileSelect(file)
+                  }
+                  e.target.value = ''
+                }}
+                ref={fileInputRef}
+                type='file'
+              />
+              {receipt ? (
+                <div className='flex items-center gap-3 rounded-md border px-3 py-2'>
+                  {receipt.type === 'pdf' ? (
+                    <div className='flex size-10 shrink-0 items-center justify-center rounded bg-muted'>
+                      <FileText className='size-5 text-muted-foreground' />
+                    </div>
+                  ) : (
+                    <Image
+                      alt='Receipt preview'
+                      className='size-10 shrink-0 rounded object-cover'
+                      height={40}
+                      src={receipt.previewUrl!}
+                      unoptimized
+                      width={40}
+                    />
+                  )}
+                  <span className='min-w-0 flex-1 truncate text-sm'>
+                    {receipt.name}
+                  </span>
+                  <Button
+                    className='size-6 shrink-0'
+                    onClick={removeReceipt}
+                    size='icon'
+                    type='button'
+                    variant='ghost'
+                  >
+                    <X className='size-3' />
+                  </Button>
+                </div>
+              ) : (
+                <button
+                  className='flex items-center gap-2 rounded-md border border-dashed px-4 py-3 text-muted-foreground text-sm transition-colors hover:border-primary/50 hover:text-foreground'
+                  onClick={() => fileInputRef.current?.click()}
+                  type='button'
+                >
+                  <Paperclip className='size-4' />
+                  Attach receipt
+                </button>
+              )}
+            </Field>
+
             <Controller
               control={form.control}
               name='billable'
@@ -314,7 +464,12 @@ export function ExpenseForm({
             >
               Cancel
             </Button>
-            <Button loading={isPending} type='submit'>
+            <Button
+              loading={
+                submitting || createAction.isPending || updateAction.isPending
+              }
+              type='submit'
+            >
               {editExpense ? 'Update Expense' : 'Log Expense'}
             </Button>
           </DialogFooter>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from '@bprogress/next/app'
-import { DollarSign, Filter, Pencil, Receipt, Trash2 } from 'lucide-react'
+import { DollarSign, Filter, Paperclip, Pencil, Receipt, Trash2 } from 'lucide-react'
 import { useAction } from 'next-safe-action/hooks'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -442,6 +442,21 @@ export function ExpensesTable({
                         </TableCell>
                         <TableCell>
                           <div className='flex items-center gap-1'>
+                            {expense.receiptMediaId && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <a
+                                    className='inline-flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground'
+                                    href={`/api/files/${expense.receiptMediaId}`}
+                                    rel='noopener noreferrer'
+                                    target='_blank'
+                                  >
+                                    <Paperclip className='size-3.5' />
+                                  </a>
+                                </TooltipTrigger>
+                                <TooltipContent>View receipt</TooltipContent>
+                              </Tooltip>
+                            )}
                             {canEdit && (
                               <Button
                                 className='size-7'
