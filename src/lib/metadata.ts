@@ -5,10 +5,7 @@ import { APP_DEFAULT_TITLE } from './constants'
 export function createMetadata(override: Metadata): Metadata {
   return {
     ...override,
-    alternates: {
-      canonical: '/',
-      ...override.alternates,
-    },
+    alternates: override.alternates,
     robots: {
       index: true,
       follow: true,

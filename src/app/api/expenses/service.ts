@@ -6,6 +6,7 @@ import {
   expenseCategories,
   expenseRecipients,
   expenses,
+  media,
   members,
   users,
 } from '@/server/db/schema'
@@ -30,6 +31,7 @@ const listByProject = async (projectId: string, headers: ReadonlyHeaders) => {
       status: expenses.status,
       rejectReason: expenses.rejectReason,
       receiptMediaId: expenses.receiptMediaId,
+      receiptContentType: media.contentType,
       invoiceId: expenses.invoiceId,
       createdAt: expenses.createdAt,
       updatedAt: expenses.updatedAt,
@@ -42,6 +44,7 @@ const listByProject = async (projectId: string, headers: ReadonlyHeaders) => {
     .leftJoin(members, eq(expenses.memberId, members.id))
     .leftJoin(users, eq(members.userId, users.id))
     .leftJoin(expenseCategories, eq(expenses.categoryId, expenseCategories.id))
+    .leftJoin(media, eq(expenses.receiptMediaId, media.id))
 
   if (activeMember?.role === 'client') {
     return baseQuery
