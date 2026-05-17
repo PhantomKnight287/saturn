@@ -95,7 +95,10 @@ export function ExpenseForm({
       ? {
           file: null,
           name: 'Receipt',
-          type: 'image',
+          type:
+            editExpense.receiptContentType === 'application/pdf'
+              ? 'pdf'
+              : 'image',
           previewUrl: `/api/files/${editExpense.receiptMediaId}`,
         }
       : null
@@ -234,7 +237,15 @@ export function ExpenseForm({
   }
 
   return (
-    <Dialog onOpenChange={onOpenChange} open={open}>
+    <Dialog
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) {
+          cleanupReceipt()
+        }
+        onOpenChange(nextOpen)
+      }}
+      open={open}
+    >
       <DialogContent className='sm:max-w-md'>
         <DialogHeader>
           <DialogTitle>{editExpense ? 'Edit' : 'Log'} Expense</DialogTitle>
@@ -458,7 +469,10 @@ export function ExpenseForm({
 
           <DialogFooter>
             <Button
-              onClick={() => onOpenChange(false)}
+              onClick={() => {
+                cleanupReceipt()
+                onOpenChange(false)
+              }}
               type='button'
               variant='outline'
             >
