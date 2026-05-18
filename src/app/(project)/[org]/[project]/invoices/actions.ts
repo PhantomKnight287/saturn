@@ -13,6 +13,7 @@ import { getAdminsAndOwners, sendEmailsToRecipients } from '@/lib/notifications'
 import { authedActionClient } from '@/lib/safe-action'
 import { db } from '@/server/db'
 import {
+  expenses,
   invoiceExpenses,
   invoiceItems,
   invoiceRecipients,
@@ -101,6 +102,21 @@ export const createInvoiceAction = authedActionClient
           throw new Error(
             'One or more recipients are invalid for this organization'
           )
+        }
+      }
+
+      if (expenseIds?.length) {
+        const validExpenses = await db
+          .select({ id: expenses.id })
+          .from(expenses)
+          .where(
+            and(
+              inArray(expenses.id, expenseIds),
+              eq(expenses.projectId, projectId)
+            )
+          )
+        if (validExpenses.length !== expenseIds.length) {
+          throw new Error('One or more expenses are invalid for this project')
         }
       }
 
@@ -349,6 +365,21 @@ export const updateInvoiceAction = authedActionClient
         }
       }
 
+      if (expenseIds?.length) {
+        const validExpenses = await db
+          .select({ id: expenses.id })
+          .from(expenses)
+          .where(
+            and(
+              inArray(expenses.id, expenseIds),
+              eq(expenses.projectId, existing.projectId)
+            )
+          )
+        if (validExpenses.length !== expenseIds.length) {
+          throw new Error('One or more expenses are invalid for this invoice')
+        }
+      }
+
       const totalAmount = items
         .reduce((sum, item) => sum + Number(item.amount), 0)
         .toFixed(4)
@@ -428,12 +459,12 @@ export const updateInvoiceAction = authedActionClient
               )
             }
           }
-          if (expenseIds?.length) {
-            // Replace linked expenses for this invoice — clear old, set new
-            await tx
-              .delete(invoiceExpenses)
-              .where(eq(invoiceExpenses.invoiceId, invoiceId))
+          // Replace linked expenses for this invoice — clear old, set new
+          await tx
+            .delete(invoiceExpenses)
+            .where(eq(invoiceExpenses.invoiceId, invoiceId))
 
+          if (expenseIds?.length) {
             await tx.insert(invoiceExpenses).values(
               expenseIds.map((expenseId) => ({
                 invoiceId: insertedInvoice!.id,

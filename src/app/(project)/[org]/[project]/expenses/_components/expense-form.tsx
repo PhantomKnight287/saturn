@@ -102,6 +102,7 @@ export function ExpenseForm({
 
   const form = useForm<ExpenseFormInput, unknown, ExpenseFormValues>({
     resolver: zodResolver(expenseFormSchema),
+    mode: 'onChange',
     defaultValues: {
       title: editExpense?.title ?? '',
       amountCents: editExpense?.amountCents ?? 0,
@@ -449,6 +450,7 @@ export function ExpenseForm({
               render={({ field }) => (
                 <div className='flex items-center gap-2'>
                   <Checkbox
+                    id='expense-billable'
                     checked={field.value}
                     onCheckedChange={(checked) =>
                       field.onChange(checked === true)
@@ -470,6 +472,7 @@ export function ExpenseForm({
               render={({ field }) => (
                 <div className='flex items-center gap-2'>
                   <Checkbox
+                    id='expense-recurring'
                     checked={field.value}
                     onCheckedChange={(checked) =>
                       field.onChange(checked === true)
