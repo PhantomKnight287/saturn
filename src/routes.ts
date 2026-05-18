@@ -8,6 +8,8 @@ export const PUBLIC_ROUTES: string[] = [
   '/twitter-image.png',
   '/sitemap.xml',
   '/manifest.webmanifest',
+  '/terms',
+  '/privacy',
 ]
 export const PUBLIC_PREFIXES: string[] = ['/changelog', '/blog']
 export const AUTH_PREFIX: string = '/auth'
