@@ -377,10 +377,13 @@ export function ExpensesTable({
                           )}
                         </TableCell>
                         <TableCell className='whitespace-nowrap text-sm'>
-                          {new Date(expense.date).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                          })}
+                          {new Date(expense.date).toLocaleDateString(
+                            undefined,
+                            {
+                              month: 'short',
+                              day: 'numeric',
+                            }
+                          )}
                         </TableCell>
                         <TableCell className='text-right font-medium text-sm'>
                           {formatCurrency(

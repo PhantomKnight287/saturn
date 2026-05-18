@@ -250,7 +250,7 @@ export function MemberRatesDialog({
                                   From{' '}
                                   {new Date(
                                     rate.effectiveFrom
-                                  ).toLocaleDateString('en-US', {
+                                  ).toLocaleDateString(undefined, {
                                     month: 'short',
                                     day: 'numeric',
                                     year: 'numeric',

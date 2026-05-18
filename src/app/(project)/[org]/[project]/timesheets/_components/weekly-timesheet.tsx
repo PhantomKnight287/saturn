@@ -31,21 +31,26 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useSetSelection } from '@/hooks/use-set-selection'
+import type { CustomFieldDefinition } from '@/lib/custom-fields'
 import { deleteTimeEntryAction, submitTimesheetAction } from '../actions'
 import { canDeleteTimeEntry, canEditTimeEntry, formatMinutes } from '../common'
 import type { Requirement, TimeEntry } from '../types'
+import { CustomValuesInline } from './custom-values-inline'
 import { exportTimeEntries } from './export-time-entries'
 import { StatusBadgeWithReason } from './status-badge-with-reason'
 import { TimeEntryForm } from './time-entry-form'
 
 interface WeeklyTimesheetProps {
   currentMemberId: string
+  customFields?: CustomFieldDefinition[]
   entries: TimeEntry[]
   isAdmin?: boolean
   isClientInvolved?: boolean
   isTeamView?: boolean
   onAddEntry?: () => void
+  orgSlug?: string
   projectId: string
+  projectSlug?: string
   requirements: Requirement[]
 }
 
@@ -59,7 +64,7 @@ function getMonday(d: Date): Date {
 }
 
 function formatDate(d: Date): string {
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
 function isSameDay(a: Date, b: Date): boolean {
@@ -81,6 +86,9 @@ export function WeeklyTimesheet({
   isTeamView = false,
   isClientInvolved,
   onAddEntry,
+  customFields = [],
+  orgSlug,
+  projectSlug,
 }: WeeklyTimesheetProps) {
   const [weekOffset, setWeekOffset] = useState(0)
   const { selectedIds, toggle, toggleAll, clear } = useSetSelection<TimeEntry>(
@@ -92,6 +100,16 @@ export function WeeklyTimesheet({
   const monday = getMonday(today)
   monday.setDate(monday.getDate() + weekOffset * 7)
   const router = useRouter()
+  const hasCustomFields = customFields.length > 0
+  const editHrefBase =
+    orgSlug && projectSlug ? `/${orgSlug}/${projectSlug}/timesheets` : null
+  const onEditClick = (entry: TimeEntry) => {
+    if (hasCustomFields && editHrefBase) {
+      router.push(`${editHrefBase}/${entry.id}/edit`)
+      return
+    }
+    setEditEntry(entry)
+  }
 
   const weekDays = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(monday)
@@ -311,6 +329,10 @@ export function WeeklyTimesheet({
                               </Tooltip>
                             )}
                           </div>
+                          <CustomValuesInline
+                            customFields={customFields}
+                            values={entry.customValues}
+                          />
                         </TableCell>
                         <TableCell className='text-muted-foreground text-sm'>
                           <span className='line-clamp-1 max-w-32'>
@@ -353,7 +375,7 @@ export function WeeklyTimesheet({
                               ) && (
                                 <Button
                                   className='size-7'
-                                  onClick={() => setEditEntry(entry)}
+                                  onClick={() => onEditClick(entry)}
                                   size='icon'
                                   variant='ghost'
                                 >
@@ -414,6 +436,7 @@ export function WeeklyTimesheet({
 
       {editEntry && (
         <TimeEntryForm
+          customFields={customFields}
           editEntry={editEntry}
           onOpenChange={(open) => {
             if (!open) {

@@ -120,7 +120,7 @@ export function ImportTimeEntriesDialog({
         ).toFixed(2)
 
         const memberName = entry.memberName ?? 'Unknown'
-        const dateLabel = new Date(entry.date).toLocaleDateString('en-US', {
+        const dateLabel = new Date(entry.date).toLocaleDateString(undefined, {
           month: 'short',
           day: 'numeric',
           year: 'numeric',
@@ -265,7 +265,7 @@ export function ImportTimeEntriesDialog({
                             <p className='text-muted-foreground text-xs'>
                               {entry.requirementTitle ?? 'General'} ·{' '}
                               {new Date(entry.date).toLocaleDateString(
-                                'en-US',
+                                undefined,
                                 {
                                   month: 'short',
                                   day: 'numeric',

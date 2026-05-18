@@ -3,6 +3,7 @@ import type { ReadonlyHeaders } from 'next/dist/server/web/spec-extension/adapte
 import { getCachedActiveOrgMember } from '@/app/(organization)/[org]/cache'
 import { db } from '@/server/db'
 import {
+  customFields,
   memberRates,
   members,
   projectBudgets,
@@ -75,6 +76,7 @@ const listByProject = async (
       status: timeEntries.status,
       rejectReason: timeEntries.rejectReason,
       invoiceId: timeEntries.invoiceId,
+      customValues: timeEntries.customValues,
       createdAt: timeEntries.createdAt,
       updatedAt: timeEntries.updatedAt,
       memberName: users.name,
@@ -358,6 +360,7 @@ const getReportEntriesBatch = async (reportIds: string[]) => {
   interface Row {
     billable: boolean
     createdAt: Date
+    customValues: Record<string, unknown>
     date: Date
     description: string
     durationMinutes: number
@@ -390,6 +393,7 @@ const getReportEntriesBatch = async (reportIds: string[]) => {
       createdAt: timesheetReportEntries.createdAt,
       updatedAt: timesheetReportEntries.updatedAt,
       invoiceId: timeEntries.invoiceId,
+      customValues: timeEntries.customValues,
     })
     .from(timesheetReportEntries)
     .innerJoin(
@@ -561,7 +565,23 @@ const listByProjectIdsSince = async (
     )
 }
 
+const getProjectCustomFields = async (
+  projectId: string,
+  role: 'client' | 'member'
+) => {
+  const conditions = [eq(customFields.projectId, projectId)]
+  if (role === 'client') {
+    conditions.push(eq(customFields.visibleToClient, true))
+  }
+  return await db
+    .select()
+    .from(customFields)
+    .where(and(...conditions))
+    .orderBy(asc(customFields.createdAt))
+}
+
 export const timesheetService = {
+  getProjectCustomFields,
   listByProject,
   listByProjectIdsSince,
   getById,

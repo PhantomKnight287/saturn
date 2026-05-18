@@ -2,7 +2,9 @@
 
 import type { projectsService } from '@/app/api/projects/service'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import type { CustomFieldDefinition } from '@/lib/custom-fields'
 import { ClientApprovalCard } from './_components/client-approval-card'
+import { ProjectCustomFieldsCard } from './_components/custom-fields-card'
 import { DangerZoneCard } from './_components/danger-zone-card'
 import { GeneralCard } from './_components/general-card'
 import { InvoiceNumberingCard } from './_components/invoice-numbering-card'
@@ -14,12 +16,16 @@ export function ProjectSettingsPageClient({
   orgSlug,
   canDelete,
   settings,
+  projectCustomFields,
+  orgCustomFields,
 }: {
   project: { id: string; name: string; slug: string; dueDate: Date | null }
   organizationId: string
   orgSlug: string
   canDelete: boolean
   settings: Awaited<ReturnType<typeof projectsService.getSettings>>
+  projectCustomFields: CustomFieldDefinition[]
+  orgCustomFields: CustomFieldDefinition[]
 }) {
   return (
     <div className='w-full'>
@@ -30,7 +36,7 @@ export function ProjectSettingsPageClient({
       <Tabs defaultValue='general'>
         <TabsList variant='line'>
           <TabsTrigger value='general'>General</TabsTrigger>
-          <TabsTrigger value='timesheet'>Defaults</TabsTrigger>
+          <TabsTrigger value='timesheet'>Timesheet</TabsTrigger>
           <TabsTrigger value='invoicing'>Invoices</TabsTrigger>
           <TabsTrigger value='client'>Approval</TabsTrigger>
           {canDelete && <TabsTrigger value='danger'>Danger Zone</TabsTrigger>}
@@ -44,11 +50,17 @@ export function ProjectSettingsPageClient({
           />
         </TabsContent>
 
-        <TabsContent value='timesheet'>
+        <TabsContent className='space-y-6' value='timesheet'>
           <TimesheetDefaultsCard
             organizationId={organizationId}
             projectId={project.id}
             settings={settings}
+          />
+          <ProjectCustomFieldsCard
+            organizationId={organizationId}
+            orgFields={orgCustomFields}
+            projectFields={projectCustomFields}
+            projectId={project.id}
           />
         </TabsContent>
 

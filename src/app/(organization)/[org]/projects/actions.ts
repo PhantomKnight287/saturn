@@ -1,13 +1,18 @@
 'use server'
 
-import { and, count, eq } from 'drizzle-orm'
+import { and, count, eq, isNull } from 'drizzle-orm'
 // import { PROJECTS_CACHE_TAG } from '@/api/projects/service'
 import { getUserBillingStatus } from '@/cache/billing'
 import { authedActionClient } from '@/lib/safe-action'
 import { titleToSlug } from '@/lib/utils'
 import { FREE_PLAN_LIMITS } from '@/limits'
 import { db } from '@/server/db'
-import { members, projects, requirements } from '@/server/db/schema'
+import {
+  customFields,
+  members,
+  projects,
+  requirements,
+} from '@/server/db/schema'
 import { createProjectSchema } from './common'
 
 export const createProjectAction = authedActionClient
@@ -102,6 +107,32 @@ export const createProjectAction = authedActionClient
           status: 'client_accepted',
           authorId: orgMember.id,
         })
+
+        const orgTemplates = await tx
+          .select()
+          .from(customFields)
+          .where(
+            and(
+              eq(customFields.organizationId, organizationId),
+              isNull(customFields.projectId)
+            )
+          )
+
+        if (orgTemplates.length > 0) {
+          await tx.insert(customFields).values(
+            orgTemplates.map((t) => ({
+              organizationId,
+              projectId: createdProject.id,
+              label: t.label,
+              type: t.type,
+              required: t.required,
+              visibleToClient: t.visibleToClient,
+              defaultValue: t.defaultValue,
+              options: t.options,
+              config: t.config,
+            }))
+          )
+        }
 
         return createdProject
       })

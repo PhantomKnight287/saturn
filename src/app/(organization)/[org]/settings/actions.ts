@@ -1,17 +1,20 @@
 'use server'
 
-import { eq, sql } from 'drizzle-orm'
+import { and, eq, isNull, sql } from 'drizzle-orm'
 import { headers } from 'next/headers'
 import { authedActionClient } from '@/lib/safe-action'
 import { auth } from '@/server/auth'
 import { db } from '@/server/db'
-import { settings as settingsTable } from '@/server/db/schema'
+import { customFields, settings as settingsTable } from '@/server/db/schema'
 import { organizations } from '@/server/db/schema/auth'
 import {
+  createOrgCustomFieldSchema,
   deleteOrganizationSchema,
+  deleteOrgCustomFieldSchema,
   renameOrganizationSchema,
   updateInvoiceNumberTemplateSchema,
   updateOrgClientInvolvementSchema,
+  updateOrgCustomFieldSchema,
   updateTimesheetDefaultsSchema,
 } from './common'
 
@@ -163,6 +166,109 @@ export const updateOrgClientInvolvementAction = authedActionClient
           targetWhere: sql`${settingsTable.projectId} IS NULL`,
           set: { clientInvolvement },
         })
+
+      return { success: true }
+    }
+  )
+
+export const createOrgCustomFieldAction = authedActionClient
+  .inputSchema(createOrgCustomFieldSchema)
+  .action(
+    async ({
+      parsedInput: { organizationId, definition },
+      ctx: { role, orgMember },
+    }) => {
+      if (!role.authorize({ organization: ['update'] }).success) {
+        throw new Error(
+          'You do not have permission to update workspace settings'
+        )
+      }
+      if (orgMember.organizationId !== organizationId) {
+        throw new Error('Organization mismatch')
+      }
+
+      const [row] = await db
+        .insert(customFields)
+        .values({
+          organizationId,
+          projectId: null,
+          label: definition.label,
+          type: definition.type,
+          required: definition.required ?? false,
+          visibleToClient: definition.visibleToClient ?? false,
+          defaultValue: definition.defaultValue ?? null,
+          options: definition.options ?? null,
+          config: definition.config ?? null,
+        })
+        .returning({ id: customFields.id })
+
+      return { success: true, id: row?.id }
+    }
+  )
+
+export const updateOrgCustomFieldAction = authedActionClient
+  .inputSchema(updateOrgCustomFieldSchema)
+  .action(
+    async ({
+      parsedInput: { organizationId, fieldId, definition },
+      ctx: { role, orgMember },
+    }) => {
+      if (!role.authorize({ organization: ['update'] }).success) {
+        throw new Error(
+          'You do not have permission to update workspace settings'
+        )
+      }
+      if (orgMember.organizationId !== organizationId) {
+        throw new Error('Organization mismatch')
+      }
+
+      await db
+        .update(customFields)
+        .set({
+          label: definition.label,
+          required: definition.required,
+          visibleToClient: definition.visibleToClient,
+          defaultValue: definition.defaultValue ?? null,
+          options: definition.options ?? null,
+          config: definition.config ?? null,
+        })
+        .where(
+          and(
+            eq(customFields.id, fieldId),
+            eq(customFields.organizationId, organizationId),
+            isNull(customFields.projectId)
+          )
+        )
+
+      return { success: true }
+    }
+  )
+
+export const deleteOrgCustomFieldAction = authedActionClient
+  .inputSchema(deleteOrgCustomFieldSchema)
+  .action(
+    async ({
+      parsedInput: { organizationId, fieldId },
+      ctx: { role, orgMember },
+    }) => {
+      if (!role.authorize({ organization: ['update'] }).success) {
+        throw new Error(
+          'You do not have permission to update workspace settings'
+        )
+      }
+      if (orgMember.organizationId !== organizationId) {
+        throw new Error('Organization mismatch')
+      }
+
+      await db
+        .delete(customFields)
+        .where(
+          and(
+            eq(customFields.id, fieldId),
+            eq(customFields.organizationId, organizationId),
+            isNull(customFields.projectId)
+          )
+        )
 
       return { success: true }
     }

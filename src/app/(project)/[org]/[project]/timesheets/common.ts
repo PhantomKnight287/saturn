@@ -21,7 +21,7 @@ export function formatShortDate(
   date: string | Date,
   options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' }
 ): string {
-  return new Date(date).toLocaleDateString('en-US', options)
+  return new Date(date).toLocaleDateString(undefined, options)
 }
 
 export function canEditTimeEntry(
@@ -59,6 +59,7 @@ export const createTimeEntrySchema = z.object({
   date: z.string().min(1, 'Date is required'),
   durationMinutes: z.number().int().positive('Duration must be positive'),
   billable: z.boolean().default(true),
+  customValues: z.record(z.string(), z.unknown()).optional(),
 })
 
 export const updateTimeEntrySchema = z.object({
@@ -68,6 +69,7 @@ export const updateTimeEntrySchema = z.object({
   date: z.string().min(1).optional(),
   durationMinutes: z.number().int().positive().optional(),
   billable: z.boolean().optional(),
+  customValues: z.record(z.string(), z.unknown()).optional(),
 })
 
 export const deleteTimeEntrySchema = z.object({

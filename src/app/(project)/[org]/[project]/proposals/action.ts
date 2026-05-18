@@ -280,7 +280,7 @@ export const sendProposalAction = authedActionClient
             currency: proposal.currency,
             pricingType: 'fixed',
             validUntil: proposal.validUntil
-              ? proposal.validUntil.toLocaleDateString('en-US', {
+              ? proposal.validUntil.toLocaleDateString(undefined, {
                   month: 'long',
                   day: 'numeric',
                   year: 'numeric',

@@ -1,4 +1,8 @@
 import z from 'zod'
+import {
+  customFieldDefinitionCreateSchema,
+  customFieldDefinitionUpdateSchema,
+} from '@/lib/custom-fields'
 
 const clientInvolvementToggleSchema = z.enum(['on', 'off'])
 
@@ -57,4 +61,20 @@ export const updateInvoiceNumberTemplateSchema = z.object({
 export const deleteOrganizationSchema = z.object({
   organizationId: z.string().min(1),
   confirmName: z.string().min(1, 'Please type the workspace name to confirm'),
+})
+
+export const createOrgCustomFieldSchema = z.object({
+  organizationId: z.string().min(1),
+  definition: customFieldDefinitionCreateSchema,
+})
+
+export const updateOrgCustomFieldSchema = z.object({
+  organizationId: z.string().min(1),
+  fieldId: z.string().min(1),
+  definition: customFieldDefinitionUpdateSchema,
+})
+
+export const deleteOrgCustomFieldSchema = z.object({
+  organizationId: z.string().min(1),
+  fieldId: z.string().min(1),
 })

@@ -133,7 +133,7 @@ export default function ClientsTable({
             </TableCell>
             <TableCell>
               <span className='text-muted-foreground text-sm'>
-                {new Date(client.createdAt).toLocaleDateString('en-US', {
+                {new Date(client.createdAt).toLocaleDateString(undefined, {
                   month: 'short',
                   day: 'numeric',
                   year: 'numeric',

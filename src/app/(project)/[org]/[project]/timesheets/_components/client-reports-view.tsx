@@ -24,15 +24,20 @@ import {
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
+import type { CustomFieldDefinition } from '@/lib/custom-fields'
 import { respondTimesheetReportAction } from '../actions'
 import type { ClientReportWithEntries } from '../types'
 import { ReportCard } from './report-card'
 
 interface ClientReportsViewProps {
+  customFields?: CustomFieldDefinition[]
   reports: ClientReportWithEntries[]
 }
 
-export function ClientReportsView({ reports }: ClientReportsViewProps) {
+export function ClientReportsView({
+  reports,
+  customFields = [],
+}: ClientReportsViewProps) {
   const [disputeOpen, setDisputeOpen] = useState(false)
   const [activeReportId, setActiveReportId] = useState<string | null>(null)
   const [disputeReason, setDisputeReason] = useState('')
@@ -119,6 +124,7 @@ export function ClientReportsView({ reports }: ClientReportsViewProps) {
         {pending.map((item) => (
           <ReportCard
             actionPending={isPending}
+            customFields={customFields}
             entries={item.entries}
             expanded={expandedIds.has(item.report.id)}
             key={item.report.id}
@@ -138,6 +144,7 @@ export function ClientReportsView({ reports }: ClientReportsViewProps) {
               <p className='text-muted-foreground text-sm'>Past timesheets</p>
               {history.map((item) => (
                 <ReportCard
+                  customFields={customFields}
                   entries={item.entries}
                   expanded={expandedIds.has(item.report.id)}
                   key={item.report.id}

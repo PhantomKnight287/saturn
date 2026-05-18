@@ -69,7 +69,7 @@ export default function ProposalCard({
         {proposal.validUntil && (
           <p className='mt-0.5 text-muted-foreground text-xs'>
             Valid until{' '}
-            {new Date(proposal.validUntil).toLocaleDateString('en-US', {
+            {new Date(proposal.validUntil).toLocaleDateString(undefined, {
               month: 'short',
               day: 'numeric',
               year: 'numeric',

@@ -230,7 +230,7 @@ export const createInvoiceAction = authedActionClient
             await projectsService.getProjectDetails(projectId)
 
           const formatDateLong = (d: Date) =>
-            d.toLocaleDateString('en-US', {
+            d.toLocaleDateString(undefined, {
               month: 'long',
               day: 'numeric',
               year: 'numeric',
@@ -579,7 +579,7 @@ export const sendInvoiceAction = authedActionClient
         await projectsService.getProjectDetails(invoice.projectId)
 
       const formatDateLong = (d: Date) =>
-        d.toLocaleDateString('en-US', {
+        d.toLocaleDateString(undefined, {
           month: 'long',
           day: 'numeric',
           year: 'numeric',
@@ -701,7 +701,7 @@ export const markInvoicePaidAction = authedActionClient
         'en-US',
         { minimumFractionDigits: 2 }
       )
-      const paidAt = new Date().toLocaleDateString('en-US', {
+      const paidAt = new Date().toLocaleDateString(undefined, {
         month: 'long',
         day: 'numeric',
         year: 'numeric',

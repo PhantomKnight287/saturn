@@ -43,7 +43,7 @@ export function seedToColor(seed: string) {
 }
 
 export function formatDate(date: Date) {
-  return date.toLocaleDateString('en-US', {
+  return date.toLocaleDateString(undefined, {
     month: 'short',
     day: 'numeric',
     year: 'numeric',

@@ -1,5 +1,6 @@
 'use client'
 
+import { useRouter } from '@bprogress/next/app'
 import { Clock, DollarSign, Filter, Pencil, Trash2 } from 'lucide-react'
 import { useParams } from 'next/navigation'
 import { useAction } from 'next-safe-action/hooks'
@@ -35,19 +36,24 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import type { CustomFieldDefinition } from '@/lib/custom-fields'
 import { deleteTimeEntryAction } from '../actions'
 import { formatMinutes, formatShortDate } from '../common'
 import type { ProjectMember, Requirement, TimeEntry } from '../types'
+import { CustomValuesInline } from './custom-values-inline'
 import { StatusBadgeWithReason } from './status-badge-with-reason'
 import { TimeEntryForm } from './time-entry-form'
 
 interface TeamEntriesTableProps {
   currentMemberId: string
+  customFields?: CustomFieldDefinition[]
   entries: TimeEntry[]
   isClientInvolved?: boolean
   onSelectionChange?: (ids: Set<string>) => void
+  orgSlug?: string
   projectId: string
   projectMembers: ProjectMember[]
+  projectSlug?: string
   requirements: Requirement[]
   selectedIds?: Set<string>
 }
@@ -60,13 +66,27 @@ export function TeamEntriesTable({
   selectedIds,
   onSelectionChange,
   isClientInvolved,
+  customFields = [],
+  orgSlug,
+  projectSlug,
 }: TeamEntriesTableProps) {
   const selectable = !!onSelectionChange
   const params = useParams()
+  const router = useRouter()
   const [filterMember, setFilterMember] = useState<string>('all')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [filterRequirement, setFilterRequirement] = useState<string>('all')
   const [editEntry, setEditEntry] = useState<TimeEntry | null>(null)
+  const hasCustomFields = customFields.length > 0
+  const editHrefBase =
+    orgSlug && projectSlug ? `/${orgSlug}/${projectSlug}/timesheets` : null
+  const onEditClick = (entry: TimeEntry) => {
+    if (hasCustomFields && editHrefBase) {
+      router.push(`${editHrefBase}/${entry.id}/edit`)
+      return
+    }
+    setEditEntry(entry)
+  }
 
   const deleteAction = useAction(deleteTimeEntryAction, {
     onSuccess: () => toast.success('Time entry deleted'),
@@ -289,6 +309,10 @@ export function TeamEntriesTable({
                             </Tooltip>
                           )}
                         </div>
+                        <CustomValuesInline
+                          customFields={customFields}
+                          values={entry.customValues}
+                        />
                       </TableCell>
                       <TableCell className='text-muted-foreground text-sm'>
                         <span className='line-clamp-1 max-w-36'>
@@ -322,7 +346,7 @@ export function TeamEntriesTable({
                         <div className='flex items-center gap-1'>
                           <Button
                             className='size-7'
-                            onClick={() => setEditEntry(entry)}
+                            onClick={() => onEditClick(entry)}
                             size='icon'
                             variant='ghost'
                           >
@@ -353,6 +377,7 @@ export function TeamEntriesTable({
 
       {editEntry && (
         <TimeEntryForm
+          customFields={customFields}
           editEntry={editEntry}
           onOpenChange={(open) => {
             if (!open) {
