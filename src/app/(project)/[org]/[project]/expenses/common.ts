@@ -9,8 +9,9 @@ export const createExpenseSchema = z.object({
   categoryId: z.string().min(1, 'Category is required'),
   milestoneId: z.string().optional(),
   billable: z.boolean().default(true),
+  recurring: z.boolean().default(false),
   description: z.string().optional(),
-  receiptMediaId: z.string().optional(),
+  receiptMediaId: z.string().optional().nullable(),
 })
 
 export const updateExpenseSchema = z.object({
@@ -22,6 +23,7 @@ export const updateExpenseSchema = z.object({
   categoryId: z.string().min(1).optional(),
   milestoneId: z.string().nullable().optional(),
   billable: z.boolean().optional(),
+  recurring: z.boolean().optional(),
   description: z.string().nullable().optional(),
   receiptMediaId: z.string().nullable().optional(),
 })

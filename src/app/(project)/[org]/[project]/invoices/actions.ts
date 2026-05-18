@@ -13,7 +13,7 @@ import { getAdminsAndOwners, sendEmailsToRecipients } from '@/lib/notifications'
 import { authedActionClient } from '@/lib/safe-action'
 import { db } from '@/server/db'
 import {
-  expenses,
+  invoiceExpenses,
   invoiceItems,
   invoiceRecipients,
   invoiceRequirements,
@@ -185,9 +185,14 @@ export const createInvoiceAction = authedActionClient
         // Link expenses
         if (expenseIds?.length) {
           await tx
-            .update(expenses)
-            .set({ invoiceId: insertedInvoice!.id })
-            .where(inArray(expenses.id, expenseIds))
+            .insert(invoiceExpenses)
+            .values(
+              expenseIds.map((expenseId) => ({
+                invoiceId: insertedInvoice!.id,
+                expenseId,
+              }))
+            )
+            .onConflictDoNothing()
         }
 
         return insertedInvoice
@@ -424,16 +429,17 @@ export const updateInvoiceAction = authedActionClient
             }
           }
           if (expenseIds?.length) {
-            // Replace linked expenses — clear old, set new
+            // Replace linked expenses for this invoice — clear old, set new
             await tx
-              .update(expenses)
-              .set({ invoiceId: null })
-              .where(eq(expenses.invoiceId, invoiceId))
+              .delete(invoiceExpenses)
+              .where(eq(invoiceExpenses.invoiceId, invoiceId))
 
-            await tx
-              .update(expenses)
-              .set({ invoiceId: insertedInvoice!.id })
-              .where(inArray(expenses.id, expenseIds))
+            await tx.insert(invoiceExpenses).values(
+              expenseIds.map((expenseId) => ({
+                invoiceId: insertedInvoice!.id,
+                expenseId,
+              }))
+            )
           }
         })
 

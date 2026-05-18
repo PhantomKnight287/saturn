@@ -199,6 +199,14 @@ export function ClientExpensesView({
                         />
                       </TableCell>
                       <TableCell className='text-sm'>
+                        {expense.recurring && (
+                          <Badge
+                            className='mr-1.5 px-1.5 py-0 font-normal text-[10px]'
+                            variant='outline'
+                          >
+                            Recurring
+                          </Badge>
+                        )}
                         {expense.description ? (
                           <HoverCard openDelay={0}>
                             <HoverCardTrigger asChild>

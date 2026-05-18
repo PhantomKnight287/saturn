@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, isNull } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, isNull, or } from 'drizzle-orm'
 import type { ReadonlyHeaders } from 'next/dist/server/web/spec-extension/adapters/headers'
 import { getCachedActiveOrgMember } from '@/app/(organization)/[org]/cache'
 import { db } from '@/server/db'
@@ -6,6 +6,7 @@ import {
   expenseCategories,
   expenseRecipients,
   expenses,
+  invoiceExpenses,
   media,
   members,
   users,
@@ -28,11 +29,11 @@ const listByProject = async (projectId: string, headers: ReadonlyHeaders) => {
       currency: expenses.currency,
       date: expenses.date,
       billable: expenses.billable,
+      recurring: expenses.recurring,
       status: expenses.status,
       rejectReason: expenses.rejectReason,
       receiptMediaId: expenses.receiptMediaId,
       receiptContentType: media.contentType,
-      invoiceId: expenses.invoiceId,
       createdAt: expenses.createdAt,
       updatedAt: expenses.updatedAt,
       memberName: users.name,
@@ -102,20 +103,30 @@ const listUnpaidExpensesByProject = async (
   if (!auth.success) {
     return []
   }
-  const unpaidExpenses = await db
-    .select()
+  const rows = await db
+    .selectDistinctOn([expenses.id], { expense: expenses })
     .from(expenses)
+    .leftJoin(invoiceExpenses, eq(invoiceExpenses.expenseId, expenses.id))
     .where(
       and(
         eq(expenses.projectId, projectId),
         eq(expenses.status, 'client_accepted'),
-        isNull(expenses.invoiceId)
+        or(isNull(invoiceExpenses.id), eq(expenses.recurring, true))
       )
     )
-    .orderBy(desc(expenses.date))
 
-  return unpaidExpenses
+  return rows
+    .map((r) => r.expense)
+    .sort((a, b) => b.date.getTime() - a.date.getTime())
 }
+
+const listExpensesByInvoiceId = async (invoiceId: string) =>
+  await db
+    .select({ expense: expenses })
+    .from(invoiceExpenses)
+    .innerJoin(expenses, eq(invoiceExpenses.expenseId, expenses.id))
+    .where(eq(invoiceExpenses.invoiceId, invoiceId))
+    .then((rows) => rows.map((r) => r.expense))
 
 const listByProjectIds = async (projectIds: string[]) => {
   if (projectIds.length === 0) {
@@ -155,5 +166,6 @@ export const expensesServices = {
   listByProject,
   listByProjectIds,
   listCategoriesByOrg,
+  listExpensesByInvoiceId,
   listUnpaidExpensesByProject,
 }

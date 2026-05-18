@@ -8,7 +8,7 @@ import { useAction } from 'next-safe-action/hooks'
 import { useRef, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { toast } from 'sonner'
-import z from 'zod'
+import type z from 'zod'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { CurrencySelect } from '@/components/ui/currency-selector'
@@ -39,6 +39,7 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { uploadFile } from '@/lib/upload'
 import { createExpenseAction, updateExpenseAction } from '../actions'
+import { createExpenseSchema } from '../common'
 import type { ExpenseCategory, ExpenseWithDetails } from '../types'
 
 const ACCEPTED_TYPES = [
@@ -57,18 +58,13 @@ interface ReceiptState {
   type: 'image' | 'pdf'
 }
 
-const expenseFormSchema = z.object({
-  title: z.string().min(1, 'Title is required'),
-  amount: z.string().min(1, 'Amount is required'),
-  currency: z.string().min(1, 'Currency is required'),
-  date: z.string().min(1, 'Date is required'),
-  categoryId: z.string().min(1, 'Category is required'),
-  billable: z.boolean(),
-  description: z.string(),
-  receiptMediaId: z.string().nullable(),
+const expenseFormSchema = createExpenseSchema.omit({
+  projectId: true,
+  milestoneId: true,
 })
 
-type ExpenseFormValues = z.infer<typeof expenseFormSchema>
+type ExpenseFormInput = z.input<typeof expenseFormSchema>
+type ExpenseFormValues = z.output<typeof expenseFormSchema>
 
 interface ExpenseFormProps {
   categories: ExpenseCategory[]
@@ -104,19 +100,20 @@ export function ExpenseForm({
       : null
   )
 
-  const form = useForm<ExpenseFormValues>({
+  const form = useForm<ExpenseFormInput, unknown, ExpenseFormValues>({
     resolver: zodResolver(expenseFormSchema),
     defaultValues: {
       title: editExpense?.title ?? '',
-      amount: editExpense ? (editExpense.amountCents / 100).toFixed(2) : '',
+      amountCents: editExpense?.amountCents ?? 0,
       currency: editExpense?.currency ?? defaultCurrency ?? 'USD',
       date: editExpense
         ? new Date(editExpense.date).toISOString().split('T').at(0)!
         : new Date().toISOString().split('T').at(0)!,
       categoryId: editExpense?.categoryId ?? '',
       billable: editExpense?.billable ?? true,
-      description: editExpense?.description ?? '',
-      receiptMediaId: editExpense?.receiptMediaId ?? null,
+      recurring: editExpense?.recurring ?? false,
+      description: editExpense?.description ?? undefined,
+      receiptMediaId: editExpense?.receiptMediaId ?? undefined,
     },
   })
 
@@ -174,7 +171,7 @@ export function ExpenseForm({
       URL.revokeObjectURL(receipt.previewUrl)
     }
     setReceipt(null)
-    form.setValue('receiptMediaId', null)
+    form.setValue('receiptMediaId', undefined)
   }
 
   function cleanupReceipt() {
@@ -185,12 +182,6 @@ export function ExpenseForm({
   }
 
   async function handleSubmit(data: ExpenseFormValues) {
-    const cents = Math.round(Number.parseFloat(data.amount) * 100)
-    if (Number.isNaN(cents) || cents <= 0) {
-      toast.error('Please enter a valid amount')
-      return
-    }
-
     setSubmitting(true)
 
     let receiptMediaId = data.receiptMediaId
@@ -209,27 +200,16 @@ export function ExpenseForm({
 
     if (editExpense) {
       updateAction.execute({
+        ...data,
         expenseId: editExpense.id,
-        title: data.title,
-        amountCents: cents,
-        currency: data.currency,
-        date: data.date,
-        categoryId: data.categoryId,
-        billable: data.billable,
-        description: data.description || null,
-        receiptMediaId,
+        description: data.description ?? null,
+        receiptMediaId: receiptMediaId ?? null,
       })
     } else {
       createAction.execute({
+        ...data,
         projectId,
-        title: data.title,
-        amountCents: cents,
-        currency: data.currency,
-        date: data.date,
-        categoryId: data.categoryId,
-        billable: data.billable,
-        description: data.description || undefined,
-        receiptMediaId: receiptMediaId ?? undefined,
+        receiptMediaId,
       })
     }
 
@@ -279,14 +259,26 @@ export function ExpenseForm({
             <div className='grid grid-cols-2 gap-4'>
               <Controller
                 control={form.control}
-                name='amount'
+                name='amountCents'
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
                     <FieldLabel>Amount</FieldLabel>
                     <Input
-                      {...field}
                       aria-invalid={fieldState.invalid}
+                      defaultValue={
+                        field.value ? (field.value / 100).toFixed(2) : ''
+                      }
                       min='0.01'
+                      onBlur={field.onBlur}
+                      onChange={(e) => {
+                        const v = e.target.value
+                        if (v === '') {
+                          field.onChange(0)
+                          return
+                        }
+                        const cents = Math.round(Number.parseFloat(v) * 100)
+                        field.onChange(Number.isNaN(cents) ? 0 : cents)
+                      }}
                       placeholder='0.00'
                       step='0.01'
                       type='number'
@@ -381,9 +373,15 @@ export function ExpenseForm({
                 <Field>
                   <FieldLabel>Description</FieldLabel>
                   <Textarea
-                    {...field}
+                    name={field.name}
+                    onBlur={field.onBlur}
+                    onChange={(e) =>
+                      field.onChange(e.target.value || undefined)
+                    }
                     placeholder='Additional details (optional)'
+                    ref={field.ref}
                     rows={2}
+                    value={field.value ?? ''}
                   />
                 </Field>
               )}
@@ -465,6 +463,27 @@ export function ExpenseForm({
                 </div>
               )}
             />
+
+            <Controller
+              control={form.control}
+              name='recurring'
+              render={({ field }) => (
+                <div className='flex items-center gap-2'>
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={(checked) =>
+                      field.onChange(checked === true)
+                    }
+                  />
+                  <Label
+                    className='cursor-pointer font-normal'
+                    htmlFor='expense-recurring'
+                  >
+                    Recurring
+                  </Label>
+                </div>
+              )}
+            />
           </FieldGroup>
 
           <DialogFooter>
@@ -479,6 +498,7 @@ export function ExpenseForm({
               Cancel
             </Button>
             <Button
+              disabled={!form.formState.isValid}
               loading={
                 submitting || createAction.isPending || updateAction.isPending
               }
