@@ -60,10 +60,8 @@ export const expenses = pgTable(
     billable: boolean().default(true).notNull(),
     status: statusEnum().notNull().default('draft'),
     rejectReason: text('reject_reason'),
+    recurring: boolean('recurring').default(false).notNull(),
     receiptMediaId: text('receipt_media_id').references(() => media.id, {
-      onDelete: 'set null',
-    }),
-    invoiceId: text('invoice_id').references(() => invoices.id, {
       onDelete: 'set null',
     }),
     createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -83,6 +81,27 @@ export const expenseRecipientStatusEnum = pgEnum('expense_recipient_status', [
   'approved',
   'rejected',
 ])
+
+export const invoiceExpenses = pgTable(
+  'invoice_expenses',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => `iexp_${createId()}`),
+    invoiceId: text('invoice_id')
+      .references(() => invoices.id, { onDelete: 'cascade' })
+      .notNull(),
+    expenseId: text('expense_id')
+      .references(() => expenses.id, { onDelete: 'cascade' })
+      .notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    unique().on(table.invoiceId, table.expenseId),
+    index('invoice_expenses_invoice_id_idx').on(table.invoiceId),
+    index('invoice_expenses_expense_id_idx').on(table.expenseId),
+  ]
+)
 
 export const expenseRecipients = pgTable(
   'expense_recipients',

@@ -14,6 +14,7 @@ import { authedActionClient } from '@/lib/safe-action'
 import { db } from '@/server/db'
 import {
   expenses,
+  invoiceExpenses,
   invoiceItems,
   invoiceRecipients,
   invoiceRequirements,
@@ -104,6 +105,21 @@ export const createInvoiceAction = authedActionClient
         }
       }
 
+      if (expenseIds?.length) {
+        const validExpenses = await db
+          .select({ id: expenses.id })
+          .from(expenses)
+          .where(
+            and(
+              inArray(expenses.id, expenseIds),
+              eq(expenses.projectId, projectId)
+            )
+          )
+        if (validExpenses.length !== expenseIds.length) {
+          throw new Error('One or more expenses are invalid for this project')
+        }
+      }
+
       const totalAmount = items
         .reduce((sum, item) => sum + Number(item.amount), 0)
         .toFixed(4)
@@ -185,9 +201,14 @@ export const createInvoiceAction = authedActionClient
         // Link expenses
         if (expenseIds?.length) {
           await tx
-            .update(expenses)
-            .set({ invoiceId: insertedInvoice!.id })
-            .where(inArray(expenses.id, expenseIds))
+            .insert(invoiceExpenses)
+            .values(
+              expenseIds.map((expenseId) => ({
+                invoiceId: insertedInvoice!.id,
+                expenseId,
+              }))
+            )
+            .onConflictDoNothing()
         }
 
         return insertedInvoice
@@ -344,6 +365,21 @@ export const updateInvoiceAction = authedActionClient
         }
       }
 
+      if (expenseIds?.length) {
+        const validExpenses = await db
+          .select({ id: expenses.id })
+          .from(expenses)
+          .where(
+            and(
+              inArray(expenses.id, expenseIds),
+              eq(expenses.projectId, existing.projectId)
+            )
+          )
+        if (validExpenses.length !== expenseIds.length) {
+          throw new Error('One or more expenses are invalid for this invoice')
+        }
+      }
+
       const totalAmount = items
         .reduce((sum, item) => sum + Number(item.amount), 0)
         .toFixed(4)
@@ -423,17 +459,18 @@ export const updateInvoiceAction = authedActionClient
               )
             }
           }
-          if (expenseIds?.length) {
-            // Replace linked expenses — clear old, set new
-            await tx
-              .update(expenses)
-              .set({ invoiceId: null })
-              .where(eq(expenses.invoiceId, invoiceId))
+          // Replace linked expenses for this invoice — clear old, set new
+          await tx
+            .delete(invoiceExpenses)
+            .where(eq(invoiceExpenses.invoiceId, invoiceId))
 
-            await tx
-              .update(expenses)
-              .set({ invoiceId: insertedInvoice!.id })
-              .where(inArray(expenses.id, expenseIds))
+          if (expenseIds?.length) {
+            await tx.insert(invoiceExpenses).values(
+              expenseIds.map((expenseId) => ({
+                invoiceId: insertedInvoice!.id,
+                expenseId,
+              }))
+            )
           }
         })
 

@@ -109,18 +109,31 @@ export default async function InvoiceDetail({
 
   const h = await headers()
 
-  const [clients, requirementList, userMedia, billableEntries, unpaidExpenses] =
-    await Promise.all([
-      teamService.getProjectClients(currentProject.id),
-      requirementsService.listByProject(currentProject.id, h),
-      usersService.getMedias(orgMember.userId),
-      timesheetService.getBillableSummary(currentProject.id),
-      expensesServices.listUnpaidExpensesByProject(
-        organization.id,
-        currentProject.id,
-        orgMember.userId
-      ),
-    ])
+  const [
+    clients,
+    requirementList,
+    userMedia,
+    billableEntries,
+    unpaidExpenses,
+    linkedExpenses,
+  ] = await Promise.all([
+    teamService.getProjectClients(currentProject.id),
+    requirementsService.listByProject(currentProject.id, h),
+    usersService.getMedias(orgMember.userId),
+    timesheetService.getBillableSummary(currentProject.id),
+    expensesServices.listUnpaidExpensesByProject(
+      organization.id,
+      currentProject.id,
+      orgMember.userId
+    ),
+    expensesServices.listExpensesByInvoiceId(invoiceId),
+  ])
+
+  const availableExpenses = [
+    ...new Map(
+      [...unpaidExpenses, ...linkedExpenses].map((e) => [e.id, e])
+    ).values(),
+  ]
 
   const memberRateMap: Record<
     string,
@@ -178,7 +191,7 @@ export default async function InvoiceDetail({
       role={orgMember.role as Role}
       threads={threads}
       unbilledTimeEntries={billableEntries}
-      unpaidExpenses={unpaidExpenses}
+      unpaidExpenses={availableExpenses}
     />
   )
 }

@@ -1,0 +1,20 @@
+name: CodeRabbit auto-label
+
+# Uses pull_request_target (not pull_request) so the job runs in the base repo
+# context with write permission to add labels on PRs from forks. Safe here
+# because we do not check out PR code and the job is gated on a specific actor.
+on:
+  pull_request_target:
+    types: [opened, reopened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  label:
+    if: github.event.pull_request.user.login == 'PhantomKnight287'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions-ecosystem/action-add-labels@18f1af5e3c9 # v1
+        with:
+          labels: auto-review

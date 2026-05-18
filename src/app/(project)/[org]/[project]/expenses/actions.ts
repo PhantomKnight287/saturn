@@ -82,6 +82,7 @@ export const createExpenseAction = authedActionClient
         categoryId,
         milestoneId,
         billable,
+        recurring,
         receiptMediaId,
         title,
       },
@@ -118,6 +119,7 @@ export const createExpenseAction = authedActionClient
           projectId,
           title,
           billable,
+          recurring,
           description,
           status: isAdmin
             ? clientOff
@@ -195,6 +197,9 @@ export const updateExpenseAction = authedActionClient
       }
       if (updates.billable !== undefined) {
         setValues.billable = updates.billable
+      }
+      if (updates.recurring !== undefined) {
+        setValues.recurring = updates.recurring
       }
       if (updates.description !== undefined) {
         setValues.description = updates.description
