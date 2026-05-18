@@ -450,8 +450,8 @@ export function ExpenseForm({
               render={({ field }) => (
                 <div className='flex items-center gap-2'>
                   <Checkbox
-                    id='expense-billable'
                     checked={field.value}
+                    id='expense-billable'
                     onCheckedChange={(checked) =>
                       field.onChange(checked === true)
                     }
@@ -472,8 +472,8 @@ export function ExpenseForm({
               render={({ field }) => (
                 <div className='flex items-center gap-2'>
                   <Checkbox
-                    id='expense-recurring'
                     checked={field.value}
+                    id='expense-recurring'
                     onCheckedChange={(checked) =>
                       field.onChange(checked === true)
                     }
