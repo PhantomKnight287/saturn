@@ -1,0 +1,17 @@
+name: CodeRabbit auto-label
+
+on:
+  pull_request_target:
+    types: [opened, reopened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  label:
+    if: github.event.pull_request.user.login == 'PhantomKnight287'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: auto-review
