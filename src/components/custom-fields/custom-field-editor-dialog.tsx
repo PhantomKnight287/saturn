@@ -172,6 +172,7 @@ export function CustomFieldEditorDialog({
                         placeholder={`Option ${idx + 1}`}
                       />
                       <Button
+                        aria-label={`Remove option ${idx + 1}`}
                         onClick={() => optionsArray.remove(idx)}
                         size='icon'
                         type='button'

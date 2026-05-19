@@ -90,22 +90,21 @@ export function ImportOrgFieldsDialog({
           </p>
         ) : (
           <div className='space-y-2'>
-            {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: row wraps Checkbox which is the control */}
-            {/* biome-ignore lint/a11y/noStaticElementInteractions: row wraps Checkbox which is the control */}
-            {/* biome-ignore lint/a11y/useKeyWithClickEvents: row is a visual convenience for the inner Checkbox */}
-            <div
-              className='flex cursor-pointer items-center gap-2 border-b pb-2 font-medium text-sm'
-              onClick={() => {
-                if (allSelected) {
-                  setSelected(new Set())
-                } else {
-                  setSelected(new Set(orgFields.map((f) => f.id)))
-                }
-              }}
-            >
-              <Checkbox checked={allSelected} />
+            {/* biome-ignore lint/a11y/noLabelWithoutControl: Checkbox is a Radix button, not a native input — biome can't detect it */}
+            <label className='flex cursor-pointer items-center gap-2 border-b pb-2 font-medium text-sm'>
+              <Checkbox
+                aria-label='Select all workspace fields'
+                checked={allSelected}
+                onCheckedChange={(checked) => {
+                  if (checked) {
+                    setSelected(new Set(orgFields.map((f) => f.id)))
+                  } else {
+                    setSelected(new Set())
+                  }
+                }}
+              />
               Select all
-            </div>
+            </label>
             <ul className='max-h-80 space-y-1 overflow-y-auto'>
               {orgFields.map((f) => {
                 const dup = projectLabels.has(
@@ -113,14 +112,13 @@ export function ImportOrgFieldsDialog({
                 )
                 return (
                   <li key={f.id}>
-                    {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: row wraps Checkbox which is the control */}
-                    {/* biome-ignore lint/a11y/noStaticElementInteractions: row wraps Checkbox which is the control */}
-                    {/* biome-ignore lint/a11y/useKeyWithClickEvents: row is a visual convenience for the inner Checkbox */}
-                    <div
-                      className='flex cursor-pointer items-center gap-3 rounded-md p-2 hover:bg-accent/30'
-                      onClick={() => toggle(f.id)}
-                    >
-                      <Checkbox checked={selected.has(f.id)} />
+                    {/* biome-ignore lint/a11y/noLabelWithoutControl: Checkbox is a Radix button, not a native input — biome can't detect it */}
+                    <label className='flex cursor-pointer items-center gap-3 rounded-md p-2 hover:bg-accent/30'>
+                      <Checkbox
+                        aria-label={`Select field ${f.label}`}
+                        checked={selected.has(f.id)}
+                        onCheckedChange={() => toggle(f.id)}
+                      />
                       <span className='flex-1 text-sm'>{f.label}</span>
                       <Badge variant='secondary'>{f.type}</Badge>
                       {dup && (
@@ -129,7 +127,7 @@ export function ImportOrgFieldsDialog({
                           Already in project
                         </span>
                       )}
-                    </div>
+                    </label>
                   </li>
                 )
               })}

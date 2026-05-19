@@ -37,7 +37,10 @@ export const projects = pgTable(
       .$onUpdate(() => new Date())
       .notNull(),
   },
-  (t) => [unique().on(t.organizationId, t.slug)]
+  (t) => [
+    unique().on(t.organizationId, t.slug),
+    unique('projects_id_organization_id_unique').on(t.id, t.organizationId),
+  ]
 )
 
 export const projectTeamAssignments = pgTable(

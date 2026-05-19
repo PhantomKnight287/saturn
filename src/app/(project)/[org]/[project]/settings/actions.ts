@@ -237,7 +237,7 @@ export const updateProjectCustomFieldAction = authedActionClient
       await assertProjectInOrg(projectId, organizationId)
 
       const { type: _ignored, ...mutable } = definition
-      await db
+      const [updated] = await db
         .update(customFields)
         .set({
           ...mutable,
@@ -252,6 +252,11 @@ export const updateProjectCustomFieldAction = authedActionClient
             eq(customFields.organizationId, organizationId)
           )
         )
+        .returning({ id: customFields.id })
+
+      if (!updated) {
+        throw new Error('Custom field not found')
+      }
 
       return { success: true }
     }
@@ -275,7 +280,7 @@ export const deleteProjectCustomFieldAction = authedActionClient
       await assertProjectInOrg(projectId, organizationId)
 
       await db.transaction(async (tx) => {
-        await tx
+        const [deleted] = await tx
           .delete(customFields)
           .where(
             and(
@@ -284,6 +289,12 @@ export const deleteProjectCustomFieldAction = authedActionClient
               eq(customFields.organizationId, organizationId)
             )
           )
+          .returning({ id: customFields.id })
+
+        if (!deleted) {
+          throw new Error('Custom field not found')
+        }
+
         await tx
           .update(timeEntries)
           .set({

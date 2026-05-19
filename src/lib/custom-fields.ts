@@ -116,9 +116,33 @@ function validateDefinitionCrossFields(
     type: CustomFieldType
     options?: string[] | null
     defaultValue?: string | null
+    config?: CustomFieldConfig | null
   },
   ctx: z.RefinementCtx
 ) {
+  if (data.config) {
+    if (data.type !== 'text' && data.config.maxLength != null) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['config', 'maxLength'],
+        message: 'maxLength is only allowed for text fields.',
+      })
+    }
+    if (data.type !== 'number' && data.config.min != null) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['config', 'min'],
+        message: 'min is only allowed for number fields.',
+      })
+    }
+    if (data.type !== 'number' && data.config.max != null) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['config', 'max'],
+        message: 'max is only allowed for number fields.',
+      })
+    }
+  }
   if (data.type === 'select') {
     if (!data.options || data.options.length === 0) {
       ctx.addIssue({
@@ -391,10 +415,11 @@ export function toCustomFieldFormValues(
   initial?: CustomFieldInitial
 ): CustomFieldFormValues {
   const def = initial?.defaultValue ?? null
-  const isSentinel = def === 'today' || def === 'now'
+  const type = initial?.type ?? 'text'
+  const isSentinel = isTemporalType(type) && (def === 'today' || def === 'now')
   return {
     label: initial?.label ?? '',
-    type: initial?.type ?? 'text',
+    type,
     required: initial?.required ?? false,
     visibleToClient: initial?.visibleToClient ?? false,
     defaultValue: isSentinel ? null : def,

@@ -288,7 +288,11 @@ export function TimeEntryFormBody({
                   onChange={(date) => {
                     field.onChange(date ? toLocalDateString(date) : '')
                   }}
-                  value={field.value ? new Date(field.value) : undefined}
+                  value={
+                    typeof field.value === 'string' && field.value
+                      ? (parseDateOnlyAsLocal(field.value) ?? undefined)
+                      : undefined
+                  }
                 />
                 {fieldState.invalid && (
                   <FieldError errors={[fieldState.error]} />

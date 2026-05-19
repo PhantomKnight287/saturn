@@ -224,7 +224,7 @@ export const updateOrgCustomFieldAction = authedActionClient
       }
 
       const { type: _ignored, ...mutable } = definition
-      await db
+      const [updated] = await db
         .update(customFields)
         .set({
           ...mutable,
@@ -239,6 +239,11 @@ export const updateOrgCustomFieldAction = authedActionClient
             isNull(customFields.projectId)
           )
         )
+        .returning({ id: customFields.id })
+
+      if (!updated) {
+        throw new Error('Custom field not found')
+      }
 
       return { success: true }
     }
@@ -260,7 +265,7 @@ export const deleteOrgCustomFieldAction = authedActionClient
         throw new Error('Organization mismatch')
       }
 
-      await db
+      const [deleted] = await db
         .delete(customFields)
         .where(
           and(
@@ -269,6 +274,11 @@ export const deleteOrgCustomFieldAction = authedActionClient
             isNull(customFields.projectId)
           )
         )
+        .returning({ id: customFields.id })
+
+      if (!deleted) {
+        throw new Error('Custom field not found')
+      }
 
       return { success: true }
     }

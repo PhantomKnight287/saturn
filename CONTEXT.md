@@ -72,10 +72,8 @@ No manual reordering in v1. Fields render in `createdAt` ascending order, both i
 ### Client visibility
 Each field definition carries a `visibleToClient` boolean, default `false`. Custom field values are hidden from client-facing surfaces (shared timesheet reports, invoices) unless opted in per field.
 
-### Display of custom values (deferred)
-Both the **internal** read surface (timesheet list/detail rows for members and admins) and the **client-facing** read surface (shared timesheet reports, invoices) are deferred. The current timesheet/report flow needs a broader UX restructure for non-technical users; pinning a display treatment on top of the existing flow would bake in decisions that will be redone.
-
-In v1, custom values are persisted and editable on the entry's own create/edit page. They are **stored but not surfaced** anywhere else until the restructure lands.
+### Display of custom values
+Internal read surfaces (timesheet list/detail rows for members and admins) render custom values inline read-only via `CustomValuesInline`. Client-facing read surfaces (shared timesheet reports, invoices) are **deferred** — the current report/invoice flow needs a broader UX restructure for non-technical users; pinning a display treatment on top of the existing flow would bake in decisions that will be redone.
 
 ### Constraint changes on existing fields
 Constraint edits (label, required, default, dropdown options, etc.) are always allowed at the definition level. Validation is **enforce-on-write, never on read**:

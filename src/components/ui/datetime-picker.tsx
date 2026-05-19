@@ -60,6 +60,7 @@ export function DateTimePicker({
     <div className='flex gap-2'>
       <div className='flex-1'>
         <DatePicker
+          disabled={disabled}
           disablePastDates={false}
           onChange={(d) => onChange(combine(d, time || '00:00'))}
           value={date}

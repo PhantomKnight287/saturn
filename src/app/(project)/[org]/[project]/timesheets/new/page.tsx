@@ -55,7 +55,14 @@ export default async function NewTimeEntryPage({
 
   const defaultDate =
     typeof dateParam === 'string' && DATE_RE.test(dateParam)
-      ? new Date(dateParam)
+      ? (() => {
+          const [y, m, d] = dateParam.split('-').map(Number) as [
+            number,
+            number,
+            number,
+          ]
+          return new Date(y, m - 1, d)
+        })()
       : undefined
   const defaultDuration =
     typeof duration === 'string' && /^\d+$/.test(duration)

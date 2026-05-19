@@ -36,9 +36,9 @@ export default async function EditTimeEntryPage({
     notFound()
   }
 
-  const entryRow = await timesheetService.getEntryForEdit(entryId)
+  const entryRow = await timesheetService.getEntryForEdit(entryId, project.id)
 
-  if (!entryRow || entryRow.projectId !== project.id) {
+  if (!entryRow) {
     notFound()
   }
 

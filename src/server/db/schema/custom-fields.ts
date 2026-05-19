@@ -1,6 +1,7 @@
 import { createId } from '@paralleldrive/cuid2'
 import {
   boolean,
+  foreignKey,
   index,
   jsonb,
   pgEnum,
@@ -30,9 +31,7 @@ export const customFields = pgTable(
     organizationId: text('organization_id')
       .references(() => organizations.id, { onDelete: 'cascade' })
       .notNull(),
-    projectId: text('project_id').references(() => projects.id, {
-      onDelete: 'cascade',
-    }),
+    projectId: text('project_id'),
     label: text('label').notNull(),
     type: customFieldType('type').notNull(),
     required: boolean('required').default(false).notNull(),
@@ -53,5 +52,10 @@ export const customFields = pgTable(
   (t) => [
     index('custom_fields_project_idx').on(t.projectId),
     index('custom_fields_organization_idx').on(t.organizationId),
+    foreignKey({
+      columns: [t.projectId, t.organizationId],
+      foreignColumns: [projects.id, projects.organizationId],
+      name: 'custom_fields_project_id_organization_id_projects_id_organization_id_fk',
+    }).onDelete('cascade'),
   ]
 )

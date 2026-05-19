@@ -565,7 +565,7 @@ const listByProjectIdsSince = async (
     )
 }
 
-const getEntryForEdit = async (entryId: string) => {
+const getEntryForEdit = async (entryId: string, projectId: string) => {
   const [entry] = await db
     .select({
       id: timeEntries.id,
@@ -591,7 +591,9 @@ const getEntryForEdit = async (entryId: string) => {
     .leftJoin(requirements, eq(requirements.id, timeEntries.requirementId))
     .leftJoin(members, eq(members.id, timeEntries.memberId))
     .leftJoin(users, eq(users.id, members.userId))
-    .where(eq(timeEntries.id, entryId))
+    .where(
+      and(eq(timeEntries.id, entryId), eq(timeEntries.projectId, projectId))
+    )
     .limit(1)
 
   return entry ?? null
