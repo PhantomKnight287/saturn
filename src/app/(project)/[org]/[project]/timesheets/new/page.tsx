@@ -61,7 +61,12 @@ export default async function NewTimeEntryPage({
             number,
             number,
           ]
-          return new Date(y, m - 1, d)
+          const date = new Date(y, m - 1, d)
+          return date.getFullYear() === y &&
+            date.getMonth() + 1 === m &&
+            date.getDate() === d
+            ? date
+            : undefined
         })()
       : undefined
   const defaultDuration =

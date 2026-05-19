@@ -303,6 +303,7 @@ export function BiweeklyTimesheet({
                             isAdmin
                           ) && (
                             <Button
+                              aria-label='Edit time entry'
                               className='size-7'
                               onClick={() => onEditClick(entry)}
                               size='icon'
@@ -317,6 +318,7 @@ export function BiweeklyTimesheet({
                             isAdmin
                           ) && (
                             <Button
+                              aria-label='Delete time entry'
                               className='size-7 text-destructive'
                               onClick={() =>
                                 deleteAction.execute({
