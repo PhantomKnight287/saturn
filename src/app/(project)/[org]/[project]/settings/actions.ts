@@ -168,6 +168,22 @@ export const deleteProjectAction = authedActionClient
     }
   )
 
+async function assertProjectInOrg(projectId: string, organizationId: string) {
+  const [project] = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(
+      and(
+        eq(projects.id, projectId),
+        eq(projects.organizationId, organizationId)
+      )
+    )
+    .limit(1)
+  if (!project) {
+    throw new Error('Project not found in this workspace')
+  }
+}
+
 export const createProjectCustomFieldAction = authedActionClient
   .inputSchema(createProjectCustomFieldSchema)
   .action(
@@ -179,16 +195,18 @@ export const createProjectCustomFieldAction = authedActionClient
         throw new Error('You do not have permission to update project settings')
       }
       if (orgMember.organizationId !== organizationId) {
-        throw new Error('Organization mismatch')
+        throw new Error(
+          'This project belongs to a different workspace than the one you have selected'
+        )
       }
+      await assertProjectInOrg(projectId, organizationId)
 
       const [row] = await db
         .insert(customFields)
         .values({
+          ...definition,
           organizationId,
           projectId,
-          label: definition.label,
-          type: definition.type,
           required: definition.required ?? false,
           visibleToClient: definition.visibleToClient ?? false,
           defaultValue: definition.defaultValue ?? null,
@@ -212,15 +230,17 @@ export const updateProjectCustomFieldAction = authedActionClient
         throw new Error('You do not have permission to update project settings')
       }
       if (orgMember.organizationId !== organizationId) {
-        throw new Error('Organization mismatch')
+        throw new Error(
+          'This project belongs to a different workspace than the one you have selected'
+        )
       }
+      await assertProjectInOrg(projectId, organizationId)
 
+      const { type: _ignored, ...mutable } = definition
       await db
         .update(customFields)
         .set({
-          label: definition.label,
-          required: definition.required,
-          visibleToClient: definition.visibleToClient,
+          ...mutable,
           defaultValue: definition.defaultValue ?? null,
           options: definition.options ?? null,
           config: definition.config ?? null,
@@ -228,7 +248,8 @@ export const updateProjectCustomFieldAction = authedActionClient
         .where(
           and(
             eq(customFields.id, fieldId),
-            eq(customFields.projectId, projectId)
+            eq(customFields.projectId, projectId),
+            eq(customFields.organizationId, organizationId)
           )
         )
 
@@ -247,8 +268,11 @@ export const deleteProjectCustomFieldAction = authedActionClient
         throw new Error('You do not have permission to update project settings')
       }
       if (orgMember.organizationId !== organizationId) {
-        throw new Error('Organization mismatch')
+        throw new Error(
+          'This project belongs to a different workspace than the one you have selected'
+        )
       }
+      await assertProjectInOrg(projectId, organizationId)
 
       await db.transaction(async (tx) => {
         await tx
@@ -256,7 +280,8 @@ export const deleteProjectCustomFieldAction = authedActionClient
           .where(
             and(
               eq(customFields.id, fieldId),
-              eq(customFields.projectId, projectId)
+              eq(customFields.projectId, projectId),
+              eq(customFields.organizationId, organizationId)
             )
           )
         await tx
@@ -282,11 +307,22 @@ export const importOrgCustomFieldsAction = authedActionClient
         throw new Error('You do not have permission to update project settings')
       }
       if (orgMember.organizationId !== organizationId) {
-        throw new Error('Organization mismatch')
+        throw new Error(
+          'This project belongs to a different workspace than the one you have selected'
+        )
       }
+      await assertProjectInOrg(projectId, organizationId)
 
       const sources = await db
-        .select()
+        .select({
+          label: customFields.label,
+          type: customFields.type,
+          required: customFields.required,
+          visibleToClient: customFields.visibleToClient,
+          defaultValue: customFields.defaultValue,
+          options: customFields.options,
+          config: customFields.config,
+        })
         .from(customFields)
         .where(
           and(
@@ -302,15 +338,9 @@ export const importOrgCustomFieldsAction = authedActionClient
 
       await db.insert(customFields).values(
         sources.map((s) => ({
+          ...s,
           organizationId,
           projectId,
-          label: s.label,
-          type: s.type,
-          required: s.required,
-          visibleToClient: s.visibleToClient,
-          defaultValue: s.defaultValue,
-          options: s.options,
-          config: s.config,
         }))
       )
 

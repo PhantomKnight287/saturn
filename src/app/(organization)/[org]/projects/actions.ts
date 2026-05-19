@@ -1,6 +1,6 @@
 'use server'
 
-import { and, count, eq, isNull } from 'drizzle-orm'
+import { and, asc, count, eq, isNull } from 'drizzle-orm'
 // import { PROJECTS_CACHE_TAG } from '@/api/projects/service'
 import { getUserBillingStatus } from '@/cache/billing'
 import { authedActionClient } from '@/lib/safe-action'
@@ -109,7 +109,15 @@ export const createProjectAction = authedActionClient
         })
 
         const orgTemplates = await tx
-          .select()
+          .select({
+            label: customFields.label,
+            type: customFields.type,
+            required: customFields.required,
+            visibleToClient: customFields.visibleToClient,
+            defaultValue: customFields.defaultValue,
+            options: customFields.options,
+            config: customFields.config,
+          })
           .from(customFields)
           .where(
             and(
@@ -117,19 +125,14 @@ export const createProjectAction = authedActionClient
               isNull(customFields.projectId)
             )
           )
+          .orderBy(asc(customFields.createdAt))
 
         if (orgTemplates.length > 0) {
           await tx.insert(customFields).values(
             orgTemplates.map((t) => ({
+              ...t,
               organizationId,
               projectId: createdProject.id,
-              label: t.label,
-              type: t.type,
-              required: t.required,
-              visibleToClient: t.visibleToClient,
-              defaultValue: t.defaultValue,
-              options: t.options,
-              config: t.config,
             }))
           )
         }

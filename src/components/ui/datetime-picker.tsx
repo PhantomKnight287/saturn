@@ -31,6 +31,16 @@ function combine(date: Date | undefined, time: string): string | null {
   const [hStr, mStr] = (time || '00:00').split(':')
   const h = Number(hStr ?? 0)
   const m = Number(mStr ?? 0)
+  if (
+    !Number.isInteger(h) ||
+    !Number.isInteger(m) ||
+    h < 0 ||
+    h > 23 ||
+    m < 0 ||
+    m > 59
+  ) {
+    return null
+  }
   const local = new Date(date)
   local.setHours(h, m, 0, 0)
   return local.toISOString()

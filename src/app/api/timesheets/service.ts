@@ -565,9 +565,41 @@ const listByProjectIdsSince = async (
     )
 }
 
+const getEntryForEdit = async (entryId: string) => {
+  const [entry] = await db
+    .select({
+      id: timeEntries.id,
+      projectId: timeEntries.projectId,
+      requirementId: timeEntries.requirementId,
+      memberId: timeEntries.memberId,
+      description: timeEntries.description,
+      date: timeEntries.date,
+      durationMinutes: timeEntries.durationMinutes,
+      billable: timeEntries.billable,
+      status: timeEntries.status,
+      rejectReason: timeEntries.rejectReason,
+      invoiceId: timeEntries.invoiceId,
+      customValues: timeEntries.customValues,
+      createdAt: timeEntries.createdAt,
+      updatedAt: timeEntries.updatedAt,
+      requirementSlug: requirements.slug,
+      requirementTitle: requirements.title,
+      memberEmail: users.email,
+      memberName: users.name,
+    })
+    .from(timeEntries)
+    .leftJoin(requirements, eq(requirements.id, timeEntries.requirementId))
+    .leftJoin(members, eq(members.id, timeEntries.memberId))
+    .leftJoin(users, eq(users.id, members.userId))
+    .where(eq(timeEntries.id, entryId))
+    .limit(1)
+
+  return entry ?? null
+}
+
 const getProjectCustomFields = async (
   projectId: string,
-  role: 'client' | 'member'
+  role: 'owner' | 'admin' | 'member' | 'client'
 ) => {
   const conditions = [eq(customFields.projectId, projectId)]
   if (role === 'client') {
@@ -581,6 +613,7 @@ const getProjectCustomFields = async (
 }
 
 export const timesheetService = {
+  getEntryForEdit,
   getProjectCustomFields,
   listByProject,
   listByProjectIdsSince,

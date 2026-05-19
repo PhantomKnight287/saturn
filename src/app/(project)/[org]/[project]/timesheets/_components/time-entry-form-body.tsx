@@ -26,7 +26,11 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { TimePicker } from '@/components/ui/time-picker'
-import { type CustomFieldDefinition, resolveDefault } from '@/lib/custom-fields'
+import {
+  type CustomFieldDefinition,
+  parseDateOnlyAsLocal,
+  resolveDefault,
+} from '@/lib/custom-fields'
 import { createTimeEntryAction, updateTimeEntryAction } from '../actions'
 import { formatMinutes, timeEntryFormSchema } from '../common'
 import type { Requirement, TimeEntry, TimeEntryFormValues } from '../types'
@@ -482,7 +486,9 @@ function CustomFieldInput({
                     field.onChange(`${y}-${m}-${day}`)
                   }}
                   value={
-                    typeof value === 'string' ? new Date(value) : undefined
+                    typeof value === 'string'
+                      ? (parseDateOnlyAsLocal(value) ?? undefined)
+                      : undefined
                   }
                 />
               </Field>

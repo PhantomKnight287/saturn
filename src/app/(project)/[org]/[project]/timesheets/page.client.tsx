@@ -52,23 +52,31 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
   const hasCustomFields = customFields.length > 0
   const timesheetsBase = `/${orgSlug}/${projectSlug}/timesheets`
   const router = useRouter()
-  const [formOpen, setFormOpen] = useState(!!initialLogMinutes)
+  const [formOpen, setFormOpen] = useState(
+    !hasCustomFields && !!initialLogMinutes
+  )
   const [formDefaultDate, setFormDefaultDate] = useState<Date | undefined>()
   const [formDefaultDuration, setFormDefaultDuration] = useState<
     number | undefined
-  >(initialLogMinutes)
+  >(hasCustomFields ? undefined : initialLogMinutes)
   const timerStartedAt = useTimerStore((s) => s.startedAt)
   const timerAccumulatedMs = useTimerStore((s) => s.accumulatedMs)
   const startTimer = useTimerStore((s) => s.start)
   const timerActive = timerStartedAt !== null || timerAccumulatedMs > 0
 
   useEffect(() => {
-    if (initialLogMinutes) {
-      const url = new URL(window.location.href)
-      url.searchParams.delete('logMinutes')
-      window.history.replaceState(null, '', url.toString())
+    if (!initialLogMinutes) {
+      return
     }
-  }, [initialLogMinutes])
+    if (hasCustomFields) {
+      const qs = new URLSearchParams({ duration: String(initialLogMinutes) })
+      router.replace(`${timesheetsBase}/new?${qs.toString()}`)
+      return
+    }
+    const url = new URL(window.location.href)
+    url.searchParams.delete('logMinutes')
+    window.history.replaceState(null, '', url.toString())
+  }, [hasCustomFields, initialLogMinutes, router, timesheetsBase])
 
   useEffect(() => {
     const handler = (e: Event) => {

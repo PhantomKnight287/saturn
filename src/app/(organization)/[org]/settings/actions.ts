@@ -190,10 +190,9 @@ export const createOrgCustomFieldAction = authedActionClient
       const [row] = await db
         .insert(customFields)
         .values({
+          ...definition,
           organizationId,
           projectId: null,
-          label: definition.label,
-          type: definition.type,
           required: definition.required ?? false,
           visibleToClient: definition.visibleToClient ?? false,
           defaultValue: definition.defaultValue ?? null,
@@ -215,19 +214,20 @@ export const updateOrgCustomFieldAction = authedActionClient
     }) => {
       if (!role.authorize({ organization: ['update'] }).success) {
         throw new Error(
-          'You do not have permission to update workspace settings'
+          'You do not have permission to update this custom field'
         )
       }
       if (orgMember.organizationId !== organizationId) {
-        throw new Error('Organization mismatch')
+        throw new Error(
+          'This custom field belongs to a different workspace than the one you have selected'
+        )
       }
 
+      const { type: _ignored, ...mutable } = definition
       await db
         .update(customFields)
         .set({
-          label: definition.label,
-          required: definition.required,
-          visibleToClient: definition.visibleToClient,
+          ...mutable,
           defaultValue: definition.defaultValue ?? null,
           options: definition.options ?? null,
           config: definition.config ?? null,

@@ -5,6 +5,7 @@ import { Plus, Trash2 } from 'lucide-react'
 import { useAction } from 'next-safe-action/hooks'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
 import { CustomFieldEditorDialog } from '@/components/custom-fields/custom-field-editor-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -32,6 +33,7 @@ export function OrgCustomFieldsCard({
   const router = useRouter()
   const [editing, setEditing] = useState<CustomFieldDefinition | null>(null)
   const [creating, setCreating] = useState(false)
+  const [deleting, setDeleting] = useState<CustomFieldDefinition | null>(null)
 
   const createAction = useAction(createOrgCustomFieldAction, {
     onSuccess() {
@@ -58,6 +60,7 @@ export function OrgCustomFieldsCard({
   const deleteAction = useAction(deleteOrgCustomFieldAction, {
     onSuccess() {
       toast.success('Field deleted')
+      setDeleting(null)
       router.refresh()
     },
     onError({ error }) {
@@ -69,7 +72,7 @@ export function OrgCustomFieldsCard({
     <>
       <Card>
         <CardHeader className='flex flex-row items-start justify-between gap-4'>
-          <div>
+          <div className='flex flex-col gap-2'>
             <CardTitle>Custom fields</CardTitle>
             <CardDescription>
               Templates copied into every new project. Existing projects are not
@@ -83,17 +86,9 @@ export function OrgCustomFieldsCard({
         </CardHeader>
         <CardContent>
           {customFields.length === 0 ? (
-            <div className='flex flex-col items-center gap-3 py-10 text-center text-muted-foreground text-sm'>
-              <p>No custom fields yet.</p>
-              <Button
-                onClick={() => setCreating(true)}
-                size='sm'
-                variant='outline'
-              >
-                <Plus className='size-4' />
-                Add field
-              </Button>
-            </div>
+            <p className='text-center text-muted-foreground text-sm'>
+              No custom fields yet.
+            </p>
           ) : (
             <ul className='space-y-2'>
               {customFields.map((f) => (
@@ -121,17 +116,8 @@ export function OrgCustomFieldsCard({
                     )}
                   </button>
                   <Button
-                    onClick={() => {
-                      if (
-                        // biome-ignore lint/suspicious/noAlert: simple confirm for v1; consider AlertDialog later
-                        confirm(`Delete "${f.label}"? This cannot be undone.`)
-                      ) {
-                        deleteAction.execute({
-                          organizationId,
-                          fieldId: f.id,
-                        })
-                      }
-                    }}
+                    aria-label={`Delete custom field ${f.label}`}
+                    onClick={() => setDeleting(f)}
                     size='icon'
                     variant='ghost'
                   >
@@ -158,19 +144,7 @@ export function OrgCustomFieldsCard({
       />
 
       <CustomFieldEditorDialog
-        initial={
-          editing
-            ? {
-                label: editing.label,
-                type: editing.type,
-                required: editing.required,
-                visibleToClient: editing.visibleToClient,
-                defaultValue: editing.defaultValue,
-                options: editing.options,
-                config: editing.config,
-              }
-            : undefined
-        }
+        initial={editing ?? undefined}
         isPending={updateAction.isPending}
         mode='edit'
         onOpenChange={(open) => {
@@ -189,6 +163,30 @@ export function OrgCustomFieldsCard({
           })
         }}
         open={!!editing}
+      />
+
+      <ConfirmDeleteDialog
+        description={
+          <>
+            Delete custom field{' '}
+            <span className='font-semibold'>"{deleting?.label}"</span>? This
+            cannot be undone.
+          </>
+        }
+        loading={deleteAction.isPending}
+        onConfirm={() => {
+          if (!deleting) {
+            return
+          }
+          deleteAction.execute({ organizationId, fieldId: deleting.id })
+        }}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleting(null)
+          }
+        }}
+        open={!!deleting}
+        title='Delete custom field'
       />
     </>
   )

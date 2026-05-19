@@ -35,7 +35,7 @@ export default async function SettingsPage({
 
   const settings = await projectsService.getSettings(organization.id)
 
-  const orgFieldRows = await db
+  const orgCustomFields: CustomFieldDefinition[] = await db
     .select()
     .from(customFields)
     .where(
@@ -45,19 +45,6 @@ export default async function SettingsPage({
       )
     )
     .orderBy(asc(customFields.createdAt))
-  const orgCustomFields: CustomFieldDefinition[] = orgFieldRows.map((r) => ({
-    id: r.id,
-    organizationId: r.organizationId,
-    projectId: r.projectId,
-    label: r.label,
-    type: r.type,
-    required: r.required,
-    visibleToClient: r.visibleToClient,
-    defaultValue: r.defaultValue,
-    options: r.options,
-    config: r.config,
-    createdAt: r.createdAt,
-  }))
 
   return (
     <SettingsPageClient

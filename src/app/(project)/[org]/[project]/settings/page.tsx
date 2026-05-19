@@ -43,12 +43,12 @@ export default async function ProjectSettingsPage({
     project.id
   )
 
-  const projectFieldRows = await db
+  const projectCustomFields: CustomFieldDefinition[] = await db
     .select()
     .from(customFields)
     .where(eq(customFields.projectId, project.id))
     .orderBy(asc(customFields.createdAt))
-  const orgFieldRows = await db
+  const orgCustomFields: CustomFieldDefinition[] = await db
     .select()
     .from(customFields)
     .where(
@@ -59,27 +59,11 @@ export default async function ProjectSettingsPage({
     )
     .orderBy(asc(customFields.createdAt))
 
-  const toDef = (
-    r: (typeof projectFieldRows)[number]
-  ): CustomFieldDefinition => ({
-    id: r.id,
-    organizationId: r.organizationId,
-    projectId: r.projectId,
-    label: r.label,
-    type: r.type,
-    required: r.required,
-    visibleToClient: r.visibleToClient,
-    defaultValue: r.defaultValue,
-    options: r.options,
-    config: r.config,
-    createdAt: r.createdAt,
-  })
-
   return (
     <ProjectSettingsPageClient
       canDelete={canDelete}
       organizationId={organization.id}
-      orgCustomFields={orgFieldRows.map(toDef)}
+      orgCustomFields={orgCustomFields}
       orgSlug={org}
       project={{
         id: project.id,
@@ -87,7 +71,7 @@ export default async function ProjectSettingsPage({
         slug: project.slug,
         dueDate: project.dueDate ? new Date(project.dueDate) : null,
       }}
-      projectCustomFields={projectFieldRows.map(toDef)}
+      projectCustomFields={projectCustomFields}
       settings={settings}
     />
   )

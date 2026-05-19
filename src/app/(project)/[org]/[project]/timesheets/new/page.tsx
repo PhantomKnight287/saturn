@@ -39,7 +39,7 @@ export default async function NewTimeEntryPage({
   }
 
   const h = await headers()
-  const [requirementsList, defRows] = await Promise.all([
+  const [requirementsList, defs] = await Promise.all([
     requirementsService.listByProject(project.id, h),
     db
       .select()
@@ -50,22 +50,8 @@ export default async function NewTimeEntryPage({
           eq(customFields.organizationId, organization.id)
         )
       )
-      .orderBy(asc(customFields.createdAt)),
+      .orderBy(asc(customFields.createdAt)) as Promise<CustomFieldDefinition[]>,
   ])
-
-  const defs: CustomFieldDefinition[] = defRows.map((r) => ({
-    id: r.id,
-    organizationId: r.organizationId,
-    projectId: r.projectId,
-    label: r.label,
-    type: r.type,
-    required: r.required,
-    visibleToClient: r.visibleToClient,
-    defaultValue: r.defaultValue,
-    options: r.options,
-    config: r.config,
-    createdAt: r.createdAt,
-  }))
 
   const defaultDate =
     typeof dateParam === 'string' && DATE_RE.test(dateParam)

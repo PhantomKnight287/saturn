@@ -16,12 +16,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import type { CustomFieldDefinition } from '@/lib/custom-fields'
+import {
+  type CustomFieldDefinition,
+  normalizeCustomFieldLabel,
+} from '@/lib/custom-fields'
 import { importOrgCustomFieldsAction } from '../actions'
-
-function normalizeLabel(label: string): string {
-  return label.trim().toLowerCase()
-}
 
 export function ImportOrgFieldsDialog({
   open,
@@ -42,7 +41,7 @@ export function ImportOrgFieldsDialog({
   const [selected, setSelected] = useState<Set<string>>(new Set())
 
   const projectLabels = useMemo(
-    () => new Set(projectFields.map((f) => normalizeLabel(f.label))),
+    () => new Set(projectFields.map((f) => normalizeCustomFieldLabel(f.label))),
     [projectFields]
   )
 
@@ -77,9 +76,9 @@ export function ImportOrgFieldsDialog({
     <Dialog onOpenChange={onOpenChange} open={open}>
       <DialogContent className='sm:max-w-[520px]'>
         <DialogHeader>
-          <DialogTitle>Import fields from organization</DialogTitle>
+          <DialogTitle>Import fields from workspace</DialogTitle>
           <DialogDescription>
-            Choose which organization-level fields to copy into this project.
+            Choose which workspace-level fields to copy into this project.
             Copies are independent — later changes to org fields won't update
             them here.
           </DialogDescription>
@@ -109,7 +108,9 @@ export function ImportOrgFieldsDialog({
             </div>
             <ul className='max-h-80 space-y-1 overflow-y-auto'>
               {orgFields.map((f) => {
-                const dup = projectLabels.has(normalizeLabel(f.label))
+                const dup = projectLabels.has(
+                  normalizeCustomFieldLabel(f.label)
+                )
                 return (
                   <li key={f.id}>
                     {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: row wraps Checkbox which is the control */}

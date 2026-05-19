@@ -14,8 +14,28 @@ export type CustomFieldType = (typeof CUSTOM_FIELD_TYPES)[number]
 
 export const TEMPORAL_TYPES = ['date', 'datetime', 'time'] as const
 
+export function isTemporalType(t: CustomFieldType): boolean {
+  return t === 'date' || t === 'datetime' || t === 'time'
+}
+
+export const CUSTOM_FIELD_TYPE_LABELS: Record<CustomFieldType, string> = {
+  text: 'Text',
+  number: 'Number',
+  select: 'Dropdown',
+  checkbox: 'Checkbox',
+  date: 'Date',
+  datetime: 'Date & time',
+  time: 'Time',
+}
+
+export interface CustomFieldConfig {
+  max?: number
+  maxLength?: number
+  min?: number
+}
+
 export interface CustomFieldDefinition {
-  config: { maxLength?: number; min?: number; max?: number } | null
+  config: CustomFieldConfig | null
   createdAt: Date
   defaultValue: string | null
   id: string
@@ -36,8 +56,141 @@ const configSchema = z
     min: z.number().optional(),
     max: z.number().optional(),
   })
+  .refine((c) => c.min == null || c.max == null || c.min <= c.max, {
+    message: 'Min must be less than or equal to Max',
+    path: ['min'],
+  })
   .nullable()
   .optional()
+
+const DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/
+const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/
+
+export function isValidDateString(s: string): boolean {
+  const m = DATE_RE.exec(s)
+  if (!m) {
+    return false
+  }
+  const year = Number(m[1])
+  const month = Number(m[2])
+  const day = Number(m[3])
+  if (month < 1 || month > 12 || day < 1) {
+    return false
+  }
+  const daysInMonth = new Date(year, month, 0).getDate()
+  return day <= daysInMonth
+}
+
+export function isValidTimeString(s: string): boolean {
+  return TIME_RE.test(s)
+}
+
+/**
+ * Parse a YYYY-MM-DD string as a local-time Date (midnight in the runtime's
+ * timezone). `new Date("YYYY-MM-DD")` parses as UTC, which can shift the day
+ * for users west of UTC.
+ */
+export function parseDateOnlyAsLocal(s: string): Date | null {
+  const m = DATE_RE.exec(s)
+  if (!m) {
+    return null
+  }
+  const year = Number(m[1])
+  const month = Number(m[2])
+  const day = Number(m[3])
+  if (!isValidDateString(s)) {
+    return null
+  }
+  return new Date(year, month - 1, day)
+}
+
+export function formatLocalDateOnly(date: Date): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+function validateDefinitionCrossFields(
+  data: {
+    type: CustomFieldType
+    options?: string[] | null
+    defaultValue?: string | null
+  },
+  ctx: z.RefinementCtx
+) {
+  if (data.type === 'select') {
+    if (!data.options || data.options.length === 0) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['options'],
+        message: 'At least one option is required for a select field.',
+      })
+      return
+    }
+    const set = new Set(data.options.map((o) => o.toLowerCase()))
+    if (set.size !== data.options.length) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['options'],
+        message: 'Options must be unique.',
+      })
+    }
+    if (
+      data.defaultValue != null &&
+      !data.options.includes(data.defaultValue)
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['defaultValue'],
+        message: 'Default must be one of the configured options.',
+      })
+    }
+  }
+  if (data.type !== 'select' && data.options && data.options.length > 0) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['options'],
+      message: 'Options are only allowed for select fields.',
+    })
+  }
+  if (
+    data.type === 'date' &&
+    data.defaultValue != null &&
+    data.defaultValue !== 'today' &&
+    !isValidDateString(data.defaultValue)
+  ) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['defaultValue'],
+      message: "Default must be a valid YYYY-MM-DD date or 'today'.",
+    })
+  }
+  if (
+    data.type === 'time' &&
+    data.defaultValue != null &&
+    data.defaultValue !== 'now' &&
+    !isValidTimeString(data.defaultValue)
+  ) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['defaultValue'],
+      message: "Default must be a valid HH:MM time or 'now'.",
+    })
+  }
+  if (
+    data.type === 'datetime' &&
+    data.defaultValue != null &&
+    data.defaultValue !== 'now' &&
+    Number.isNaN(Date.parse(data.defaultValue))
+  ) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['defaultValue'],
+      message: "Default must be a valid datetime or 'now'.",
+    })
+  }
+}
 
 export const customFieldDefinitionCreateSchema = z
   .object({
@@ -49,90 +202,19 @@ export const customFieldDefinitionCreateSchema = z
     options: z.array(z.string().trim().min(1).max(100)).nullable().optional(),
     config: configSchema,
   })
-  .superRefine((data, ctx) => {
-    if (data.type === 'select') {
-      if (!data.options || data.options.length === 0) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['options'],
-          message: 'At least one option is required for a select field.',
-        })
-        return
-      }
-      const set = new Set(data.options.map((o) => o.toLowerCase()))
-      if (set.size !== data.options.length) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['options'],
-          message: 'Options must be unique.',
-        })
-      }
-      if (
-        data.defaultValue != null &&
-        !data.options.includes(data.defaultValue)
-      ) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['defaultValue'],
-          message: 'Default must be one of the configured options.',
-        })
-      }
-    }
-    if (data.type !== 'select' && data.options && data.options.length > 0) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['options'],
-        message: 'Options are only allowed for select fields.',
-      })
-    }
-    if (
-      data.type === 'date' &&
-      data.defaultValue != null &&
-      data.defaultValue !== 'today' &&
-      !/^\d{4}-\d{2}-\d{2}$/.test(data.defaultValue)
-    ) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['defaultValue'],
-        message: "Default must be a YYYY-MM-DD date or 'today'.",
-      })
-    }
-    if (
-      data.type === 'time' &&
-      data.defaultValue != null &&
-      data.defaultValue !== 'now' &&
-      !/^\d{2}:\d{2}$/.test(data.defaultValue)
-    ) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['defaultValue'],
-        message: "Default must be a HH:MM time or 'now'.",
-      })
-    }
-    if (
-      data.type === 'datetime' &&
-      data.defaultValue != null &&
-      data.defaultValue !== 'now' &&
-      Number.isNaN(Date.parse(data.defaultValue))
-    ) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['defaultValue'],
-        message: "Default must be a valid datetime or 'now'.",
-      })
-    }
-  })
+  .superRefine(validateDefinitionCrossFields)
 
 export const customFieldDefinitionUpdateSchema = z
   .object({
     label: labelSchema,
+    type: z.enum(CUSTOM_FIELD_TYPES),
     required: z.boolean(),
     visibleToClient: z.boolean(),
     defaultValue: z.string().nullable().optional(),
     options: z.array(z.string().trim().min(1).max(100)).nullable().optional(),
     config: configSchema,
   })
-  .passthrough()
+  .superRefine(validateDefinitionCrossFields)
 
 export function resolveDefault(
   def: Pick<CustomFieldDefinition, 'type' | 'defaultValue'>,
@@ -142,10 +224,7 @@ export function resolveDefault(
     return def.type === 'checkbox' ? false : null
   }
   if (def.type === 'date' && def.defaultValue === 'today') {
-    const y = now.getFullYear()
-    const m = String(now.getMonth() + 1).padStart(2, '0')
-    const d = String(now.getDate()).padStart(2, '0')
-    return `${y}-${m}-${d}`
+    return formatLocalDateOnly(now)
   }
   if (def.type === 'time' && def.defaultValue === 'now') {
     const h = String(now.getHours()).padStart(2, '0')
@@ -197,13 +276,17 @@ function valueSchemaFor(def: CustomFieldDefinition) {
     case 'checkbox':
       return z.boolean().default(false)
     case 'date': {
-      const s = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date')
+      const s = z
+        .string()
+        .refine(isValidDateString, { message: 'Invalid date' })
       return def.required
         ? s.min(1, `${def.label} is required`)
         : s.optional().nullable()
     }
     case 'time': {
-      const s = z.string().regex(/^\d{2}:\d{2}$/, 'Invalid time')
+      const s = z
+        .string()
+        .refine(isValidTimeString, { message: 'Invalid time' })
       return def.required
         ? s.min(1, `${def.label} is required`)
         : s.optional().nullable()
@@ -234,4 +317,123 @@ export function buildCustomValuesSchema(defs: CustomFieldDefinition[]) {
     }
     return out
   })
+}
+
+// ---------- display helpers ----------
+
+export function normalizeCustomFieldLabel(label: string): string {
+  return label.trim().toLowerCase()
+}
+
+export function formatCustomFieldValue(
+  def: CustomFieldDefinition,
+  raw: unknown
+): string | null {
+  if (raw == null || raw === '') {
+    return null
+  }
+  switch (def.type) {
+    case 'checkbox':
+      return raw ? 'Yes' : 'No'
+    case 'date': {
+      const local = parseDateOnlyAsLocal(String(raw))
+      if (!local) {
+        return String(raw)
+      }
+      return local.toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      })
+    }
+    case 'datetime': {
+      const d = new Date(raw as string)
+      if (Number.isNaN(d.getTime())) {
+        return String(raw)
+      }
+      return d.toLocaleString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      })
+    }
+    default:
+      return String(raw)
+  }
+}
+
+// ---------- editor-form helpers ----------
+
+export interface CustomFieldFormValues {
+  config?: CustomFieldConfig | null
+  defaultValue?: string | null
+  label: string
+  options?: { value: string }[]
+  required: boolean
+  type: CustomFieldType
+  useCurrent: boolean
+  visibleToClient: boolean
+}
+
+export interface CustomFieldInitial {
+  config?: CustomFieldConfig | null
+  defaultValue?: string | null
+  label?: string
+  options?: string[] | null
+  required?: boolean
+  type?: CustomFieldType
+  visibleToClient?: boolean
+}
+
+export function toCustomFieldFormValues(
+  initial?: CustomFieldInitial
+): CustomFieldFormValues {
+  const def = initial?.defaultValue ?? null
+  const isSentinel = def === 'today' || def === 'now'
+  return {
+    label: initial?.label ?? '',
+    type: initial?.type ?? 'text',
+    required: initial?.required ?? false,
+    visibleToClient: initial?.visibleToClient ?? false,
+    defaultValue: isSentinel ? null : def,
+    options: (initial?.options ?? []).map((value) => ({ value })),
+    config: initial?.config ?? null,
+    useCurrent: isSentinel,
+  }
+}
+
+export interface CustomFieldSubmitPayload {
+  config: CustomFieldConfig | null
+  defaultValue: string | null
+  label: string
+  options: string[] | null
+  required: boolean
+  type: CustomFieldType
+  visibleToClient: boolean
+}
+
+export function toSubmittableCustomFieldPayload(
+  values: CustomFieldFormValues
+): CustomFieldSubmitPayload {
+  let defaultValue: string | null = null
+  if (values.useCurrent && isTemporalType(values.type)) {
+    defaultValue = values.type === 'date' ? 'today' : 'now'
+  } else if (values.defaultValue != null && values.defaultValue !== '') {
+    defaultValue = values.defaultValue
+  }
+
+  return {
+    label: values.label.trim(),
+    type: values.type,
+    required: values.required,
+    visibleToClient: values.visibleToClient,
+    defaultValue,
+    options:
+      values.type === 'select'
+        ? (values.options ?? []).map((o) => o.value.trim()).filter(Boolean)
+        : null,
+    config: values.config ?? null,
+  }
 }

@@ -87,10 +87,7 @@ export default async function TimeTracking({
       ? teamService.getProjectClients(currentProject.id)
       : Promise.resolve([]),
     projectsService.getSettings(organization.id, currentProject.id),
-    timesheetService.getProjectCustomFields(
-      currentProject.id,
-      isClient ? 'client' : 'member'
-    ),
+    timesheetService.getProjectCustomFields(currentProject.id, orgMember.role),
   ])
 
   const reportIds = reports.map((r) => r.id)

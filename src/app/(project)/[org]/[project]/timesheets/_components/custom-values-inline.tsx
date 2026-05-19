@@ -1,40 +1,7 @@
-import type { CustomFieldDefinition } from '@/lib/custom-fields'
-
-function formatValue(def: CustomFieldDefinition, raw: unknown): string | null {
-  if (raw == null || raw === '') {
-    return null
-  }
-  switch (def.type) {
-    case 'checkbox':
-      return raw ? 'Yes' : 'No'
-    case 'date': {
-      const d = new Date(raw as string)
-      if (Number.isNaN(d.getTime())) {
-        return String(raw)
-      }
-      return d.toLocaleDateString(undefined, {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      })
-    }
-    case 'datetime': {
-      const d = new Date(raw as string)
-      if (Number.isNaN(d.getTime())) {
-        return String(raw)
-      }
-      return d.toLocaleString(undefined, {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-      })
-    }
-    default:
-      return String(raw)
-  }
-}
+import {
+  type CustomFieldDefinition,
+  formatCustomFieldValue,
+} from '@/lib/custom-fields'
 
 export function CustomValuesInline({
   customFields,
@@ -48,8 +15,7 @@ export function CustomValuesInline({
   }
   const items: { id: string; label: string; value: string }[] = []
   for (const def of customFields) {
-    const raw = values[def.id]
-    const formatted = formatValue(def, raw)
+    const formatted = formatCustomFieldValue(def, values[def.id])
     if (formatted !== null) {
       items.push({ id: def.id, label: def.label, value: formatted })
     }

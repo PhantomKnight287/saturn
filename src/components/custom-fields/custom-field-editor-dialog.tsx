@@ -31,80 +31,18 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { TimePicker } from '@/components/ui/time-picker'
-import { CUSTOM_FIELD_TYPES, type CustomFieldType } from '@/lib/custom-fields'
-
-interface FormValues {
-  config?: { maxLength?: number; min?: number; max?: number } | null
-  defaultValue?: string | null
-  label: string
-  options?: { value: string }[]
-  required: boolean
-  type: CustomFieldType
-  useCurrent: boolean
-  visibleToClient: boolean
-}
-
-const TYPE_LABEL: Record<CustomFieldType, string> = {
-  text: 'Text',
-  number: 'Number',
-  select: 'Dropdown',
-  checkbox: 'Checkbox',
-  date: 'Date',
-  datetime: 'Date & time',
-  time: 'Time',
-}
-
-function toFormValues(
-  initial?: Partial<{
-    label: string
-    type: CustomFieldType
-    required: boolean
-    visibleToClient: boolean
-    defaultValue: string | null
-    options: string[] | null
-    config: { maxLength?: number; min?: number; max?: number } | null
-  }>
-): FormValues {
-  const def = initial?.defaultValue ?? null
-  const isSentinel = def === 'today' || def === 'now'
-  return {
-    label: initial?.label ?? '',
-    type: initial?.type ?? 'text',
-    required: initial?.required ?? false,
-    visibleToClient: initial?.visibleToClient ?? false,
-    defaultValue: isSentinel ? null : def,
-    options: (initial?.options ?? []).map((value) => ({ value })),
-    config: initial?.config ?? null,
-    useCurrent: isSentinel,
-  }
-}
-
-function toSubmittablePayload(values: FormValues) {
-  const isTemporal =
-    values.type === 'date' ||
-    values.type === 'time' ||
-    values.type === 'datetime'
-
-  let defaultValue: string | null = null
-  if (values.useCurrent && isTemporal) {
-    defaultValue = values.type === 'date' ? 'today' : 'now'
-  } else if (values.defaultValue != null && values.defaultValue !== '') {
-    defaultValue = values.defaultValue
-  }
-
-  return {
-    label: values.label.trim(),
-    type: values.type,
-    required: values.required,
-    visibleToClient: values.visibleToClient,
-    defaultValue,
-    options:
-      values.type === 'select'
-        ? (values.options ?? []).map((o) => o.value.trim()).filter(Boolean)
-        : null,
-    config: values.config ?? null,
-  }
-}
+import {
+  CUSTOM_FIELD_TYPE_LABELS,
+  CUSTOM_FIELD_TYPES,
+  type CustomFieldFormValues,
+  type CustomFieldInitial,
+  type CustomFieldSubmitPayload,
+  type CustomFieldType,
+  isTemporalType,
+  parseDateOnlyAsLocal,
+  toCustomFieldFormValues,
+  toSubmittableCustomFieldPayload,
+} from '@/lib/custom-fields'
 
 export function CustomFieldEditorDialog({
   open,
@@ -117,15 +55,16 @@ export function CustomFieldEditorDialog({
   open: boolean
   onOpenChange: (open: boolean) => void
   mode: 'create' | 'edit'
-  initial?: Parameters<typeof toFormValues>[0]
+  initial?: CustomFieldInitial
   isPending: boolean
-  onSubmit: (
-    payload: ReturnType<typeof toSubmittablePayload>
-  ) => void | Promise<void>
+  onSubmit: (payload: CustomFieldSubmitPayload) => void | Promise<void>
 }) {
-  const defaultValues = useMemo(() => toFormValues(initial), [initial])
+  const defaultValues = useMemo(
+    () => toCustomFieldFormValues(initial),
+    [initial]
+  )
 
-  const form = useForm<FormValues>({
+  const form = useForm<CustomFieldFormValues>({
     defaultValues,
     mode: 'onSubmit',
   })
@@ -144,10 +83,8 @@ export function CustomFieldEditorDialog({
     name: 'options' as never,
   })
 
-  const isTemporal = type === 'date' || type === 'time' || type === 'datetime'
-
   const handleSubmit = form.handleSubmit((values) => {
-    const payload = toSubmittablePayload(values)
+    const payload = toSubmittableCustomFieldPayload(values)
     if (!payload.label) {
       form.setError('label', { message: 'Label is required.' })
       return
@@ -210,7 +147,7 @@ export function CustomFieldEditorDialog({
                     <SelectContent>
                       {CUSTOM_FIELD_TYPES.map((t) => (
                         <SelectItem key={t} value={t}>
-                          {TYPE_LABEL[t]}
+                          {CUSTOM_FIELD_TYPE_LABELS[t]}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -275,34 +212,42 @@ export function CustomFieldEditorDialog({
               <div className='grid grid-cols-2 gap-3'>
                 <Field className='gap-1'>
                   <FieldLabel>Min</FieldLabel>
-                  <Input
-                    onChange={(e) =>
-                      form.setValue('config', {
-                        ...(form.getValues('config') ?? {}),
-                        min:
-                          e.target.value === ''
-                            ? undefined
-                            : Number(e.target.value),
-                      })
-                    }
-                    type='number'
-                    value={form.watch('config')?.min ?? ''}
+                  <Controller
+                    control={form.control}
+                    name='config.min'
+                    render={({ field }) => (
+                      <Input
+                        onChange={(e) =>
+                          field.onChange(
+                            e.target.value === ''
+                              ? undefined
+                              : Number(e.target.value)
+                          )
+                        }
+                        type='number'
+                        value={field.value ?? ''}
+                      />
+                    )}
                   />
                 </Field>
                 <Field className='gap-1'>
                   <FieldLabel>Max</FieldLabel>
-                  <Input
-                    onChange={(e) =>
-                      form.setValue('config', {
-                        ...(form.getValues('config') ?? {}),
-                        max:
-                          e.target.value === ''
-                            ? undefined
-                            : Number(e.target.value),
-                      })
-                    }
-                    type='number'
-                    value={form.watch('config')?.max ?? ''}
+                  <Controller
+                    control={form.control}
+                    name='config.max'
+                    render={({ field }) => (
+                      <Input
+                        onChange={(e) =>
+                          field.onChange(
+                            e.target.value === ''
+                              ? undefined
+                              : Number(e.target.value)
+                          )
+                        }
+                        type='number'
+                        value={field.value ?? ''}
+                      />
+                    )}
                   />
                 </Field>
               </div>
@@ -311,24 +256,28 @@ export function CustomFieldEditorDialog({
             {type === 'text' && (
               <Field className='gap-1'>
                 <FieldLabel>Max length</FieldLabel>
-                <Input
-                  onChange={(e) =>
-                    form.setValue('config', {
-                      ...(form.getValues('config') ?? {}),
-                      maxLength:
-                        e.target.value === ''
-                          ? undefined
-                          : Number(e.target.value),
-                    })
-                  }
-                  placeholder='500'
-                  type='number'
-                  value={form.watch('config')?.maxLength ?? ''}
+                <Controller
+                  control={form.control}
+                  name='config.maxLength'
+                  render={({ field }) => (
+                    <Input
+                      onChange={(e) =>
+                        field.onChange(
+                          e.target.value === ''
+                            ? undefined
+                            : Number(e.target.value)
+                        )
+                      }
+                      placeholder='500'
+                      type='number'
+                      value={field.value ?? ''}
+                    />
+                  )}
                 />
               </Field>
             )}
 
-            {isTemporal && (
+            {isTemporalType(type) && (
               <Field
                 className='flex-row items-center gap-2'
                 orientation='horizontal'
@@ -448,7 +397,7 @@ function DefaultInput({
   options,
 }: {
   type: CustomFieldType
-  control: ReturnType<typeof useForm<FormValues>>['control']
+  control: ReturnType<typeof useForm<CustomFieldFormValues>>['control']
   options: { value: string }[]
 }) {
   if (type === 'select') {
@@ -497,7 +446,11 @@ function DefaultInput({
               const day = String(d.getDate()).padStart(2, '0')
               field.onChange(`${y}-${m}-${day}`)
             }}
-            value={field.value ? new Date(field.value) : undefined}
+            value={
+              field.value
+                ? (parseDateOnlyAsLocal(field.value) ?? undefined)
+                : undefined
+            }
           />
         )}
       />
