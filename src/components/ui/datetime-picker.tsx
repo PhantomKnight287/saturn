@@ -69,7 +69,9 @@ export function DateTimePicker({
       <Input
         className='w-32'
         disabled={disabled}
-        onChange={(e) => onChange(combine(date, e.target.value))}
+        onChange={(e) =>
+          onChange(e.target.value === '' ? null : combine(date, e.target.value))
+        }
         step={60}
         type='time'
         value={time}

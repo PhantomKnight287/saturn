@@ -58,6 +58,13 @@ export function ImportOrgFieldsDialog({
     },
   })
 
+  const handleOpenChange = (next: boolean) => {
+    if (!next) {
+      setSelected(new Set())
+    }
+    onOpenChange(next)
+  }
+
   const toggle = (id: string) => {
     setSelected((prev) => {
       const next = new Set(prev)
@@ -73,7 +80,7 @@ export function ImportOrgFieldsDialog({
   const allSelected = orgFields.length > 0 && selected.size === orgFields.length
 
   return (
-    <Dialog onOpenChange={onOpenChange} open={open}>
+    <Dialog onOpenChange={handleOpenChange} open={open}>
       <DialogContent className='sm:max-w-[520px]'>
         <DialogHeader>
           <DialogTitle>Import fields from workspace</DialogTitle>
@@ -137,7 +144,7 @@ export function ImportOrgFieldsDialog({
 
         <DialogFooter>
           <Button
-            onClick={() => onOpenChange(false)}
+            onClick={() => handleOpenChange(false)}
             type='button'
             variant='outline'
           >
