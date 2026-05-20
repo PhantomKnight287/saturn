@@ -223,6 +223,28 @@ export const updateOrgCustomFieldAction = authedActionClient
         )
       }
 
+      const [existing] = await db
+        .select({ type: customFields.type })
+        .from(customFields)
+        .where(
+          and(
+            eq(customFields.id, fieldId),
+            eq(customFields.organizationId, organizationId),
+            isNull(customFields.projectId)
+          )
+        )
+        .limit(1)
+
+      if (!existing) {
+        throw new Error('Custom field not found')
+      }
+      // The schema validates config/options/defaultValue against the submitted
+      // type, but we persist against the stored type. Reject a mismatch so the
+      // client can't write values incompatible with the actual field type.
+      if (existing.type !== definition.type) {
+        throw new Error('Field type cannot be changed after creation')
+      }
+
       const { type: _ignored, ...mutable } = definition
       const [updated] = await db
         .update(customFields)

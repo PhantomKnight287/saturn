@@ -6,7 +6,7 @@
 A configurable extra field that appears on the timesheet entry form, defined at organization or project scope.
 
 - **Identity** — each field has a stable, randomly generated ID. The ID never changes; label, type constraints (e.g., required), default value, and options are mutable in place.
-- **Historical entries** — because entries reference fields by ID, renaming a field or relaxing a constraint retroactively re-labels/re-validates old values; entries are not snapshotted.
+- **Historical entries** — because entries reference fields by ID, renaming a field retroactively re-labels old values; entries are not snapshotted. Old values are never re-validated against changed constraints — existing entries are not required to stay valid when a field definition changes.
 - **Deletion** — hard delete. Removing a field definition cascades and removes all stored values for that field across all time entries. The parent time entry rows themselves remain.
 - **Scope** — defined at the **organization** level (Saturn's term; the issue uses "workspace" synonymously) or the **project** level.
 
@@ -61,7 +61,7 @@ Rationale: custom-field count is unbounded, dialog height becomes unpredictable,
 v1 ships **display only**. Custom values are persisted, rendered on the form, and shown read-only on entry detail/list views. No filter UI, no group-by, no aggregation. Filterable/groupable reports are deferred (the JSON storage choice acknowledges this cost upfront — see [Custom Field Value](#custom-field-value)).
 
 ### Ordering
-No manual reordering in v1. Fields render in `createdAt` ascending order, both in settings UIs and on the timesheet form. No `position` column is required on field-definition tables.
+Fields render in `createdAt` ascending order, both in settings UIs and on the timesheet form. No `position` column is required on field-definition tables.
 
 ### Permissions
 - **Org-level field defs**: managed (create/edit/delete) by owner + admin only.
@@ -70,17 +70,17 @@ No manual reordering in v1. Fields render in `createdAt` ascending order, both i
 - **Clients**: never see field definitions; only see rendered values for fields with `visibleToClient = true` on artifacts shared with them.
 
 ### Client visibility
-Each field definition carries a `visibleToClient` boolean, default `false`. Custom field values are hidden from client-facing surfaces (shared timesheet reports, invoices) unless opted in per field.
+Each field definition carries a `visibleToClient` boolean, default `false`. On shared timesheet reports, only values for fields with `visibleToClient = true` are exposed to clients — the field list is filtered at query time (`getProjectCustomFields` adds `visibleToClient = true` for the `client` role) before rendering. Invoices do not render custom values in v1.
 
 ### Display of custom values
-Internal read surfaces (timesheet list/detail rows for members and admins) render custom values inline read-only via `CustomValuesInline`. Client-facing read surfaces (shared timesheet reports, invoices) are **deferred** — the current report/invoice flow needs a broader UX restructure for non-technical users; pinning a display treatment on top of the existing flow would bake in decisions that will be redone.
+Custom values render inline read-only via `CustomValuesInline`, a shared component used on both internal surfaces (timesheet list/detail rows for members and admins) and client-facing shared timesheet reports (`ReportCard` with `viewerRole='client'`). On the client surface the rendered set is already restricted to opted-in fields by the query-time filter above, so `CustomValuesInline` itself needs no client-specific gating. The v1 treatment is a simple inline append to the entry's description cell, not a dedicated UX. Invoice rendering of custom values is deferred.
 
 ### Constraint changes on existing fields
-Constraint edits (label, required, default, dropdown options, etc.) are always allowed at the definition level. Validation is **enforce-on-write, never on read**:
+Constraint edits (label, required, default, dropdown options, etc.) are always allowed at the definition level. Existing entries are not required to stay valid when a definition changes. Validation is **enforce-on-write, never on read**:
 
-- Reads of historical entries always succeed regardless of current constraints.
-- Any write (create or edit) to a time entry validates `custom_values` against the *current* field definition. A member editing an old entry may be forced to fill a newly-required field before saving.
-- The field editor does not pre-compute or warn about impact on existing data in v1. Admins are trusted; consequences surface to members on their next edit. Revisit if it becomes a support issue.
+- Reads of historical entries always succeed regardless of current constraints; old values are never retroactively re-validated.
+- A new write (create or edit) to a time entry validates `custom_values` against the *current* field definition.
+- The field editor does not pre-compute or warn about impact on existing data in v1. Admins are trusted. Revisit if it becomes a support issue.
 - **Field type is immutable after creation.** To change a type, delete the field (cascading its values) and create a new one.
 
 ### Custom Field Value
