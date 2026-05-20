@@ -138,6 +138,7 @@ export function CustomFieldEditorDialog({
                       form.setValue('defaultValue', null)
                       form.setValue('useCurrent', false)
                       form.setValue('options', [])
+                      form.setValue('config', null)
                     }}
                     value={field.value}
                   >
