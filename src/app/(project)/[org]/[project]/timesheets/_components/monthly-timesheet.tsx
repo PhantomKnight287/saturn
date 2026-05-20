@@ -48,22 +48,27 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useSetSelection } from '@/hooks/use-set-selection'
+import type { CustomFieldDefinition } from '@/lib/custom-fields'
 import { cn } from '@/lib/utils'
 import { deleteTimeEntryAction, submitTimesheetAction } from '../actions'
 import { canDeleteTimeEntry, canEditTimeEntry, formatMinutes } from '../common'
 import type { Requirement, TimeEntry } from '../types'
+import { CustomValuesInline } from './custom-values-inline'
 import { exportTimeEntries } from './export-time-entries'
 import { StatusBadgeWithReason } from './status-badge-with-reason'
 import { TimeEntryForm } from './time-entry-form'
 
 interface MonthlyTimesheetProps {
   currentMemberId: string
+  customFields?: CustomFieldDefinition[]
   entries: TimeEntry[]
   isAdmin?: boolean
   isClientInvolved?: boolean
   isTeamView?: boolean
   onAddEntry?: (day?: Date) => void
+  orgSlug?: string
   projectId: string
+  projectSlug?: string
   requirements: Requirement[]
 }
 
@@ -78,6 +83,9 @@ export function MonthlyTimesheet({
   isTeamView = false,
   isClientInvolved,
   onAddEntry,
+  customFields = [],
+  orgSlug,
+  projectSlug,
 }: MonthlyTimesheetProps) {
   const [monthOffset, setMonthOffset] = useState(0)
   const { selectedIds, toggle, clear } = useSetSelection<TimeEntry>((e) => e.id)
@@ -85,6 +93,16 @@ export function MonthlyTimesheet({
   const [editEntry, setEditEntry] = useState<TimeEntry | null>(null)
   const params = useParams()
   const router = useRouter()
+  const hasCustomFields = customFields.length > 0
+  const editHrefBase =
+    orgSlug && projectSlug ? `/${orgSlug}/${projectSlug}/timesheets` : null
+  const onEditClick = (entry: TimeEntry) => {
+    if (hasCustomFields && editHrefBase) {
+      router.push(`${editHrefBase}/${entry.id}/edit`)
+      return
+    }
+    setEditEntry(entry)
+  }
 
   const { currentMonth, monthStart, monthEnd, weeks } = useMemo(() => {
     const month = addMonths(startOfMonth(new Date()), monthOffset)
@@ -380,6 +398,10 @@ export function MonthlyTimesheet({
                             </Tooltip>
                           )}
                         </div>
+                        <CustomValuesInline
+                          customFields={customFields}
+                          values={entry.customValues}
+                        />
                       </TableCell>
                       <TableCell className='text-muted-foreground text-sm'>
                         <a
@@ -412,7 +434,7 @@ export function MonthlyTimesheet({
                                 className='size-7'
                                 onClick={() => {
                                   setSelectedDay(null)
-                                  setEditEntry(entry)
+                                  onEditClick(entry)
                                 }}
                                 size='icon'
                                 variant='ghost'
@@ -452,6 +474,7 @@ export function MonthlyTimesheet({
 
       {editEntry && (
         <TimeEntryForm
+          customFields={customFields}
           editEntry={editEntry}
           onOpenChange={(open) => {
             if (!open) {

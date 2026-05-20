@@ -49,14 +49,14 @@ export const PdfPreviewPane = memo(function PdfPreviewPane({
     () => ({
       invoiceNumber: values.invoiceNumber || 'DRAFT',
       issueDate: values.issueDate
-        ? new Date(values.issueDate).toLocaleDateString('en-US', {
+        ? new Date(values.issueDate).toLocaleDateString(undefined, {
             month: 'long',
             day: 'numeric',
             year: 'numeric',
           })
         : '',
       dueDate: values.dueDate
-        ? new Date(values.dueDate).toLocaleDateString('en-US', {
+        ? new Date(values.dueDate).toLocaleDateString(undefined, {
             month: 'long',
             day: 'numeric',
             year: 'numeric',

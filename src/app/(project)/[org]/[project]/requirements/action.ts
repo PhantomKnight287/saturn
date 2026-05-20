@@ -325,7 +325,7 @@ export const signRequirementAction = authedActionClient
             requirementTitle: requirement.title,
             projectName: project.name,
             signerName: orgMember.user.name ?? 'A stakeholder',
-            signedAt: new Date().toLocaleDateString('en-US', {
+            signedAt: new Date().toLocaleDateString(undefined, {
               month: 'long',
               day: 'numeric',
               year: 'numeric',

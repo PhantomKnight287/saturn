@@ -56,7 +56,7 @@ function formatAmount(amount: string, currency: string) {
 }
 
 function formatDate(date: Date) {
-  return new Date(date).toLocaleDateString('en-US', {
+  return new Date(date).toLocaleDateString(undefined, {
     month: 'long',
     day: 'numeric',
     year: 'numeric',

@@ -1,5 +1,6 @@
 export * from './auth'
 export * from './base'
+export * from './custom-fields'
 export * from './expense'
 export * from './invoice'
 export * from './media'

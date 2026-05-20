@@ -31,21 +31,26 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useSetSelection } from '@/hooks/use-set-selection'
+import type { CustomFieldDefinition } from '@/lib/custom-fields'
 import { deleteTimeEntryAction, submitTimesheetAction } from '../actions'
 import { canDeleteTimeEntry, canEditTimeEntry, formatMinutes } from '../common'
 import type { Requirement, TimeEntry } from '../types'
+import { CustomValuesInline } from './custom-values-inline'
 import { exportTimeEntries } from './export-time-entries'
 import { StatusBadgeWithReason } from './status-badge-with-reason'
 import { TimeEntryForm } from './time-entry-form'
 
 interface BiweeklyTimesheetProps {
   currentMemberId: string
+  customFields?: CustomFieldDefinition[]
   entries: TimeEntry[]
   isAdmin?: boolean
   isClientInvolved?: boolean
   isTeamView?: boolean
   onAddEntry?: () => void
+  orgSlug?: string
   projectId: string
+  projectSlug?: string
   requirements: Requirement[]
 }
 
@@ -59,6 +64,9 @@ export function BiweeklyTimesheet({
   isAdmin = false,
   isTeamView = false,
   isClientInvolved,
+  customFields = [],
+  orgSlug,
+  projectSlug,
 }: BiweeklyTimesheetProps) {
   const [periodOffset, setPeriodOffset] = useState(0)
   const { selectedIds, toggle, toggleAll, clear } = useSetSelection<TimeEntry>(
@@ -67,6 +75,16 @@ export function BiweeklyTimesheet({
   const [editEntry, setEditEntry] = useState<TimeEntry | null>(null)
   const params = useParams()
   const router = useRouter()
+  const hasCustomFields = customFields.length > 0
+  const editHrefBase =
+    orgSlug && projectSlug ? `/${orgSlug}/${projectSlug}/timesheets` : null
+  const onEditClick = (entry: TimeEntry) => {
+    if (hasCustomFields && editHrefBase) {
+      router.push(`${editHrefBase}/${entry.id}/edit`)
+      return
+    }
+    setEditEntry(entry)
+  }
 
   const { periodStart, periodEnd, week1Days, week2Days } = useMemo(() => {
     const start = addWeeks(
@@ -240,6 +258,10 @@ export function BiweeklyTimesheet({
                           </Tooltip>
                         )}
                       </div>
+                      <CustomValuesInline
+                        customFields={customFields}
+                        values={entry.customValues}
+                      />
                     </TableCell>
                     <TableCell className='text-muted-foreground text-sm'>
                       <span className='line-clamp-1 max-w-32'>
@@ -281,8 +303,9 @@ export function BiweeklyTimesheet({
                             isAdmin
                           ) && (
                             <Button
+                              aria-label='Edit time entry'
                               className='size-7'
-                              onClick={() => setEditEntry(entry)}
+                              onClick={() => onEditClick(entry)}
                               size='icon'
                               variant='ghost'
                             >
@@ -295,6 +318,7 @@ export function BiweeklyTimesheet({
                             isAdmin
                           ) && (
                             <Button
+                              aria-label='Delete time entry'
                               className='size-7 text-destructive'
                               onClick={() =>
                                 deleteAction.execute({
@@ -421,6 +445,7 @@ export function BiweeklyTimesheet({
 
       {editEntry && (
         <TimeEntryForm
+          customFields={customFields}
           editEntry={editEntry}
           onOpenChange={(open) => {
             if (!open) {

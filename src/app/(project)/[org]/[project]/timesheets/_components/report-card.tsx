@@ -20,16 +20,19 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import type { CustomFieldDefinition } from '@/lib/custom-fields'
 import { formatMinutes, formatShortDate } from '../common'
 import type {
   ReportEntryDetail,
   TimesheetReport,
   TimesheetReportRecipient,
 } from '../types'
+import { CustomValuesInline } from './custom-values-inline'
 import TimesheetStatusBadge from './timesheet-status-badge'
 
 interface Props {
   actionPending?: boolean
+  customFields?: CustomFieldDefinition[]
   entries: ReportEntryDetail[]
   expanded: boolean
   invoiceUrl?: string
@@ -56,6 +59,7 @@ export function ReportCard({
   onApprove,
   onDispute,
   actionPending,
+  customFields = [],
   isAdmin = false,
   isResending,
   invoiceUrl,
@@ -295,6 +299,10 @@ export function ReportCard({
                             </TableCell>
                             <TableCell className='text-sm'>
                               {entry.description}
+                              <CustomValuesInline
+                                customFields={customFields}
+                                values={entry.customValues}
+                              />
                             </TableCell>
                             <TableCell className='text-muted-foreground text-sm'>
                               {entry.requirementTitle ?? '—'}

@@ -69,6 +69,7 @@ export default async function TimeTracking({
     reports,
     clients,
     settings,
+    projectCustomFields,
   ] = await Promise.all([
     canReadTimeEntries
       ? timesheetService.listByProject(currentProject.id, h)
@@ -86,6 +87,7 @@ export default async function TimeTracking({
       ? teamService.getProjectClients(currentProject.id)
       : Promise.resolve([]),
     projectsService.getSettings(organization.id, currentProject.id),
+    timesheetService.getProjectCustomFields(currentProject.id, orgMember.role),
   ])
 
   const reportIds = reports.map((r) => r.id)
@@ -120,6 +122,7 @@ export default async function TimeTracking({
       clientReports={clientReports}
       clients={clients}
       currentMemberId={orgMember.id}
+      customFields={projectCustomFields}
       defaultCurrency={settings.currency}
       entries={entries}
       initialLogMinutes={initialLogMinutes}

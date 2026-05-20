@@ -17,16 +17,21 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty'
 import { useSetSelection } from '@/hooks/use-set-selection'
+import type { CustomFieldDefinition } from '@/lib/custom-fields'
 import { approveTimeEntriesAction, rejectTimeEntriesAction } from '../actions'
 import { formatMinutes } from '../common'
 import type { ProjectMember, Requirement, TimeEntry } from '../types'
+import { CustomValuesInline } from './custom-values-inline'
 import { RejectTimeEntriesDialog } from './reject-time-entries-dialog'
 import { TimeEntryForm } from './time-entry-form'
 
 interface TimesheetApprovalProps {
+  customFields?: CustomFieldDefinition[]
   entries: TimeEntry[]
+  orgSlug?: string
   projectId: string
   projectMembers: ProjectMember[]
+  projectSlug?: string
   requirements: Requirement[]
 }
 
@@ -35,6 +40,9 @@ export function TimesheetApproval({
   projectMembers,
   projectId,
   requirements,
+  customFields = [],
+  orgSlug,
+  projectSlug,
 }: TimesheetApprovalProps) {
   const { selectedIds, toggle, toggleAll, clear } = useSetSelection<TimeEntry>(
     (e) => e.id
@@ -42,6 +50,16 @@ export function TimesheetApproval({
   const [rejectOpen, setRejectOpen] = useState(false)
   const [editEntry, setEditEntry] = useState<TimeEntry | null>(null)
   const router = useRouter()
+  const hasCustomFields = customFields.length > 0
+  const editHrefBase =
+    orgSlug && projectSlug ? `/${orgSlug}/${projectSlug}/timesheets` : null
+  const onEditClick = (entry: TimeEntry) => {
+    if (hasCustomFields && editHrefBase) {
+      router.push(`${editHrefBase}/${entry.id}/edit`)
+      return
+    }
+    setEditEntry(entry)
+  }
   const approveAction = useAction(approveTimeEntriesAction, {
     onSuccess: () => {
       toast.success('Time entries approved')
@@ -168,12 +186,16 @@ export function TimesheetApproval({
                       <p className='truncate text-sm'>{entry.description}</p>
                       <p className='text-muted-foreground text-xs'>
                         {entry.requirementTitle ?? 'General'} ·{' '}
-                        {new Date(entry.date).toLocaleDateString('en-US', {
+                        {new Date(entry.date).toLocaleDateString(undefined, {
                           weekday: 'short',
                           month: 'short',
                           day: 'numeric',
                         })}
                       </p>
+                      <CustomValuesInline
+                        customFields={customFields}
+                        values={entry.customValues}
+                      />
                     </div>
                     <div className='flex items-center gap-2'>
                       {entry.billable && (
@@ -186,7 +208,7 @@ export function TimesheetApproval({
                       </span>
                       <Button
                         className='size-7'
-                        onClick={() => setEditEntry(entry)}
+                        onClick={() => onEditClick(entry)}
                         size='icon'
                         title='Edit entry before approving'
                         variant='ghost'
@@ -216,6 +238,7 @@ export function TimesheetApproval({
 
       {editEntry && (
         <TimeEntryForm
+          customFields={customFields}
           editEntry={editEntry}
           onOpenChange={(open) => {
             if (!open) {

@@ -17,7 +17,11 @@ import { Label } from '@/components/ui/label'
 
 interface Props {
   actionLabel?: string
-  confirmationText: string
+  /**
+   * When provided, the user must type this string to enable the action.
+   * Omit for a simple yes/no confirmation.
+   */
+  confirmationText?: string
   description: ReactNode
   loading?: boolean
   onConfirm: () => void | Promise<void>
@@ -44,7 +48,7 @@ export function ConfirmDeleteDialog({
     }
   }, [open])
 
-  const matches = value === confirmationText
+  const matches = confirmationText ? value === confirmationText : true
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -62,21 +66,23 @@ export function ConfirmDeleteDialog({
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
-          <Field className='gap-1'>
-            <Label>
-              Type
-              <span className='max-w-fit font-semibold'>
-                "{confirmationText}"
-              </span>
-              to confirm
-            </Label>
-            <Input
-              autoFocus
-              onChange={(e) => setValue(e.target.value)}
-              placeholder={confirmationText}
-              value={value}
-            />
-          </Field>
+          {confirmationText && (
+            <Field className='gap-1'>
+              <Label>
+                Type
+                <span className='max-w-fit font-semibold'>
+                  "{confirmationText}"
+                </span>
+                to confirm
+              </Label>
+              <Input
+                autoFocus
+                onChange={(e) => setValue(e.target.value)}
+                placeholder={confirmationText}
+                value={value}
+              />
+            </Field>
+          )}
           <DialogFooter className='mt-4'>
             <Button
               onClick={() => onOpenChange(false)}
@@ -86,6 +92,7 @@ export function ConfirmDeleteDialog({
               Cancel
             </Button>
             <Button
+              autoFocus={!confirmationText}
               disabled={!matches}
               loading={loading}
               type='submit'

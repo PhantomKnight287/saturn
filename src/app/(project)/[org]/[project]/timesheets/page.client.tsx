@@ -47,41 +47,85 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
     defaultCurrency,
     isClientInvolved,
     initialLogMinutes,
+    customFields,
   } = props
-  const [formOpen, setFormOpen] = useState(!!initialLogMinutes)
+  const hasCustomFields = customFields.length > 0
+  const timesheetsBase = `/${orgSlug}/${projectSlug}/timesheets`
+  const router = useRouter()
+  const [formOpen, setFormOpen] = useState(
+    !hasCustomFields && !!initialLogMinutes
+  )
   const [formDefaultDate, setFormDefaultDate] = useState<Date | undefined>()
   const [formDefaultDuration, setFormDefaultDuration] = useState<
     number | undefined
-  >(initialLogMinutes)
+  >(hasCustomFields ? undefined : initialLogMinutes)
   const timerStartedAt = useTimerStore((s) => s.startedAt)
   const timerAccumulatedMs = useTimerStore((s) => s.accumulatedMs)
   const startTimer = useTimerStore((s) => s.start)
   const timerActive = timerStartedAt !== null || timerAccumulatedMs > 0
 
   useEffect(() => {
-    if (initialLogMinutes) {
-      const url = new URL(window.location.href)
-      url.searchParams.delete('logMinutes')
-      window.history.replaceState(null, '', url.toString())
+    if (!initialLogMinutes) {
+      return
     }
-  }, [initialLogMinutes])
+    if (hasCustomFields) {
+      const qs = new URLSearchParams({ duration: String(initialLogMinutes) })
+      router.replace(`${timesheetsBase}/new?${qs.toString()}`)
+      return
+    }
+    const url = new URL(window.location.href)
+    url.searchParams.delete('logMinutes')
+    window.history.replaceState(null, '', url.toString())
+  }, [hasCustomFields, initialLogMinutes, router, timesheetsBase])
 
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent<{ minutes: number }>).detail
+      if (hasCustomFields) {
+        const qs = new URLSearchParams({ duration: String(detail.minutes) })
+        router.push(`${timesheetsBase}/new?${qs.toString()}`)
+        return
+      }
       setFormDefaultDuration(detail.minutes)
       setFormOpen(true)
     }
     window.addEventListener('timer:log', handler)
     return () => window.removeEventListener('timer:log', handler)
-  }, [])
+  }, [hasCustomFields, router, timesheetsBase])
   const [ratesOpen, setRatesOpen] = useState(false)
   const [sendOpen, setSendOpen] = useState(false)
   const [selectedEntryIds, setSelectedEntryIds] = useState<Set<string>>(
     new Set()
   )
-  const router = useRouter()
   const [reportTitle, setReportTitle] = useState('')
+
+  const goToNew = (opts?: { date?: Date; durationMinutes?: number }) => {
+    const params = new URLSearchParams()
+    if (opts?.date) {
+      const y = opts.date.getFullYear()
+      const m = String(opts.date.getMonth() + 1).padStart(2, '0')
+      const d = String(opts.date.getDate()).padStart(2, '0')
+      params.set('date', `${y}-${m}-${d}`)
+    }
+    if (opts?.durationMinutes) {
+      params.set('duration', String(opts.durationMinutes))
+    }
+    const qs = params.toString()
+    router.push(`${timesheetsBase}/new${qs ? `?${qs}` : ''}`)
+  }
+  const openCreate = (opts?: { date?: Date; durationMinutes?: number }) => {
+    if (hasCustomFields) {
+      goToNew(opts)
+      return
+    }
+    if (opts?.date) {
+      setFormDefaultDate(opts.date)
+    }
+    if (opts?.durationMinutes) {
+      setFormDefaultDuration(opts.durationMinutes)
+    }
+    setFormOpen(true)
+  }
 
   const selectedMinutes = entries
     .filter((e) => selectedEntryIds.has(e.id))
@@ -101,7 +145,10 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
         <div className='mb-6 flex items-center justify-between'>
           <h1 className='font-semibold text-2xl'>Timesheets</h1>
         </div>
-        <ClientReportsView reports={clientReports} />
+        <ClientReportsView
+          customFields={customFields}
+          reports={clientReports}
+        />
       </div>
     )
   }
@@ -148,7 +195,7 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
             <Play className='mr-1 size-4' />
             {timerStartedAt ? 'Recording…' : 'Record'}
           </Button>
-          <Button kbd='l' onClick={() => setFormOpen(true)}>
+          <Button kbd='c' onClick={() => openCreate()}>
             <Plus className='mr-1 size-4' />
             Log Time
           </Button>
@@ -187,34 +234,40 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
           {timesheetDuration === 'monthly' ? (
             <MonthlyTimesheet
               currentMemberId={currentMemberId}
+              customFields={customFields}
               entries={myEntries}
               isAdmin={false}
               isClientInvolved={isClientInvolved}
-              onAddEntry={(date) => {
-                setFormDefaultDate(date)
-                setFormOpen(true)
-              }}
+              onAddEntry={(date) => openCreate({ date })}
+              orgSlug={orgSlug}
               projectId={projectId}
+              projectSlug={projectSlug}
               requirements={requirements}
             />
           ) : timesheetDuration === 'biweekly' ? (
             <BiweeklyTimesheet
               currentMemberId={currentMemberId}
+              customFields={customFields}
               entries={myEntries}
               isAdmin={false}
               isClientInvolved={isClientInvolved}
-              onAddEntry={() => setFormOpen(true)}
+              onAddEntry={() => openCreate()}
+              orgSlug={orgSlug}
               projectId={projectId}
+              projectSlug={projectSlug}
               requirements={requirements}
             />
           ) : (
             <WeeklyTimesheet
               currentMemberId={currentMemberId}
+              customFields={customFields}
               entries={myEntries}
               isAdmin={false}
               isClientInvolved={isClientInvolved}
-              onAddEntry={() => setFormOpen(true)}
+              onAddEntry={() => openCreate()}
+              orgSlug={orgSlug}
               projectId={projectId}
+              projectSlug={projectSlug}
               requirements={requirements}
             />
           )}
@@ -225,11 +278,14 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
             <TabsContent value='team'>
               <TeamEntriesTable
                 currentMemberId={currentMemberId}
+                customFields={customFields}
                 entries={entries.filter((e) => e.status !== 'draft')}
                 isClientInvolved={isClientInvolved}
                 onSelectionChange={setSelectedEntryIds}
+                orgSlug={orgSlug}
                 projectId={projectId}
                 projectMembers={projectMembers}
+                projectSlug={projectSlug}
                 requirements={requirements}
                 selectedIds={selectedEntryIds}
               />
@@ -237,9 +293,12 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
 
             <TabsContent value='approval'>
               <TimesheetApproval
+                customFields={customFields}
                 entries={submittedEntries}
+                orgSlug={orgSlug}
                 projectId={projectId}
                 projectMembers={projectMembers}
+                projectSlug={projectSlug}
                 requirements={requirements}
               />
             </TabsContent>
@@ -262,6 +321,7 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
       </Tabs>
 
       <TimeEntryForm
+        customFields={customFields}
         defaultDate={formDefaultDate}
         defaultDurationMinutes={formDefaultDuration}
         onOpenChange={(open) => {

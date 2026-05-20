@@ -1,5 +1,9 @@
 import z from 'zod'
 import { updateTimesheetDefaultsSchema as orgTimesheetDefaultsSchema } from '@/app/(organization)/[org]/settings/common'
+import {
+  customFieldDefinitionCreateSchema,
+  customFieldDefinitionUpdateSchema,
+} from '@/lib/custom-fields'
 import { projectStatus } from '@/server/db/schema'
 
 export const clientInvolvementEntities = [
@@ -107,4 +111,34 @@ export const clientInvolvementProjectSchema = z.object({
   clientInvolvement: clientInvolvementValueSchema,
   projectId: z.string().min(1),
   organizationId: z.string().min(1),
+})
+
+export const createProjectCustomFieldSchema = z.object({
+  organizationId: z.string().min(1),
+  projectId: z.string().min(1),
+  definition: customFieldDefinitionCreateSchema,
+})
+
+export const updateProjectCustomFieldSchema = z.object({
+  organizationId: z.string().min(1),
+  projectId: z.string().min(1),
+  fieldId: z.string().min(1),
+  definition: customFieldDefinitionUpdateSchema,
+})
+
+export const deleteProjectCustomFieldSchema = z.object({
+  organizationId: z.string().min(1),
+  projectId: z.string().min(1),
+  fieldId: z.string().min(1),
+})
+
+export const importOrgCustomFieldsSchema = z.object({
+  organizationId: z.string().min(1),
+  projectId: z.string().min(1),
+  fieldIds: z
+    .array(z.string().min(1))
+    .min(1)
+    .refine((ids) => new Set(ids).size === ids.length, {
+      message: 'fieldIds must be unique',
+    }),
 })

@@ -1041,7 +1041,7 @@ export default function InvoiceEditor({
                       const formattedAmount = (exp.amountCents / 100).toFixed(3)
                       const formattedDate = new Date(
                         exp.date
-                      ).toLocaleDateString('en-US', {
+                      ).toLocaleDateString(undefined, {
                         month: 'short',
                         day: 'numeric',
                         year: 'numeric',

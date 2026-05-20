@@ -1,9 +1,13 @@
+import { and, asc, eq, isNull } from 'drizzle-orm'
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
 import { projectsService } from '@/app/api/projects/service'
+import type { CustomFieldDefinition } from '@/lib/custom-fields'
 
 import { createMetadata } from '@/lib/metadata'
+import { db } from '@/server/db'
+import { customFields } from '@/server/db/schema'
 import { ProjectSettingsPageClient } from './page.client'
 
 export const metadata: Metadata = createMetadata({
@@ -39,10 +43,27 @@ export default async function ProjectSettingsPage({
     project.id
   )
 
+  const projectCustomFields: CustomFieldDefinition[] = await db
+    .select()
+    .from(customFields)
+    .where(eq(customFields.projectId, project.id))
+    .orderBy(asc(customFields.createdAt))
+  const orgCustomFields: CustomFieldDefinition[] = await db
+    .select()
+    .from(customFields)
+    .where(
+      and(
+        eq(customFields.organizationId, organization.id),
+        isNull(customFields.projectId)
+      )
+    )
+    .orderBy(asc(customFields.createdAt))
+
   return (
     <ProjectSettingsPageClient
       canDelete={canDelete}
       organizationId={organization.id}
+      orgCustomFields={orgCustomFields}
       orgSlug={org}
       project={{
         id: project.id,
@@ -50,6 +71,7 @@ export default async function ProjectSettingsPage({
         slug: project.slug,
         dueDate: project.dueDate ? new Date(project.dueDate) : null,
       }}
+      projectCustomFields={projectCustomFields}
       settings={settings}
     />
   )

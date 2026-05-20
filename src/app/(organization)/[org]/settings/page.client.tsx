@@ -1,8 +1,10 @@
 'use client'
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import type { CustomFieldDefinition } from '@/lib/custom-fields'
 import { BillingCard } from './_components/billing-card'
 import { ClientApprovalCard } from './_components/client-approval-card'
+import { OrgCustomFieldsCard } from './_components/custom-fields-card'
 import { DangerZoneCard } from './_components/danger-zone-card'
 import { GeneralCard } from './_components/general-card'
 import { InvoiceNumberingCard } from './_components/invoice-numbering-card'
@@ -18,6 +20,7 @@ export function SettingsPageClient({
   defaultCurrency,
   invoiceNumberTemplate,
   clientInvolvement,
+  customFields,
 }: {
   organization: { id: string; name: string; slug: string }
   orgSlug: string
@@ -27,6 +30,7 @@ export function SettingsPageClient({
   defaultTimesheetDuration: TimesheetDuration
   invoiceNumberTemplate: string
   clientInvolvement: ClientInvolvementValue
+  customFields: CustomFieldDefinition[]
 }) {
   return (
     <div className='w-full'>
@@ -37,7 +41,7 @@ export function SettingsPageClient({
       <Tabs defaultValue='general'>
         <TabsList variant='line'>
           <TabsTrigger value='general'>General</TabsTrigger>
-          <TabsTrigger value='timesheet'>Defaults</TabsTrigger>
+          <TabsTrigger value='timesheet'>Timesheet</TabsTrigger>
           <TabsTrigger value='invoicing'>Invoices</TabsTrigger>
           <TabsTrigger value='client'>Approval</TabsTrigger>
           <TabsTrigger value='billing'>Billing</TabsTrigger>
@@ -48,11 +52,15 @@ export function SettingsPageClient({
           <GeneralCard organization={organization} orgSlug={orgSlug} />
         </TabsContent>
 
-        <TabsContent value='timesheet'>
+        <TabsContent className='space-y-6' value='timesheet'>
           <TimesheetDefaultsCard
             defaultCurrency={defaultCurrency}
             defaultMemberRate={defaultMemberRate}
             defaultTimesheetDuration={defaultTimesheetDuration}
+            organizationId={organization.id}
+          />
+          <OrgCustomFieldsCard
+            customFields={customFields}
             organizationId={organization.id}
           />
         </TabsContent>

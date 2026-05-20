@@ -129,7 +129,7 @@ export default function StakeholdersSection({
                 </TableCell>
                 <TableCell>
                   <span className='text-muted-foreground text-sm'>
-                    {new Date(c.assignedAt)?.toLocaleDateString('en-US', {
+                    {new Date(c.assignedAt)?.toLocaleDateString(undefined, {
                       month: 'short',
                       day: 'numeric',
                       year: 'numeric',

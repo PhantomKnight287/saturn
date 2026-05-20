@@ -1,7 +1,7 @@
 'use server'
 
 import { render } from '@react-email/render'
-import { and, eq, inArray, isNull } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNull } from 'drizzle-orm'
 import { authService } from '@/app/api/auth/service'
 import { projectsService } from '@/app/api/projects/service'
 import { timesheetService } from '@/app/api/timesheets/service'
@@ -11,10 +11,15 @@ import TimesheetClientRespondedEmail from '@/emails/templates/timesheet-client-r
 import TimesheetRejectedEmail from '@/emails/templates/timesheet-rejected'
 import TimesheetSentToClientEmail from '@/emails/templates/timesheet-sent-to-client'
 import TimesheetSubmittedEmail from '@/emails/templates/timesheet-submitted'
+import {
+  buildCustomValuesSchema,
+  type CustomFieldDefinition,
+} from '@/lib/custom-fields'
 import { getAdminsAndOwners, sendEmailsToRecipients } from '@/lib/notifications'
 import { authedActionClient } from '@/lib/safe-action'
 import { db } from '@/server/db'
 import {
+  customFields,
   memberRates,
   members,
   projectBudgets,
@@ -58,6 +63,45 @@ const timeEntryColumns = {
  * Throws if entries span multiple projects.
  * Returns the single shared projectId.
  */
+async function loadProjectCustomFieldDefs(
+  projectId: string
+): Promise<CustomFieldDefinition[]> {
+  const rows = await db
+    .select()
+    .from(customFields)
+    .where(eq(customFields.projectId, projectId))
+    .orderBy(asc(customFields.createdAt))
+  return rows
+}
+
+function validateCustomValues(
+  defs: CustomFieldDefinition[],
+  input: Record<string, unknown> | undefined
+): Record<string, unknown> {
+  if (defs.length === 0) {
+    return {}
+  }
+  const filtered: Record<string, unknown> = {}
+  const allowed = new Set(defs.map((d) => d.id))
+  for (const [k, v] of Object.entries(input ?? {})) {
+    if (allowed.has(k)) {
+      filtered[k] = v
+    }
+  }
+  const schema = buildCustomValuesSchema(defs)
+  const result = schema.safeParse(filtered)
+  if (!result.success) {
+    const first = result.error.issues[0]
+    const path = first?.path?.join('.') ?? ''
+    const def = defs.find((d) => d.id === path)
+    const label = def ? def.label : path
+    throw new Error(
+      `Custom field "${label}": ${first?.message ?? 'invalid value'}`
+    )
+  }
+  return result.data
+}
+
 function assertSingleProject(entries: Array<{ projectId: string }>): string {
   const projectIds = new Set(entries.map((e) => e.projectId))
   if (projectIds.size !== 1) {
@@ -77,6 +121,7 @@ export const createTimeEntryAction = authedActionClient
         date,
         durationMinutes,
         billable,
+        customValues,
       },
       ctx: { role, orgMember, user },
     }) => {
@@ -99,6 +144,9 @@ export const createTimeEntryAction = authedActionClient
       )
       const clientOff = settings.clientInvolvement.timesheets === 'off'
 
+      const defs = await loadProjectCustomFieldDefs(projectId)
+      const validatedCustomValues = validateCustomValues(defs, customValues)
+
       const [entry] = await db
         .insert(timeEntries)
         .values({
@@ -109,6 +157,7 @@ export const createTimeEntryAction = authedActionClient
           date: new Date(date),
           durationMinutes,
           billable,
+          customValues: validatedCustomValues,
           status: isAdmin
             ? clientOff
               ? 'client_accepted'
@@ -136,6 +185,7 @@ export const updateTimeEntryAction = authedActionClient
         date,
         durationMinutes,
         billable,
+        customValues,
       },
       ctx: { role, orgMember, user },
     }) => {
@@ -195,6 +245,10 @@ export const updateTimeEntryAction = authedActionClient
       }
       if (billable !== undefined) {
         updates.billable = billable
+      }
+      if (customValues !== undefined) {
+        const defs = await loadProjectCustomFieldDefs(existing.projectId)
+        updates.customValues = validateCustomValues(defs, customValues)
       }
       // Reset rejected entries to draft when edited so they can be resubmitted
       if (existing.status === 'client_rejected' && !isAdmin) {
@@ -1194,7 +1248,7 @@ function formatWeekLabel(dates: Date[]): string {
   const first = sorted.at(0)!
   const last = sorted.at(-1)!
   const fmt = (d: Date) =>
-    d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
   const year = last.getFullYear()
   return `${fmt(first)} – ${fmt(last)}, ${year}`
 }

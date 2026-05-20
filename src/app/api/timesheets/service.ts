@@ -3,6 +3,7 @@ import type { ReadonlyHeaders } from 'next/dist/server/web/spec-extension/adapte
 import { getCachedActiveOrgMember } from '@/app/(organization)/[org]/cache'
 import { db } from '@/server/db'
 import {
+  customFields,
   memberRates,
   members,
   projectBudgets,
@@ -75,6 +76,7 @@ const listByProject = async (
       status: timeEntries.status,
       rejectReason: timeEntries.rejectReason,
       invoiceId: timeEntries.invoiceId,
+      customValues: timeEntries.customValues,
       createdAt: timeEntries.createdAt,
       updatedAt: timeEntries.updatedAt,
       memberName: users.name,
@@ -358,6 +360,7 @@ const getReportEntriesBatch = async (reportIds: string[]) => {
   interface Row {
     billable: boolean
     createdAt: Date
+    customValues: Record<string, unknown>
     date: Date
     description: string
     durationMinutes: number
@@ -390,6 +393,7 @@ const getReportEntriesBatch = async (reportIds: string[]) => {
       createdAt: timesheetReportEntries.createdAt,
       updatedAt: timesheetReportEntries.updatedAt,
       invoiceId: timeEntries.invoiceId,
+      customValues: timeEntries.customValues,
     })
     .from(timesheetReportEntries)
     .innerJoin(
@@ -561,7 +565,58 @@ const listByProjectIdsSince = async (
     )
 }
 
+const getEntryForEdit = async (entryId: string, projectId: string) => {
+  const [entry] = await db
+    .select({
+      id: timeEntries.id,
+      projectId: timeEntries.projectId,
+      requirementId: timeEntries.requirementId,
+      memberId: timeEntries.memberId,
+      description: timeEntries.description,
+      date: timeEntries.date,
+      durationMinutes: timeEntries.durationMinutes,
+      billable: timeEntries.billable,
+      status: timeEntries.status,
+      rejectReason: timeEntries.rejectReason,
+      invoiceId: timeEntries.invoiceId,
+      customValues: timeEntries.customValues,
+      createdAt: timeEntries.createdAt,
+      updatedAt: timeEntries.updatedAt,
+      requirementSlug: requirements.slug,
+      requirementTitle: requirements.title,
+      memberEmail: users.email,
+      memberName: users.name,
+    })
+    .from(timeEntries)
+    .leftJoin(requirements, eq(requirements.id, timeEntries.requirementId))
+    .leftJoin(members, eq(members.id, timeEntries.memberId))
+    .leftJoin(users, eq(users.id, members.userId))
+    .where(
+      and(eq(timeEntries.id, entryId), eq(timeEntries.projectId, projectId))
+    )
+    .limit(1)
+
+  return entry ?? null
+}
+
+const getProjectCustomFields = async (
+  projectId: string,
+  role: 'owner' | 'admin' | 'member' | 'client'
+) => {
+  const conditions = [eq(customFields.projectId, projectId)]
+  if (role === 'client') {
+    conditions.push(eq(customFields.visibleToClient, true))
+  }
+  return await db
+    .select()
+    .from(customFields)
+    .where(and(...conditions))
+    .orderBy(asc(customFields.createdAt))
+}
+
 export const timesheetService = {
+  getEntryForEdit,
+  getProjectCustomFields,
   listByProject,
   listByProjectIdsSince,
   getById,

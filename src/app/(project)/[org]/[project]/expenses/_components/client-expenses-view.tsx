@@ -252,7 +252,7 @@ export function ClientExpensesView({
                         )}
                       </TableCell>
                       <TableCell className='text-sm'>
-                        {new Date(expense.date).toLocaleDateString('en-US', {
+                        {new Date(expense.date).toLocaleDateString(undefined, {
                           month: 'short',
                           day: 'numeric',
                         })}
@@ -351,10 +351,13 @@ export function ClientExpensesView({
                           )}
                         </TableCell>
                         <TableCell className='text-sm'>
-                          {new Date(expense.date).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                          })}
+                          {new Date(expense.date).toLocaleDateString(
+                            undefined,
+                            {
+                              month: 'short',
+                              day: 'numeric',
+                            }
+                          )}
                         </TableCell>
                         <TableCell className='text-right font-medium text-sm'>
                           {formatCurrency(

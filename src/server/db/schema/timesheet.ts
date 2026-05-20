@@ -3,6 +3,7 @@ import {
   boolean,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   text,
@@ -40,6 +41,10 @@ export const timeEntries = pgTable(
     invoiceId: text('invoice_id').references(() => invoices.id, {
       onDelete: 'set null',
     }),
+    customValues: jsonb('custom_values')
+      .$type<Record<string, unknown>>()
+      .default({})
+      .notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()
