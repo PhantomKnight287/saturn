@@ -135,5 +135,10 @@ export const deleteProjectCustomFieldSchema = z.object({
 export const importOrgCustomFieldsSchema = z.object({
   organizationId: z.string().min(1),
   projectId: z.string().min(1),
-  fieldIds: z.array(z.string().min(1)).min(1),
+  fieldIds: z
+    .array(z.string().min(1))
+    .min(1)
+    .refine((ids) => new Set(ids).size === ids.length, {
+      message: 'fieldIds must be unique',
+    }),
 })
