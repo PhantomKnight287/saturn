@@ -5,13 +5,18 @@ import { headers } from 'next/headers'
 import { authedActionClient } from '@/lib/safe-action'
 import { auth } from '@/server/auth'
 import { db } from '@/server/db'
-import { customFields, settings as settingsTable } from '@/server/db/schema'
+import {
+  customFields,
+  projects as projectsTable,
+  settings as settingsTable,
+} from '@/server/db/schema'
 import { organizations } from '@/server/db/schema/auth'
 import {
   createOrgCustomFieldSchema,
   deleteOrganizationSchema,
   deleteOrgCustomFieldSchema,
   renameOrganizationSchema,
+  updateInvoiceImportDefaultsSchema,
   updateInvoiceNumberTemplateSchema,
   updateOrgClientInvolvementSchema,
   updateOrgCustomFieldSchema,
@@ -135,6 +140,68 @@ export const updateInvoiceNumberTemplateAction = authedActionClient
             target: [settingsTable.organizationId],
             targetWhere: sql`${settingsTable.projectId} IS NULL`,
             set: { invoiceNumberTemplate },
+          })
+      }
+
+      return { success: true }
+    }
+  )
+
+export const updateInvoiceImportDefaultsAction = authedActionClient
+  .inputSchema(updateInvoiceImportDefaultsSchema)
+  .action(
+    async ({
+      parsedInput: { organizationId, projectId, invoiceTimeUnit },
+      ctx: { role, orgMember },
+    }) => {
+      if (!role.authorize({ organization: ['update'] }).success) {
+        throw new Error(
+          'You do not have permission to update workspace settings'
+        )
+      }
+
+      if (orgMember.organizationId !== organizationId) {
+        throw new Error('Organization mismatch')
+      }
+
+      if (projectId) {
+        const [project] = await db
+          .select({ id: projectsTable.id })
+          .from(projectsTable)
+          .where(
+            and(
+              eq(projectsTable.id, projectId),
+              eq(projectsTable.organizationId, organizationId)
+            )
+          )
+          .limit(1)
+
+        if (!project) {
+          throw new Error('Project does not belong to this organization')
+        }
+
+        await db
+          .insert(settingsTable)
+          .values({
+            organizationId,
+            projectId,
+            invoiceTimeUnit,
+          })
+          .onConflictDoUpdate({
+            target: [settingsTable.organizationId, settingsTable.projectId],
+            set: { invoiceTimeUnit },
+          })
+      } else {
+        await db
+          .insert(settingsTable)
+          .values({
+            organizationId,
+            invoiceTimeUnit,
+          })
+          .onConflictDoUpdate({
+            target: [settingsTable.organizationId],
+            targetWhere: sql`${settingsTable.projectId} IS NULL`,
+            set: { invoiceTimeUnit },
           })
       }
 

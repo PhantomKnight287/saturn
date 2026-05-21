@@ -7,9 +7,14 @@ import { ClientApprovalCard } from './_components/client-approval-card'
 import { OrgCustomFieldsCard } from './_components/custom-fields-card'
 import { DangerZoneCard } from './_components/danger-zone-card'
 import { GeneralCard } from './_components/general-card'
+import { InvoiceImportDefaultsCard } from './_components/invoice-import-defaults-card'
 import { InvoiceNumberingCard } from './_components/invoice-numbering-card'
 import { TimesheetDefaultsCard } from './_components/timesheet-defaults-card'
-import type { ClientInvolvementValue, TimesheetDuration } from './common'
+import type {
+  ClientInvolvementValue,
+  InvoiceTimeUnit,
+  TimesheetDuration,
+} from './common'
 
 export function SettingsPageClient({
   organization,
@@ -19,6 +24,7 @@ export function SettingsPageClient({
   defaultTimesheetDuration,
   defaultCurrency,
   invoiceNumberTemplate,
+  invoiceTimeUnit,
   clientInvolvement,
   customFields,
 }: {
@@ -29,6 +35,7 @@ export function SettingsPageClient({
   defaultCurrency: string
   defaultTimesheetDuration: TimesheetDuration
   invoiceNumberTemplate: string
+  invoiceTimeUnit: InvoiceTimeUnit
   clientInvolvement: ClientInvolvementValue
   customFields: CustomFieldDefinition[]
 }) {
@@ -72,9 +79,13 @@ export function SettingsPageClient({
           />
         </TabsContent>
 
-        <TabsContent value='invoicing'>
+        <TabsContent className='space-y-6' value='invoicing'>
           <InvoiceNumberingCard
             invoiceNumberTemplate={invoiceNumberTemplate}
+            organizationId={organization.id}
+          />
+          <InvoiceImportDefaultsCard
+            invoiceTimeUnit={invoiceTimeUnit}
             organizationId={organization.id}
           />
         </TabsContent>

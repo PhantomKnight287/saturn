@@ -83,5 +83,25 @@ Constraint edits (label, required, default, dropdown options, etc.) are always a
 - The field editor does not pre-compute or warn about impact on existing data in v1. Admins are trusted. Revisit if it becomes a support issue.
 - **Field type is immutable after creation.** To change a type, delete the field (cascading its values) and create a new one.
 
+### Invoice time unit
+The basis used for the `quantity` column when billable time entries are turned into invoice line items. Two values only (v1): `hours` (default) and `minutes`.
+
+- **Hours** — `quantity = durationMinutes / 60` (e.g. 90m → `1.5`), `unitPrice = hourlyRate` per hour.
+- **Minutes** — `quantity = durationMinutes` (whole integer, e.g. `90`), `unitPrice = hourlyRate / 60` rounded to 4 decimals (the per-minute rate).
+- The unit only changes how a line *reads*; it never changes the line's `amount` or the invoice total. See [Import amount accuracy](#import-amount-accuracy).
+- Days and other units are out of v1.
+
+### Default invoice time unit
+The persisted pre-selection for the import unit, stored on the `settings` table (`invoiceTimeUnit` enum) at both **organization** and **project** scope. Resolution is **project row if present, else org row, else `hours`** — the same cascade as the other invoice/timesheet defaults (`projectOrOrgSettings`). It only *seeds* the import — the creator can override per-import in the dialog. Surfaced in a dedicated **Invoice import defaults** card on both org and project settings.
+
+### Import paths
+Two flows convert billable time entries into line items, and both honor the resolved time unit via one shared conversion helper:
+
+- **Manual import** — `ImportTimeEntriesDialog`, opened from the invoice editor. Carries a `Hours | Minutes` segmented toggle (seeded from the default, overridable). Per-entry rows show real durations via `formatMinutes`; the aggregate "selected" badge reflects the chosen unit (`90m selected` / `1.5h selected`).
+- **Auto-import** — the silent `autoImportTime` effect that fires when an invoice is created from a timesheet (`fromTimesheet`). No toggle; uses the resolved default. Its description suffix reflects the unit (`member — 90m` / `member — 1.5h`).
+
+### Import amount accuracy
+A line item's `amount` is always derived from the **exact duration** (`durationMinutes / 60 × hourlyRate`, rounded to 2 dp), independent of the displayed unit or the rounded per-minute `unitPrice`. This keeps invoice totals identical regardless of the import unit and free of per-minute rounding drift. Note: the invoice editor recomputes `amount = quantity × unitPrice` (4 dp) when a user manually edits a row, so the duration-derived value is authoritative only until a row is hand-edited — sub-cent and invisible at the PDF's 2-dp display.
+
 ### Custom Field Value
 The user-supplied data for one custom field on one time entry. Values are stored on `time_entries` in a single `custom_values jsonb` column shaped `{fieldId: value}` (value is the raw scalar — string, number, boolean, or ISO date/time depending on the field type). Validation lives in the app layer (Zod) using the field definition. Deleting a field removes its key from every entry's `custom_values` via a single `UPDATE … SET custom_values = custom_values - $fieldId` over the affected scope.

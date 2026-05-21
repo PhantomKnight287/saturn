@@ -165,6 +165,7 @@ export default async function InvoiceDetail({
       canResolveThread={canResolveThread}
       canSend={canSend}
       clients={clients}
+      defaultTimeUnit={settings.invoiceTimeUnit}
       existingItems={items}
       existingRecipientIds={recipients.map((r) => r.memberId)}
       invoice={{

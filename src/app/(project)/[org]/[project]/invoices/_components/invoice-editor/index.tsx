@@ -41,6 +41,10 @@ import DatePicker from '@/components/ui/date-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  formatDurationInUnit,
+  timeEntryLineAmounts,
+} from '@/lib/invoice-time-units'
 import { uploadDataUrl } from '@/lib/upload'
 import type { RouteImpl } from '@/types'
 import ThreadsPanel from '../../../requirements/_components/threads-panel'
@@ -93,6 +97,7 @@ export default function InvoiceEditor({
   unbilledTimeEntries = [],
   memberRateMap = {},
   autoImportTime = false,
+  defaultTimeUnit = 'hours',
   timesheetWarning,
   threads = [],
   unpaidExpenses = [],
@@ -257,14 +262,25 @@ export default function InvoiceEditor({
         (s, e) => s + e.durationMinutes,
         0
       )
-      const hours = totalMinutes / 60
       const memberName = memberEntries.at(0)?.memberName ?? 'Team member'
-      const unitPrice = rate ? (rate.hourlyRate / 100).toFixed(2) : '0'
-      const amount = rate ? ((hours * rate.hourlyRate) / 100).toFixed(2) : '0'
+      const { quantity, unitPrice, amount } = rate
+        ? timeEntryLineAmounts({
+            durationMinutes: totalMinutes,
+            hourlyRateCents: rate.hourlyRate,
+            unit: defaultTimeUnit,
+          })
+        : {
+            quantity:
+              defaultTimeUnit === 'minutes'
+                ? String(totalMinutes)
+                : (totalMinutes / 60).toFixed(2),
+            unitPrice: '0',
+            amount: '0',
+          }
 
       newItems.push({
-        description: `${memberName} — ${hours.toFixed(1)}h`,
-        quantity: hours.toFixed(2),
+        description: `${memberName} — ${formatDurationInUnit(totalMinutes, defaultTimeUnit)}`,
+        quantity,
         unitPrice,
         amount,
       })
@@ -278,7 +294,7 @@ export default function InvoiceEditor({
       setValue('items', newItems)
       setImportedEntryIds(entryIds)
     }
-  }, [autoImportTime, billableEntries, rateMap, setValue])
+  }, [autoImportTime, billableEntries, rateMap, setValue, defaultTimeUnit])
 
   const { execute: executeCreate, isPending: isCreating } = useAction(
     createInvoiceAction,
@@ -1207,6 +1223,7 @@ export default function InvoiceEditor({
 
       <ImportTimeEntriesDialog
         billableEntries={unbilledTimeEntries}
+        defaultUnit={defaultTimeUnit}
         onImport={(items, entryIds) => {
           for (const item of items) {
             appendItem(item)

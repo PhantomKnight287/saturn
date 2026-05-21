@@ -192,6 +192,7 @@ export default async function NewInvoice({
       billableEntries={billableEntries}
       clients={clients}
       defaultCurrency={projectOrOrgSettings?.currency}
+      defaultTimeUnit={projectOrOrgSettings?.invoiceTimeUnit}
       extendData={extendData}
       isClientInvolved={
         projectOrOrgSettings.clientInvolvement.invoices === 'on'

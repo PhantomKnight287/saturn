@@ -55,6 +55,7 @@ export default async function SettingsPage({
       defaultMemberRate={settings.memberRate}
       defaultTimesheetDuration={settings.timesheetDuration}
       invoiceNumberTemplate={settings.invoiceNumberTemplate}
+      invoiceTimeUnit={settings.invoiceTimeUnit}
       organization={organization}
       orgSlug={org}
     />
