@@ -39,7 +39,8 @@ export function timeEntryLineAmounts({
 }: TimeEntryLineAmountsInput): TimeEntryLineAmounts {
   const hours = durationMinutes / 60
   const ratePerHour = hourlyRateCents / 100
-  const amount = (hours * ratePerHour).toFixed(2)
+  const totalCents = Math.round((durationMinutes * hourlyRateCents) / 60)
+  const amount = (totalCents / 100).toFixed(2)
 
   if (unit === 'minutes') {
     return {

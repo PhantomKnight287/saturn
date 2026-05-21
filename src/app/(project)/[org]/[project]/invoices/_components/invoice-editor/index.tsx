@@ -270,7 +270,10 @@ export default function InvoiceEditor({
             unit: defaultTimeUnit,
           })
         : {
-            quantity: (totalMinutes / 60).toFixed(2),
+            quantity:
+              defaultTimeUnit === 'minutes'
+                ? String(totalMinutes)
+                : (totalMinutes / 60).toFixed(2),
             unitPrice: '0',
             amount: '0',
           }
