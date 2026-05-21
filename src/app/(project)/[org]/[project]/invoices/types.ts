@@ -1,4 +1,5 @@
 import type z from 'zod'
+import type { InvoiceTimeUnit } from '@/lib/invoice-time-units'
 import type { expenses, invoiceRecipientEnum } from '@/server/db/schema'
 import type { Role } from '@/types'
 import type { Thread } from '../requirements/types'
@@ -129,6 +130,7 @@ export interface InvoiceEditorProps {
   canSend?: boolean
   clients: ProjectClient[]
   defaultCurrency?: string
+  defaultTimeUnit?: InvoiceTimeUnit
   existingItems?: InvoiceItem[]
   existingRecipientIds?: string[]
   extendData?: ExtendInvoiceData

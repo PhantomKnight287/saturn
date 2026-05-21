@@ -58,6 +58,15 @@ export const updateInvoiceNumberTemplateSchema = z.object({
     .max(100, 'Template is too long'),
 })
 
+export const invoiceTimeUnitOptions = ['hours', 'minutes'] as const
+export type InvoiceTimeUnit = (typeof invoiceTimeUnitOptions)[number]
+
+export const updateInvoiceImportDefaultsSchema = z.object({
+  organizationId: z.string().min(1),
+  projectId: z.string().min(1).optional(),
+  invoiceTimeUnit: z.enum(invoiceTimeUnitOptions),
+})
+
 export const deleteOrganizationSchema = z.object({
   organizationId: z.string().min(1),
   confirmName: z.string().min(1, 'Please type the workspace name to confirm'),

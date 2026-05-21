@@ -119,6 +119,7 @@ const SETTINGS_DEFAULTS = {
   memberRate: 0,
   currency: 'USD' as const,
   timesheetDuration: 'weekly' as const,
+  invoiceTimeUnit: 'hours' as const,
   invoiceNumberTemplate: 'INV-%year(short)%month(num)-%seq(4)',
   clientInvolvement: {
     proposals: 'on',

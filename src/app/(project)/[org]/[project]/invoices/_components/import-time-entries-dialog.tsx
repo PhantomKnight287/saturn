@@ -21,6 +21,11 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty'
 import { useSetSelection } from '@/hooks/use-set-selection'
+import {
+  formatDurationInUnit,
+  type InvoiceTimeUnit,
+  timeEntryLineAmounts,
+} from '@/lib/invoice-time-units'
 
 interface BillableEntry {
   date: Date
@@ -36,6 +41,7 @@ interface BillableEntry {
 
 interface ImportTimeEntriesDialogProps {
   billableEntries: BillableEntry[]
+  defaultUnit: InvoiceTimeUnit
   onImport: (
     items: {
       description: string
@@ -70,19 +76,22 @@ export function ImportTimeEntriesDialog({
   open,
   onOpenChange,
   billableEntries,
+  defaultUnit,
   rates,
   onImport,
 }: ImportTimeEntriesDialogProps) {
   const { selectedIds, toggle, toggleAll, clear } =
     useSetSelection<BillableEntry>((e) => e.id)
   const [importIndividually, setImportIndividually] = useState(false)
+  const [unit, setUnit] = useState<InvoiceTimeUnit>(defaultUnit)
   const id = useId()
   useEffect(() => {
     if (open) {
       clear()
       setImportIndividually(false)
+      setUnit(defaultUnit)
     }
-  }, [open, clear])
+  }, [open, clear, defaultUnit])
 
   const grouped = billableEntries.reduce<
     Record<string, { name: string; entries: BillableEntry[] }>
@@ -110,14 +119,12 @@ export function ImportTimeEntriesDialog({
 
     if (importIndividually) {
       items = selected.map((entry) => {
-        const hours = (entry.durationMinutes / 60).toFixed(2)
         const rate = rates.get(entry.memberId)
-        const unitPriceCents = rate?.hourlyRate ?? 0
-        const unitPrice = (unitPriceCents / 100).toFixed(2)
-        const amount = (
-          Number.parseFloat(hours) *
-          (unitPriceCents / 100)
-        ).toFixed(2)
+        const { quantity, unitPrice, amount } = timeEntryLineAmounts({
+          durationMinutes: entry.durationMinutes,
+          hourlyRateCents: rate?.hourlyRate ?? 0,
+          unit,
+        })
 
         const memberName = entry.memberName ?? 'Unknown'
         const dateLabel = new Date(entry.date).toLocaleDateString(undefined, {
@@ -132,7 +139,7 @@ export function ImportTimeEntriesDialog({
 
         return {
           description: desc,
-          quantity: hours,
+          quantity,
           unitPrice,
           amount,
         }
@@ -162,14 +169,12 @@ export function ImportTimeEntriesDialog({
       }
 
       items = Object.values(byMemberAndReq).map((group) => {
-        const hours = (group.totalMinutes / 60).toFixed(2)
         const rate = rates.get(group.memberId)
-        const unitPriceCents = rate?.hourlyRate ?? 0
-        const unitPrice = (unitPriceCents / 100).toFixed(2)
-        const amount = (
-          Number.parseFloat(hours) *
-          (unitPriceCents / 100)
-        ).toFixed(2)
+        const { quantity, unitPrice, amount } = timeEntryLineAmounts({
+          durationMinutes: group.totalMinutes,
+          hourlyRateCents: rate?.hourlyRate ?? 0,
+          unit,
+        })
 
         const desc = group.requirementTitle
           ? `${group.memberName} — ${group.requirementTitle}`
@@ -177,7 +182,7 @@ export function ImportTimeEntriesDialog({
 
         return {
           description: desc,
-          quantity: hours,
+          quantity,
           unitPrice,
           amount,
         }
@@ -230,7 +235,7 @@ export function ImportTimeEntriesDialog({
               </div>
               {selectedIds.size > 0 && (
                 <Badge variant='secondary'>
-                  {(totalSelectedMinutes / 60).toFixed(1)}h selected
+                  {formatDurationInUnit(totalSelectedMinutes, unit)} selected
                 </Badge>
               )}
             </div>
@@ -284,6 +289,31 @@ export function ImportTimeEntriesDialog({
               })}
             </div>
           </>
+        )}
+
+        {billableEntries.length > 0 && (
+          <div className='flex items-center justify-between border-t pt-3'>
+            <div className='grid gap-1 leading-none'>
+              <span className='font-medium text-sm'>Time unit</span>
+              <p className='text-muted-foreground text-xs'>
+                How quantities appear on the invoice.
+              </p>
+            </div>
+            <div className='inline-flex rounded-md border p-0.5'>
+              {(['hours', 'minutes'] as const).map((u) => (
+                <Button
+                  className='h-7 px-3 text-xs capitalize'
+                  key={u}
+                  onClick={() => setUnit(u)}
+                  size='sm'
+                  type='button'
+                  variant={unit === u ? 'secondary' : 'ghost'}
+                >
+                  {u}
+                </Button>
+              ))}
+            </div>
+          </div>
         )}
 
         {billableEntries.length > 0 && (

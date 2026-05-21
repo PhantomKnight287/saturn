@@ -1,5 +1,6 @@
 'use client'
 
+import { InvoiceImportDefaultsCard } from '@/app/(organization)/[org]/settings/_components/invoice-import-defaults-card'
 import type { projectsService } from '@/app/api/projects/service'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { CustomFieldDefinition } from '@/lib/custom-fields'
@@ -72,11 +73,16 @@ export function ProjectSettingsPageClient({
           />
         </TabsContent>
 
-        <TabsContent value='invoicing'>
+        <TabsContent className='space-y-6' value='invoicing'>
           <InvoiceNumberingCard
             organizationId={organizationId}
             projectId={project.id}
             settings={settings}
+          />
+          <InvoiceImportDefaultsCard
+            invoiceTimeUnit={settings.invoiceTimeUnit}
+            organizationId={organizationId}
+            projectId={project.id}
           />
         </TabsContent>
 

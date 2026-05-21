@@ -19,6 +19,11 @@ export const timesheetDurationEnum = pgEnum('timesheet_duration', [
   'monthly',
 ])
 
+export const invoiceTimeUnitEnum = pgEnum('invoice_time_unit', [
+  'hours',
+  'minutes',
+])
+
 export const settings = pgTable(
   'settings',
   {
@@ -38,6 +43,9 @@ export const settings = pgTable(
       .notNull(),
     timesheetDuration: timesheetDurationEnum('timesheet_duration')
       .default('weekly')
+      .notNull(),
+    invoiceTimeUnit: invoiceTimeUnitEnum('invoice_time_unit')
+      .default('hours')
       .notNull(),
     clientInvolvement: jsonb('client_involvement')
       .$type<{
