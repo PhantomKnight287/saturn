@@ -54,6 +54,8 @@ export default async function SettingsPage({
       defaultCurrency={settings.currency}
       defaultMemberRate={settings.memberRate}
       defaultTimesheetDuration={settings.timesheetDuration}
+      invoiceFromAddress={settings.invoiceFromAddress}
+      invoiceFromName={settings.invoiceFromName}
       invoiceNumberTemplate={settings.invoiceNumberTemplate}
       invoiceTimeUnit={settings.invoiceTimeUnit}
       organization={organization}

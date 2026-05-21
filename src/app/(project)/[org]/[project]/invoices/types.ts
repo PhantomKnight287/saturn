@@ -129,7 +129,11 @@ export interface InvoiceEditorProps {
   canResolveThread?: boolean
   canSend?: boolean
   clients: ProjectClient[]
+  defaultClientAddress?: string | null
+  defaultClientName?: string | null
   defaultCurrency?: string
+  defaultSenderAddress?: string | null
+  defaultSenderName?: string | null
   defaultTimeUnit?: InvoiceTimeUnit
   existingItems?: InvoiceItem[]
   existingRecipientIds?: string[]

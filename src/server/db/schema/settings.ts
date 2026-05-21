@@ -65,6 +65,12 @@ export const settings = pgTable(
         invoices: 'on',
       }))
       .notNull(),
+
+    invoiceFromName: text('invoice_from_name'),
+    invoiceFromAddress: text('invoice_from_address'),
+    /// Project only fields
+    invoiceToName: text('invoice_to_name'),
+    invoiceToAddress: text('invoice_to_address'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()

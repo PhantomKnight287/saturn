@@ -16,6 +16,7 @@ import {
   deleteOrganizationSchema,
   deleteOrgCustomFieldSchema,
   renameOrganizationSchema,
+  updateInvoiceFromDetailsSchema,
   updateInvoiceImportDefaultsSchema,
   updateInvoiceNumberTemplateSchema,
   updateOrgClientInvolvementSchema,
@@ -204,6 +205,46 @@ export const updateInvoiceImportDefaultsAction = authedActionClient
             set: { invoiceTimeUnit },
           })
       }
+
+      return { success: true }
+    }
+  )
+
+export const updateInvoiceFromDetailsAction = authedActionClient
+  .inputSchema(updateInvoiceFromDetailsSchema)
+  .action(
+    async ({
+      parsedInput: { organizationId, invoiceFromName, invoiceFromAddress },
+      ctx: { role, orgMember },
+    }) => {
+      if (!role.authorize({ organization: ['update'] }).success) {
+        throw new Error(
+          'You do not have permission to update workspace settings'
+        )
+      }
+
+      if (orgMember.organizationId !== organizationId) {
+        throw new Error('Organization mismatch')
+      }
+
+      const fromName = invoiceFromName?.trim() || null
+      const fromAddress = invoiceFromAddress?.trim() || null
+
+      await db
+        .insert(settingsTable)
+        .values({
+          organizationId,
+          invoiceFromName: fromName,
+          invoiceFromAddress: fromAddress,
+        })
+        .onConflictDoUpdate({
+          target: [settingsTable.organizationId],
+          targetWhere: sql`${settingsTable.projectId} IS NULL`,
+          set: {
+            invoiceFromName: fromName,
+            invoiceFromAddress: fromAddress,
+          },
+        })
 
       return { success: true }
     }

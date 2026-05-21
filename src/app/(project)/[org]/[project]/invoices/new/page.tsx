@@ -191,7 +191,11 @@ export default async function NewInvoice({
       autoImportTime={!!fromTimesheet}
       billableEntries={billableEntries}
       clients={clients}
+      defaultClientAddress={projectOrOrgSettings?.invoiceToAddress}
+      defaultClientName={projectOrOrgSettings?.invoiceToName}
       defaultCurrency={projectOrOrgSettings?.currency}
+      defaultSenderAddress={projectOrOrgSettings?.invoiceFromAddress}
+      defaultSenderName={projectOrOrgSettings?.invoiceFromName}
       defaultTimeUnit={projectOrOrgSettings?.invoiceTimeUnit}
       extendData={extendData}
       isClientInvolved={

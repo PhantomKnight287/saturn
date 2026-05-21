@@ -1,11 +1,16 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { format } from 'date-fns'
-import { CalendarIcon } from 'lucide-react'
-import { type Dispatch, type SetStateAction, useEffect } from 'react'
+import { CalendarIcon, ChevronDown } from 'lucide-react'
+import { type Dispatch, type SetStateAction, useEffect, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import type z from 'zod'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
 import {
   Dialog,
   DialogClose,
@@ -27,6 +32,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 import { createProjectSchema } from '../common'
 
@@ -45,6 +51,8 @@ export default function CreateProjectDialog({
   handleSubmit: (values: z.infer<typeof createProjectSchema>) => void
   isPending: boolean
 }) {
+  const [advancedOpen, setAdvancedOpen] = useState(false)
+
   const form = useForm<z.infer<typeof createProjectSchema>>({
     resolver: zodResolver(createProjectSchema),
     defaultValues: {
@@ -52,6 +60,10 @@ export default function CreateProjectDialog({
       orgSlug,
       name: '',
       description: '',
+      invoiceFromName: '',
+      invoiceFromAddress: '',
+      invoiceToName: '',
+      invoiceToAddress: '',
     },
   })
 
@@ -63,7 +75,12 @@ export default function CreateProjectDialog({
         name: '',
         description: '',
         dueDate: undefined,
+        invoiceFromName: '',
+        invoiceFromAddress: '',
+        invoiceToName: '',
+        invoiceToAddress: '',
       })
+      setAdvancedOpen(false)
     }
   }, [dialogOpen, form, organizationId, orgSlug])
 
@@ -172,6 +189,118 @@ export default function CreateProjectDialog({
                 </Field>
               )}
             />
+
+            <Collapsible
+              className='col-span-full'
+              onOpenChange={setAdvancedOpen}
+              open={advancedOpen}
+            >
+              <CollapsibleTrigger asChild>
+                <Button
+                  className='w-full justify-between font-medium'
+                  type='button'
+                  variant='ghost'
+                >
+                  Advanced
+                  <ChevronDown
+                    className={cn(
+                      'size-4 transition-transform',
+                      advancedOpen && 'rotate-180'
+                    )}
+                  />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className='space-y-4 pt-2'>
+                <Controller
+                  control={form.control}
+                  name='invoiceFromName'
+                  render={({ field, fieldState }) => (
+                    <Field className='gap-1' data-invalid={fieldState.invalid}>
+                      <FieldLabel>From Name</FieldLabel>
+                      <Input
+                        {...field}
+                        aria-invalid={fieldState.invalid}
+                        autoComplete='off'
+                        placeholder='Acme Inc.'
+                        value={field.value ?? ''}
+                      />
+                      <FieldDescription>
+                        The sender name shown on this project's invoices.
+                      </FieldDescription>
+                      {fieldState.invalid && (
+                        <FieldError errors={[fieldState.error]} />
+                      )}
+                    </Field>
+                  )}
+                />
+                <Controller
+                  control={form.control}
+                  name='invoiceFromAddress'
+                  render={({ field, fieldState }) => (
+                    <Field className='gap-1' data-invalid={fieldState.invalid}>
+                      <FieldLabel>From Address</FieldLabel>
+                      <Textarea
+                        {...field}
+                        aria-invalid={fieldState.invalid}
+                        placeholder={'123 Main St\nSpringfield, IL 62701'}
+                        rows={3}
+                        value={field.value ?? ''}
+                      />
+                      <FieldDescription>
+                        The sender address shown on this project's invoices.
+                      </FieldDescription>
+                      {fieldState.invalid && (
+                        <FieldError errors={[fieldState.error]} />
+                      )}
+                    </Field>
+                  )}
+                />
+                <Controller
+                  control={form.control}
+                  name='invoiceToName'
+                  render={({ field, fieldState }) => (
+                    <Field className='gap-1' data-invalid={fieldState.invalid}>
+                      <FieldLabel>Bill To Name</FieldLabel>
+                      <Input
+                        {...field}
+                        aria-invalid={fieldState.invalid}
+                        autoComplete='off'
+                        placeholder='Client / company name'
+                        value={field.value ?? ''}
+                      />
+                      <FieldDescription>
+                        The client name billed on this project's invoices.
+                      </FieldDescription>
+                      {fieldState.invalid && (
+                        <FieldError errors={[fieldState.error]} />
+                      )}
+                    </Field>
+                  )}
+                />
+                <Controller
+                  control={form.control}
+                  name='invoiceToAddress'
+                  render={({ field, fieldState }) => (
+                    <Field className='gap-1' data-invalid={fieldState.invalid}>
+                      <FieldLabel>Bill To Address</FieldLabel>
+                      <Textarea
+                        {...field}
+                        aria-invalid={fieldState.invalid}
+                        placeholder={'123 Main St\nSpringfield, IL 62701'}
+                        rows={3}
+                        value={field.value ?? ''}
+                      />
+                      <FieldDescription>
+                        The client address billed on this project's invoices.
+                      </FieldDescription>
+                      {fieldState.invalid && (
+                        <FieldError errors={[fieldState.error]} />
+                      )}
+                    </Field>
+                  )}
+                />
+              </CollapsibleContent>
+            </Collapsible>
           </FieldGroup>
           <DialogFooter>
             <Button loading={isPending} type='submit'>

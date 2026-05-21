@@ -129,6 +129,10 @@ const SETTINGS_DEFAULTS = {
     expenses: 'on',
     invoices: 'on',
   } as const,
+  invoiceFromName: null as string | null,
+  invoiceFromAddress: null as string | null,
+  invoiceToName: null as string | null,
+  invoiceToAddress: null as string | null,
 }
 
 /**

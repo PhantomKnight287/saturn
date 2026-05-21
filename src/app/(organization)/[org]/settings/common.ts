@@ -67,6 +67,12 @@ export const updateInvoiceImportDefaultsSchema = z.object({
   invoiceTimeUnit: z.enum(invoiceTimeUnitOptions),
 })
 
+export const updateInvoiceFromDetailsSchema = z.object({
+  organizationId: z.string().min(1),
+  invoiceFromName: z.string().max(200).optional(),
+  invoiceFromAddress: z.string().max(1000).optional(),
+})
+
 export const deleteOrganizationSchema = z.object({
   organizationId: z.string().min(1),
   confirmName: z.string().min(1, 'Please type the workspace name to confirm'),
