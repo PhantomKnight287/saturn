@@ -31,8 +31,8 @@
 
 - [ ] Base branch is `staging` (not `main`)
 - [ ] Tests added or updated (or explicitly N/A with reason)
-- [ ] `bun run typecheck` passes locally
-- [ ] `bun run lint` passes locally
+- [ ] `bun typecheck` passes locally
+- [ ] `bun check` passes locally
 - [ ] Drizzle migrations included if schema changed
 - [ ] No secrets, API keys, or `.env` values committed
 - [ ] Breaking changes called out below (or N/A)
