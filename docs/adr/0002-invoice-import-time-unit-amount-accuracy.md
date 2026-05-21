@@ -9,5 +9,5 @@ When billable time entries are imported into an invoice, the creator can choose 
 
 ## Consequences
 
-- The invoice editor recomputes `amount = quantity × unitPrice` (4 dp) whenever a user hand-edits a line's quantity or unit price (`invoice-item.tsx`). The duration-derived amount is therefore authoritative only until a row is manually edited; the divergence is sub-cent and does not surface at 2-dp display.
+- The invoice editor recomputes `amount = quantity × unitPrice` (4 dp) whenever a user hand-edits a line's quantity or unit price (`invoice-item.tsx`). The duration-derived amount is therefore authoritative only until a row is manually edited. When a user only nudges values within rounding tolerance, the divergence from the duration-derived amount stays limited to rounding/precision differences (sub-cent) and does not surface at 2-dp display. Intentional, material edits to quantity or unitPrice will, by design, produce larger deviations — the recomputed `amount` then reflects the user's explicit values rather than the original duration.
 - Both import paths (the manual `ImportTimeEntriesDialog` and the silent `autoImportTime` effect) must use the same conversion helper so amounts cannot diverge by entry path.

@@ -5,7 +5,11 @@ import { headers } from 'next/headers'
 import { authedActionClient } from '@/lib/safe-action'
 import { auth } from '@/server/auth'
 import { db } from '@/server/db'
-import { customFields, settings as settingsTable } from '@/server/db/schema'
+import {
+  customFields,
+  projects as projectsTable,
+  settings as settingsTable,
+} from '@/server/db/schema'
 import { organizations } from '@/server/db/schema/auth'
 import {
   createOrgCustomFieldSchema,
@@ -161,6 +165,21 @@ export const updateInvoiceImportDefaultsAction = authedActionClient
       }
 
       if (projectId) {
+        const [project] = await db
+          .select({ id: projectsTable.id })
+          .from(projectsTable)
+          .where(
+            and(
+              eq(projectsTable.id, projectId),
+              eq(projectsTable.organizationId, organizationId)
+            )
+          )
+          .limit(1)
+
+        if (!project) {
+          throw new Error('Project does not belong to this organization')
+        }
+
         await db
           .insert(settingsTable)
           .values({
