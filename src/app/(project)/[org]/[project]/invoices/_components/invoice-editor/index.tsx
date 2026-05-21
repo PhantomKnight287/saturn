@@ -801,6 +801,7 @@ export default function InvoiceEditor({
                     render={({ field }) => (
                       <Input
                         {...field}
+                        maxLength={1000}
                         placeholder={orgName}
                         readOnly={!isEditable}
                       />
@@ -817,6 +818,7 @@ export default function InvoiceEditor({
                     render={({ field }) => (
                       <Textarea
                         {...field}
+                        maxLength={1000}
                         placeholder='Company address'
                         readOnly={!isEditable}
                         rows={3}
