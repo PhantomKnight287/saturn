@@ -98,7 +98,7 @@ export function InvoiceFromCard({
               <Field className='gap-1' data-invalid={fieldState.invalid}>
                 <FieldLabel>From Address</FieldLabel>
                 <Textarea
-                  placeholder='123 Main St&#10;Springfield, IL 62701'
+                  placeholder='Ticklemore Street, Devon, UK'
                   rows={3}
                   {...field}
                   value={field.value ?? ''}

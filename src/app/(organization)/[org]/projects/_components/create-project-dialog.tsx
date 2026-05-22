@@ -242,7 +242,7 @@ export default function CreateProjectDialog({
                       <Textarea
                         {...field}
                         aria-invalid={fieldState.invalid}
-                        placeholder={'123 Main St\nSpringfield, IL 62701'}
+                        placeholder={'Ticklemore Street, Devon, UK'}
                         rows={3}
                         value={field.value ?? ''}
                       />
@@ -286,7 +286,7 @@ export default function CreateProjectDialog({
                       <Textarea
                         {...field}
                         aria-invalid={fieldState.invalid}
-                        placeholder={'123 Main St\nSpringfield, IL 62701'}
+                        placeholder={'Ticklemore Street, Devon, UK'}
                         rows={3}
                         value={field.value ?? ''}
                       />
