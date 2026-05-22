@@ -103,6 +103,10 @@ export default function InvoiceEditor({
   unpaidExpenses = [],
   role,
   defaultCurrency,
+  defaultSenderName,
+  defaultSenderAddress,
+  defaultClientName,
+  defaultClientAddress,
   suggestedInvoiceNumber,
   isClientInvolved = true,
   recipientType,
@@ -158,13 +162,29 @@ export default function InvoiceEditor({
       senderLogo: extendData?.senderLogo ?? invoice?.senderLogo ?? null,
       senderSignature:
         extendData?.senderSignature ?? invoice?.senderSignature ?? null,
-      senderName: extendData?.senderName ?? invoice?.senderName ?? orgName,
-      senderAddress: extendData?.senderAddress ?? invoice?.senderAddress ?? '',
+      senderName:
+        extendData?.senderName ??
+        invoice?.senderName ??
+        defaultSenderName ??
+        orgName,
+      senderAddress:
+        extendData?.senderAddress ??
+        invoice?.senderAddress ??
+        defaultSenderAddress ??
+        '',
       senderCustomFields:
         extendData?.senderCustomFields ?? invoice?.senderCustomFields ?? [],
       clientName:
-        member?.name ?? extendData?.clientName ?? invoice?.clientName ?? '',
-      clientAddress: extendData?.clientAddress ?? invoice?.clientAddress ?? '',
+        member?.name ??
+        extendData?.clientName ??
+        invoice?.clientName ??
+        defaultClientName ??
+        '',
+      clientAddress:
+        extendData?.clientAddress ??
+        invoice?.clientAddress ??
+        defaultClientAddress ??
+        '',
       clientCustomFields:
         extendData?.clientCustomFields ?? invoice?.clientCustomFields ?? [],
       clientMemberIds: extendData?.recipientMemberIds ?? existingRecipientIds,
@@ -770,7 +790,7 @@ export default function InvoiceEditor({
                   />
                 </div>
               </div>
-              <div className='grid gap-3 sm:grid-cols-2'>
+              <div className='space-y-4'>
                 <div className='space-y-2'>
                   <Label className='text-muted-foreground text-xs'>
                     Company Name
@@ -781,6 +801,7 @@ export default function InvoiceEditor({
                     render={({ field }) => (
                       <Input
                         {...field}
+                        maxLength={200}
                         placeholder={orgName}
                         readOnly={!isEditable}
                       />
@@ -795,10 +816,12 @@ export default function InvoiceEditor({
                     control={control}
                     name='senderAddress'
                     render={({ field }) => (
-                      <Input
+                      <Textarea
                         {...field}
+                        maxLength={1000}
                         placeholder='Company address'
                         readOnly={!isEditable}
+                        rows={3}
                       />
                     )}
                   />
@@ -831,7 +854,7 @@ export default function InvoiceEditor({
               </span>
             </header>
             <div className='space-y-4 p-4'>
-              <div className='grid gap-3 sm:grid-cols-2'>
+              <div className='space-y-4'>
                 <div className='space-y-2'>
                   <Label className='text-muted-foreground text-xs'>
                     Client Name
@@ -860,7 +883,7 @@ export default function InvoiceEditor({
                     control={control}
                     name='clientAddress'
                     render={({ field }) => (
-                      <Input
+                      <Textarea
                         {...field}
                         placeholder={
                           recipientType === 'client'
@@ -868,6 +891,7 @@ export default function InvoiceEditor({
                             : 'Member address'
                         }
                         readOnly={!isEditable}
+                        rows={3}
                       />
                     )}
                   />

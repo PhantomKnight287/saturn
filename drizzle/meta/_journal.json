@@ -253,6 +253,20 @@
       "when": 1779290358077,
       "tag": "0035_clever_pet_avengers",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1779360076224,
+      "tag": "0036_warm_firedrake",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1779374566412,
+      "tag": "0037_lush_cannonball",
+      "breakpoints": true
     }
   ]
 }

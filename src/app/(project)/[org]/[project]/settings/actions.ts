@@ -16,6 +16,7 @@ import {
   deleteProjectSchema,
   importOrgCustomFieldsSchema,
   renameProjectSchema,
+  updateProjectBillingDetailsSchema,
   updateProjectCustomFieldSchema,
   updateProjectStatusSchema,
   updateProjectTimesheetDefaultsSchema,
@@ -86,6 +87,59 @@ export const updateProjectTimesheetDefaultsAction = authedActionClient
             memberRate: defaultMemberRate,
             currency: defaultCurrency,
             timesheetDuration: defaultTimesheetDuration,
+          },
+        })
+
+      return { success: true }
+    }
+  )
+
+export const updateProjectBillingDetailsAction = authedActionClient
+  .inputSchema(updateProjectBillingDetailsSchema)
+  .action(
+    async ({
+      parsedInput: {
+        organizationId,
+        projectId,
+        invoiceFromName,
+        invoiceFromAddress,
+        invoiceToName,
+        invoiceToAddress,
+      },
+      ctx: { role, orgMember },
+    }) => {
+      if (!role.authorize({ organization: ['update'] }).success) {
+        throw new Error('You do not have permission to update project settings')
+      }
+
+      if (orgMember.organizationId !== organizationId) {
+        throw new Error('Organization mismatch')
+      }
+
+      await assertProjectInOrg(projectId, organizationId)
+
+      const fromName = invoiceFromName?.trim() || null
+      const fromAddress = invoiceFromAddress?.trim() || null
+      const toName = invoiceToName?.trim() || null
+      const toAddress = invoiceToAddress?.trim() || null
+
+      await db
+        .insert(settingsTable)
+        .values({
+          organizationId,
+          projectId,
+          invoiceFromName: fromName,
+          invoiceFromAddress: fromAddress,
+          invoiceToName: toName,
+          invoiceToAddress: toAddress,
+        })
+        .onConflictDoUpdate({
+          target: [settingsTable.organizationId, settingsTable.projectId],
+          set: {
+            invoiceFromName: fromName,
+            invoiceFromAddress: fromAddress,
+            invoiceToName: toName,
+            invoiceToAddress: toAddress,
           },
         })
 

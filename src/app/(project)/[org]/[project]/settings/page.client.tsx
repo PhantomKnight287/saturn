@@ -4,6 +4,7 @@ import { InvoiceImportDefaultsCard } from '@/app/(organization)/[org]/settings/_
 import type { projectsService } from '@/app/api/projects/service'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { CustomFieldDefinition } from '@/lib/custom-fields'
+import { BillingDetailsCard } from './_components/billing-details-card'
 import { ClientApprovalCard } from './_components/client-approval-card'
 import { ProjectCustomFieldsCard } from './_components/custom-fields-card'
 import { DangerZoneCard } from './_components/danger-zone-card'
@@ -83,6 +84,11 @@ export function ProjectSettingsPageClient({
             invoiceTimeUnit={settings.invoiceTimeUnit}
             organizationId={organizationId}
             projectId={project.id}
+          />
+          <BillingDetailsCard
+            organizationId={organizationId}
+            projectId={project.id}
+            settings={settings}
           />
         </TabsContent>
 

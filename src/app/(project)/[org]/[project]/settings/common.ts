@@ -107,6 +107,15 @@ export const deleteProjectSchema = z.object({
   confirmName: z.string().min(1, 'Please type the project name to confirm'),
 })
 
+export const updateProjectBillingDetailsSchema = z.object({
+  organizationId: z.string().min(1),
+  projectId: z.string().min(1),
+  invoiceFromName: z.string().max(200).optional(),
+  invoiceFromAddress: z.string().max(1000).optional(),
+  invoiceToName: z.string().max(200).optional(),
+  invoiceToAddress: z.string().max(1000).optional(),
+})
+
 export const clientInvolvementProjectSchema = z.object({
   clientInvolvement: clientInvolvementValueSchema,
   projectId: z.string().min(1),

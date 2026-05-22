@@ -12,6 +12,7 @@ import {
   members,
   projects,
   requirements,
+  settings as settingsTable,
 } from '@/server/db/schema'
 import { createProjectSchema } from './common'
 
@@ -19,7 +20,16 @@ export const createProjectAction = authedActionClient
   .inputSchema(createProjectSchema)
   .action(
     async ({
-      parsedInput: { organizationId, name, description, dueDate },
+      parsedInput: {
+        organizationId,
+        name,
+        description,
+        dueDate,
+        invoiceFromName,
+        invoiceFromAddress,
+        invoiceToName,
+        invoiceToAddress,
+      },
       ctx: { orgMember, role },
     }) => {
       if (!role.authorize({ project: ['create'] }).success) {
@@ -135,6 +145,21 @@ export const createProjectAction = authedActionClient
               projectId: createdProject.id,
             }))
           )
+        }
+
+        const fromName = invoiceFromName?.trim() || null
+        const fromAddress = invoiceFromAddress?.trim() || null
+        const toName = invoiceToName?.trim() || null
+        const toAddress = invoiceToAddress?.trim() || null
+        if (fromName || fromAddress || toName || toAddress) {
+          await tx.insert(settingsTable).values({
+            organizationId,
+            projectId: createdProject.id,
+            invoiceFromName: fromName,
+            invoiceFromAddress: fromAddress,
+            invoiceToName: toName,
+            invoiceToAddress: toAddress,
+          })
         }
 
         return createdProject
