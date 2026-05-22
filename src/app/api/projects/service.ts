@@ -142,6 +142,16 @@ const SETTINGS_DEFAULTS = {
  *   3. Hard-coded defaults
  */
 const getSettings = async (organizationId: string, projectId?: string) => {
+  const [orgSettings] = await db
+    .select()
+    .from(settingsTable)
+    .where(
+      and(
+        eq(settingsTable.organizationId, organizationId),
+        isNull(settingsTable.projectId)
+      )
+    )
+
   if (projectId) {
     const [projectSettings] = await db
       .select()
@@ -154,19 +164,21 @@ const getSettings = async (organizationId: string, projectId?: string) => {
       )
 
     if (projectSettings) {
-      return projectSettings
+      const fallback = orgSettings ?? SETTINGS_DEFAULTS
+      // Nullable invoice contact fields are "no override" when null/empty,
+      // so fall back to the organization-level values.
+      return {
+        ...projectSettings,
+        invoiceFromName:
+          projectSettings.invoiceFromName || fallback.invoiceFromName,
+        invoiceFromAddress:
+          projectSettings.invoiceFromAddress || fallback.invoiceFromAddress,
+        invoiceToName: projectSettings.invoiceToName || fallback.invoiceToName,
+        invoiceToAddress:
+          projectSettings.invoiceToAddress || fallback.invoiceToAddress,
+      }
     }
   }
-
-  const [orgSettings] = await db
-    .select()
-    .from(settingsTable)
-    .where(
-      and(
-        eq(settingsTable.organizationId, organizationId),
-        isNull(settingsTable.projectId)
-      )
-    )
 
   return orgSettings ?? SETTINGS_DEFAULTS
 }

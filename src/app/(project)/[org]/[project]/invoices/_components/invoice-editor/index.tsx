@@ -801,7 +801,7 @@ export default function InvoiceEditor({
                     render={({ field }) => (
                       <Input
                         {...field}
-                        maxLength={1000}
+                        maxLength={200}
                         placeholder={orgName}
                         readOnly={!isEditable}
                       />
