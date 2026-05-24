@@ -152,9 +152,13 @@ export const auth = betterAuth({
           if (pendingRate) {
             await db.insert(memberRates).values({
               effectiveFrom: new Date(),
-              hourlyRate: pendingRate.hourlyRate,
               memberId: member.id,
-              currency: pendingRate.currency,
+              payRate: pendingRate.payRate,
+              billingCurrency: pendingRate.billingCurrency,
+              billingFrequency: pendingRate.billingFrequency,
+              billingRate: pendingRate.billingRate,
+              payCurrency: pendingRate.payCurrency,
+              payFrequency: pendingRate.payFrequency,
             })
             await db
               .delete(pendingMemberRates)
@@ -172,14 +176,18 @@ export const auth = betterAuth({
                 isNull(settings.projectId)
               )
             )
-          if (!setting) {
+          if (!setting || !setting?.payRate) {
             return
           }
           await db.insert(memberRates).values({
             effectiveFrom: new Date(),
-            hourlyRate: setting.memberRate,
             memberId: member.id,
-            currency: setting.currency,
+            payRate: setting.payRate,
+            billingCurrency: setting.billingCurrency,
+            billingFrequency: setting.billingFrequency,
+            billingRate: setting.billingRate,
+            payCurrency: setting.payCurrency,
+            payFrequency: setting.payFrequency,
           })
         },
         async afterCreateOrganization({ organization }) {

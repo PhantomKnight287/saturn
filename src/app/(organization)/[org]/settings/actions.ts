@@ -59,8 +59,12 @@ export const updateTimesheetDefaultsAction = authedActionClient
     async ({
       parsedInput: {
         organizationId,
-        defaultMemberRate,
-        defaultCurrency,
+        defaultPayRate,
+        defaultPayCurrency,
+        defaultPayFrequency,
+        defaultBillingRate,
+        defaultBillingCurrency,
+        defaultBillingFrequency,
         defaultTimesheetDuration,
       },
       ctx: { role, orgMember },
@@ -75,22 +79,25 @@ export const updateTimesheetDefaultsAction = authedActionClient
         throw new Error('Organization mismatch')
       }
       try {
+        const defaults = {
+          payRate: defaultPayRate,
+          payCurrency: defaultPayCurrency,
+          payFrequency: defaultPayFrequency,
+          billingRate: defaultBillingRate ?? defaultPayRate,
+          billingCurrency: defaultBillingCurrency ?? defaultPayCurrency,
+          billingFrequency: defaultBillingFrequency ?? defaultPayFrequency,
+          timesheetDuration: defaultTimesheetDuration,
+        }
         await db
           .insert(settingsTable)
           .values({
             organizationId,
-            memberRate: defaultMemberRate,
-            currency: defaultCurrency,
-            timesheetDuration: defaultTimesheetDuration,
+            ...defaults,
           })
           .onConflictDoUpdate({
             target: [settingsTable.organizationId],
             targetWhere: sql`${settingsTable.projectId} IS NULL`,
-            set: {
-              memberRate: defaultMemberRate,
-              currency: defaultCurrency,
-              timesheetDuration: defaultTimesheetDuration,
-            },
+            set: defaults,
           })
 
         return { success: true }

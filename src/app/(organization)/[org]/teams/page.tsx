@@ -58,7 +58,7 @@ export default async function TeamsPage({ params }: PageProps<'/[org]/teams'>) {
       canManage={canManage}
       currentMemberId={orgMember.id}
       defaultCurrency={orgSettings.currency}
-      defaultMemberRate={orgSettings.memberRate}
+      defaultMemberRate={orgSettings.payRate}
       invitations={pendingInvitations}
       members={orgMembers}
       organizationId={organization.id}

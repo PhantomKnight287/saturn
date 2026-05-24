@@ -27,8 +27,12 @@ export const inviteOrgMemberAction = authedActionClient
         organizationId,
         email,
         role: inviteRole,
-        hourlyRate,
-        currency,
+        payRate,
+        payCurrency,
+        payFrequency,
+        billingRate,
+        billingCurrency,
+        billingFrequency,
         setAsOrgDefault,
       },
       ctx: { role, orgMember },
@@ -50,32 +54,37 @@ export const inviteOrgMemberAction = authedActionClient
         },
       })
 
-      if (hourlyRate !== undefined && currency) {
+      if (payRate !== undefined && payCurrency) {
+        // Billing columns fall back to the pay values when not provided.
+        const rateValues = {
+          payRate,
+          payCurrency,
+          payFrequency: payFrequency ?? 'hourly',
+          billingRate: billingRate ?? payRate,
+          billingCurrency: billingCurrency ?? payCurrency,
+          billingFrequency: billingFrequency ?? payFrequency ?? 'hourly',
+        }
+
         await db.insert(pendingMemberRates).values({
           invitationId: result.id,
           organizationId,
           email,
-          hourlyRate,
-          currency,
+          ...rateValues,
         })
-      }
 
-      if (setAsOrgDefault && hourlyRate !== undefined && currency) {
-        await db
-          .insert(settingsTable)
-          .values({
-            organizationId,
-            memberRate: hourlyRate,
-            currency,
-          })
-          .onConflictDoUpdate({
-            target: [settingsTable.organizationId],
-            targetWhere: sql`${settingsTable.projectId} IS NULL`,
-            set: {
-              memberRate: hourlyRate,
-              currency,
-            },
-          })
+        if (setAsOrgDefault) {
+          await db
+            .insert(settingsTable)
+            .values({
+              organizationId,
+              ...rateValues,
+            })
+            .onConflictDoUpdate({
+              target: [settingsTable.organizationId],
+              targetWhere: sql`${settingsTable.projectId} IS NULL`,
+              set: rateValues,
+            })
+        }
       }
 
       return { success: true }

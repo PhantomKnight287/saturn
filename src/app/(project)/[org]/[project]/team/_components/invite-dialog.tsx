@@ -125,7 +125,7 @@ export default function InviteDialog({
 
   const resolveRate = (data: FormValues) => {
     const parsedRate = data.rateInput
-      ? Math.round(Number(data.rateInput) * 100)
+      ? Math.round(Number(data.rateInput) * 1000)
       : undefined
     const resolvedCurrency = data.currency || undefined
 
@@ -144,7 +144,7 @@ export default function InviteDialog({
       }
     }
 
-    return { hourlyRate: finalRate, currency: finalCurrency }
+    return { payRate: finalRate, payCurrency: finalCurrency }
   }
 
   const handleSelectMember = (member: OrgMember) => {
@@ -166,7 +166,7 @@ export default function InviteDialog({
       return
     }
 
-    let rateData: { hourlyRate: number; currency: string } | undefined
+    let rateData: { payRate: number; payCurrency: string } | undefined
     if (showRateFields) {
       const resolved = resolveRate(data)
       if (!resolved) {
@@ -204,7 +204,7 @@ export default function InviteDialog({
       return
     }
 
-    let rateData: { hourlyRate: number; currency: string } | undefined
+    let rateData: { payRate: number; payCurrency: string } | undefined
     if (showRateFields) {
       const resolved = resolveRate(data)
       if (!resolved) {
@@ -275,7 +275,7 @@ export default function InviteDialog({
                   defaultMemberRate !== null &&
                   defaultMemberRate > 0 && (
                     <span className='ml-1 font-normal text-muted-foreground'>
-                      (default: {(defaultMemberRate / 100).toFixed(2)})
+                      (default: {(defaultMemberRate / 1000).toFixed(3)})
                     </span>
                   )}
               </Label>
@@ -284,10 +284,10 @@ export default function InviteDialog({
                 min='0'
                 placeholder={
                   defaultMemberRate && defaultMemberRate > 0
-                    ? (defaultMemberRate / 100).toFixed(2)
-                    : '0.00'
+                    ? (defaultMemberRate / 1000).toFixed(3)
+                    : '0.000'
                 }
-                step='0.01'
+                step='0.001'
                 type='number'
               />
             </div>
@@ -419,6 +419,7 @@ export default function InviteDialog({
                         form.setValue('email', search)
                         setSelectedMember(null)
                         setSearch('')
+                        setShowEmailForm(true)
                       }}
                       variant='outline'
                     >
@@ -548,13 +549,14 @@ export default function InviteDialog({
               <div className='flex justify-end gap-2'>
                 {showOrgList && (
                   <Button
+                    className='mr-auto'
                     onClick={() => {
                       setSearch('')
                       form.setValue('email', '')
                       setShowEmailForm(false)
                     }}
                     type='button'
-                    variant='ghost'
+                    variant={'outline'}
                   >
                     Back
                   </Button>

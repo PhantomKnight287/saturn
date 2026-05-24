@@ -1,17 +1,19 @@
+"use client";
+
 import React from "react";
-import { cn } from "@/lib/utils";
+import { Check, ChevronsUpDown, Search } from "lucide-react";
 import { currencies as AllCurrencies } from "country-data-list";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { type SelectProps } from "@radix-ui/react-select";
-import { allCurrencies } from "@/data/currencies";
 import { useVirtualizer } from "@tanstack/react-virtual";
+
+import { cn } from "@/lib/utils";
+import { allCurrencies } from "@/data/currencies";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 export interface Currency {
   code: string;
@@ -21,7 +23,8 @@ export interface Currency {
   symbol?: string;
 }
 
-interface CurrencySelectProps extends Omit<SelectProps, "onValueChange"> {
+interface CurrencySelectProps {
+  value?: string;
   onValueChange?: (value: string) => void;
   onCurrencySelect?: (currency: Currency) => void;
   name: string;
@@ -29,6 +32,7 @@ interface CurrencySelectProps extends Omit<SelectProps, "onValueChange"> {
   currencies?: "custom" | "all";
   variant?: "default" | "small";
   valid?: boolean;
+  disabled?: boolean;
 }
 
 const CurrencySelect = React.forwardRef<HTMLButtonElement, CurrencySelectProps>(
@@ -39,160 +43,166 @@ const CurrencySelect = React.forwardRef<HTMLButtonElement, CurrencySelectProps>(
       onCurrencySelect,
       name,
       placeholder = "Select currency",
-      currencies = "withdrawal",
+      currencies = "all",
       variant = "default",
       valid = true,
-      ...props
+      disabled,
     },
     ref,
   ) => {
-    const [selectedCurrency, setSelectedCurrency] =
-      React.useState<Currency | null>(null);
+    const [open, setOpen] = React.useState(false);
+    const [search, setSearch] = React.useState("");
 
     const uniqueCurrencies = React.useMemo<Currency[]>(() => {
       const currencyMap = new Map<string, Currency>();
 
       AllCurrencies.all.forEach((currency: Currency) => {
         if (currency.code && currency.name && currency.symbol) {
-          let shouldInclude = false;
-
-          switch (currencies) {
-            case "custom":
-              shouldInclude = allCurrencies.includes(currency.code);
-              break;
-            case "all":
-              shouldInclude = !allCurrencies.includes(currency.code);
-              break;
-            default:
-              shouldInclude = !allCurrencies.includes(currency.code);
-          }
+          const shouldInclude =
+            currencies === "custom"
+              ? allCurrencies.includes(currency.code)
+              : !allCurrencies.includes(currency.code);
 
           if (shouldInclude) {
-            // Special handling for Euro
-            if (currency.code === "EUR") {
-              currencyMap.set(currency.code, {
-                code: currency.code,
-                name: "Euro",
-                symbol: currency.symbol,
-                decimals: currency.decimals,
-                number: currency.number,
-              });
-            } else {
-              currencyMap.set(currency.code, {
-                code: currency.code,
-                name: currency.name,
-                symbol: currency.symbol,
-                decimals: currency.decimals,
-                number: currency.number,
-              });
-            }
+            currencyMap.set(currency.code, {
+              code: currency.code,
+              name: currency.code === "EUR" ? "Euro" : currency.name,
+              symbol: currency.symbol,
+              decimals: currency.decimals,
+              number: currency.number,
+            });
           }
         }
       });
 
-      // Convert the map to an array and sort by currency name
       return Array.from(currencyMap.values()).sort((a, b) =>
         a.name.localeCompare(b.name),
       );
     }, [currencies]);
 
-    const handleValueChange = (newValue: string) => {
-      const fullCurrencyData = uniqueCurrencies.find(
-        (curr) => curr.code === newValue,
+    const filtered = React.useMemo(() => {
+      const query = search.trim().toLowerCase();
+      if (!query) return uniqueCurrencies;
+      return uniqueCurrencies.filter(
+        (curr) =>
+          curr.code.toLowerCase().includes(query) ||
+          curr.name.toLowerCase().includes(query) ||
+          (curr.symbol ?? "").toLowerCase().includes(query),
       );
-      if (fullCurrencyData) {
-        setSelectedCurrency(fullCurrencyData);
-        if (onValueChange) {
-          onValueChange(newValue);
-        }
-        if (onCurrencySelect) {
-          onCurrencySelect(fullCurrencyData);
-        }
-      }
+    }, [uniqueCurrencies, search]);
+
+    const selected = React.useMemo(
+      () => uniqueCurrencies.find((c) => c.code === value),
+      [uniqueCurrencies, value],
+    );
+
+    const handleSelect = (currency: Currency) => {
+      onValueChange?.(currency.code);
+      onCurrencySelect?.(currency);
+      setOpen(false);
+      setSearch("");
     };
 
-    void selectedCurrency;
-
     return (
-      <Select
-        value={value}
-        onValueChange={handleValueChange}
-        {...props}
-        name={name}
-        data-valid={valid}
+      <Popover
+        open={open}
+        onOpenChange={(o) => {
+          setOpen(o);
+          if (!o) setSearch("");
+        }}
       >
-        <SelectTrigger
-          className={cn("w-full", variant === "small" && "w-fit gap-2")}
-          data-valid={valid}
-          ref={ref}
+        <PopoverTrigger asChild>
+          <Button
+            ref={ref}
+            type="button"
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            disabled={disabled}
+            data-valid={valid}
+            name={name}
+            className={cn(
+              "w-full justify-between font-normal h-9",
+
+              !selected && "text-muted-foreground",
+            )}
+          >
+            {selected ? (
+              variant === "small" ? (
+                <span>{selected.code}</span>
+              ) : (
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="font-semibold">{selected.code}</span>
+                  <span className="truncate text-muted-foreground">
+                    {selected.name}
+                  </span>
+                </span>
+              )
+            ) : (
+              <span>{placeholder}</span>
+            )}
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent
+          className="w-[var(--radix-popover-trigger-width)] min-w-[260px] p-0"
+          align="start"
         >
-          {value && variant === "small" ? (
-            <SelectValue placeholder={placeholder}>
-              <span>{value}</span>
-            </SelectValue>
+          <div className="p-2 border-b">
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+              <Input
+                placeholder="Search currencies..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-8 pl-8"
+                autoFocus
+              />
+            </div>
+          </div>
+          {filtered.length === 0 ? (
+            <div className="py-6 text-center text-sm text-muted-foreground">
+              No currencies found.
+            </div>
           ) : (
-            <SelectValue placeholder={placeholder} />
-          )}
-        </SelectTrigger>
-        <SelectContent className="w-full" >
-          <SelectGroup>
             <VirtualizedCurrencyList
-              currencies={uniqueCurrencies}
+              currencies={filtered}
               selectedValue={value}
+              onSelect={handleSelect}
             />
-          </SelectGroup>
-        </SelectContent>
-      </Select>
+          )}
+        </PopoverContent>
+      </Popover>
     );
   },
 );
 
-// Virtualized currency list component
+const ITEM_HEIGHT = 36;
+const MAX_HEIGHT = 300;
+
 const VirtualizedCurrencyList = React.memo<{
   currencies: Currency[];
   selectedValue: string | undefined;
-}>(({ currencies, selectedValue }) => {
+  onSelect: (currency: Currency) => void;
+}>(({ currencies, selectedValue, onSelect }) => {
   const parentRef = React.useRef<HTMLDivElement>(null);
 
-  // Separate selected currency from the list
-  const selectedCurrency = selectedValue
-    ? currencies.find((curr) => curr.code === selectedValue)
-    : null;
-
-  const nonSelectedCurrencies = currencies.filter(
-    (curr) => curr.code !== selectedValue,
-  );
-
   const virtualizer = useVirtualizer({
-    count: nonSelectedCurrencies.length,
+    count: currencies.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 40, // Estimated height of each currency item
-    overscan: 5, // Number of items to render outside the visible area
+    estimateSize: () => ITEM_HEIGHT,
+    overscan: 8,
   });
+
   return (
     <div
       ref={parentRef}
-      className="max-h-[300px] overflow-auto w-full"
+      className="overflow-y-auto overscroll-contain p-1"
       style={{
-        height: `${Math.min(currencies.length * 40, 300)}px`,
+        height: `${Math.min(currencies.length * ITEM_HEIGHT + 8, MAX_HEIGHT)}px`,
       }}
+      onWheel={(e) => e.stopPropagation()}
     >
-      {/* Force render selected item at the top */}
-      {selectedCurrency && (
-        <div className="sticky top-0 z-10 bg-background border-b w-full">
-          <SelectItem value={selectedCurrency.code || ""}>
-            <div className="flex items-center w-full gap-2">
-              <span className="text-sm text-muted-foreground w-8 text-left">
-                {selectedCurrency.code}
-              </span>
-              <span className="hidden">{selectedCurrency.symbol}</span>
-              <span>{selectedCurrency.name}</span>
-            </div>
-          </SelectItem>
-        </div>
-      )}
-
-      {/* Virtualized list for non-selected items */}
       <div
         style={{
           height: `${virtualizer.getTotalSize()}px`,
@@ -201,10 +211,14 @@ const VirtualizedCurrencyList = React.memo<{
         }}
       >
         {virtualizer.getVirtualItems().map((virtualItem) => {
-          const currency = nonSelectedCurrencies[virtualItem.index];
+          const currency = currencies[virtualItem.index];
+          if (!currency) return null;
+          const isSelected = currency.code === selectedValue;
           return (
-            <div
+            <button
+              type="button"
               key={virtualItem.key}
+              onClick={() => onSelect(currency)}
               style={{
                 position: "absolute",
                 top: 0,
@@ -213,17 +227,25 @@ const VirtualizedCurrencyList = React.memo<{
                 height: `${virtualItem.size}px`,
                 transform: `translateY(${virtualItem.start}px)`,
               }}
+              className={cn(
+                "flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
+                isSelected && "bg-accent text-accent-foreground",
+              )}
             >
-              <SelectItem value={currency?.code || ""}>
-                <div className="flex items-center w-full gap-2">
-                  <span className="text-sm text-muted-foreground w-8 text-left">
-                    {currency?.code}
-                  </span>
-                  <span className="hidden">{currency?.symbol}</span>
-                  <span>{currency?.name}</span>
-                </div>
-              </SelectItem>
-            </div>
+              <Check
+                className={cn(
+                  "h-4 w-4 shrink-0",
+                  isSelected ? "opacity-100" : "opacity-0",
+                )}
+              />
+              <span className="w-12 shrink-0 text-left text-xs font-semibold text-muted-foreground truncate">
+                {currency.code}
+              </span>
+              <span className="flex-1 truncate text-left">{currency.name}</span>
+              <span className="ml-auto shrink-0 text-xs text-muted-foreground">
+                {currency.symbol}
+              </span>
+            </button>
           );
         })}
       </div>
@@ -232,7 +254,6 @@ const VirtualizedCurrencyList = React.memo<{
 });
 
 VirtualizedCurrencyList.displayName = "VirtualizedCurrencyList";
-
 CurrencySelect.displayName = "CurrencySelect";
 
 export { CurrencySelect };

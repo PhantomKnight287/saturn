@@ -51,8 +51,12 @@ export default async function SettingsPage({
       canDelete={canDelete}
       clientInvolvement={settings.clientInvolvement}
       customFields={orgCustomFields}
-      defaultCurrency={settings.currency}
-      defaultMemberRate={settings.memberRate}
+      defaultBillingCurrency={settings.billingCurrency}
+      defaultBillingFrequency={settings.billingFrequency}
+      defaultBillingRate={settings.billingRate}
+      defaultPayCurrency={settings.payCurrency}
+      defaultPayFrequency={settings.payFrequency}
+      defaultPayRate={settings.payRate}
       defaultTimesheetDuration={settings.timesheetDuration}
       invoiceFromAddress={settings.invoiceFromAddress}
       invoiceFromName={settings.invoiceFromName}

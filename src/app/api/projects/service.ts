@@ -12,6 +12,31 @@ import {
 
 export const PROJECTS_CACHE_TAG = 'projects'
 
+const SETTINGS_DEFAULTS = {
+  currency: 'USD' as const,
+  billingRate: null as number | null,
+  billingCurrency: 'USD' as const,
+  billingFrequency: 'hourly' as const,
+  payRate: 0,
+  payCurrency: 'USD' as const,
+  payFrequency: 'hourly' as const,
+  timesheetDuration: 'weekly' as const,
+  invoiceTimeUnit: 'hours' as const,
+  invoiceNumberTemplate: 'INV-%year(short)%month(num)-%seq(4)',
+  clientInvolvement: {
+    proposals: 'on',
+    requirements: 'on',
+    milestones: 'on',
+    timesheets: 'on',
+    expenses: 'on',
+    invoices: 'on',
+  } as const,
+  invoiceFromName: null as string | null,
+  invoiceFromAddress: null as string | null,
+  invoiceToName: null as string | null,
+  invoiceToAddress: null as string | null,
+}
+
 const listByOrganization = async (organizationId: string) =>
   await db
     .select()
@@ -114,25 +139,6 @@ const getById = async (projectId: string) => {
     .where(eq(projects.id, projectId))
 
   return project ?? null
-}
-const SETTINGS_DEFAULTS = {
-  memberRate: 0,
-  currency: 'USD' as const,
-  timesheetDuration: 'weekly' as const,
-  invoiceTimeUnit: 'hours' as const,
-  invoiceNumberTemplate: 'INV-%year(short)%month(num)-%seq(4)',
-  clientInvolvement: {
-    proposals: 'on',
-    requirements: 'on',
-    milestones: 'on',
-    timesheets: 'on',
-    expenses: 'on',
-    invoices: 'on',
-  } as const,
-  invoiceFromName: null as string | null,
-  invoiceFromAddress: null as string | null,
-  invoiceToName: null as string | null,
-  invoiceToAddress: null as string | null,
 }
 
 /**

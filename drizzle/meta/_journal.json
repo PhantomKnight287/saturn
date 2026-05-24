@@ -267,6 +267,48 @@
       "when": 1779374566412,
       "tag": "0037_lush_cannonball",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1779602100000,
+      "tag": "0038_even_domino",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1779602200000,
+      "tag": "0039_outstanding_robin_chapel",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1779602231416,
+      "tag": "0040_tidy_risque",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1779602397211,
+      "tag": "0041_naive_rockslide",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1779603578736,
+      "tag": "0042_unique_zemo",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1779603865121,
+      "tag": "0043_foamy_pet_avengers",
+      "breakpoints": true
     }
   ]
 }

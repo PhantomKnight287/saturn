@@ -83,7 +83,7 @@ export default function InviteDialog({
 
   const handleInvite = (data: FormValues) => {
     const parsedRate = data.rateInput
-      ? Math.round(Number(data.rateInput) * 100)
+      ? Math.round(Number(data.rateInput) * 1000)
       : undefined
     const resolvedCurrency = data.currency || undefined
 
@@ -106,8 +106,8 @@ export default function InviteDialog({
       organizationId,
       email: data.email.trim(),
       role: data.role,
-      hourlyRate: finalRate,
-      currency: finalCurrency,
+      payRate: finalRate,
+      payCurrency: finalCurrency,
       setAsOrgDefault: data.setAsOrgDefault,
     })
   }
@@ -166,7 +166,7 @@ export default function InviteDialog({
                     Hourly rate
                     {defaultMemberRate > 0 && (
                       <span className='ml-1 font-normal text-muted-foreground'>
-                        (default: {(defaultMemberRate / 100).toFixed(2)})
+                        (default: {(defaultMemberRate / 1000).toFixed(3)})
                       </span>
                     )}
                   </Label>
@@ -175,10 +175,10 @@ export default function InviteDialog({
                     min='0'
                     placeholder={
                       defaultMemberRate > 0
-                        ? (defaultMemberRate / 100).toFixed(2)
-                        : '0.00'
+                        ? (defaultMemberRate / 1000).toFixed(3)
+                        : '0.000'
                     }
-                    step='0.01'
+                    step='0.001'
                     type='number'
                   />
                 </div>

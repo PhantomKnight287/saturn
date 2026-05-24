@@ -32,6 +32,7 @@ import {
 } from '@/server/db/schema'
 import {
   approveTimeEntriesSchema,
+  computeEntryAmount,
   createTimeEntrySchema,
   deleteTimeEntrySchema,
   linkTimeEntriesToInvoiceSchema,
@@ -593,7 +594,17 @@ export const setMemberRateAction = authedActionClient
   .inputSchema(setMemberRateSchema)
   .action(
     async ({
-      parsedInput: { memberId, projectId, hourlyRate, currency, effectiveFrom },
+      parsedInput: {
+        memberId,
+        projectId,
+        effectiveFrom,
+        billingCurrency,
+        billingFrequency,
+        billingRate,
+        payCurrency,
+        payFrequency,
+        payRate,
+      },
       ctx: { role, user, orgMember },
     }) => {
       if (!role.authorize({ member_rate: ['manage'] }).success) {
@@ -632,7 +643,14 @@ export const setMemberRateAction = authedActionClient
       if (existing) {
         const [newRate] = await db
           .update(memberRates)
-          .set({ hourlyRate, currency })
+          .set({
+            billingCurrency,
+            billingFrequency,
+            billingRate,
+            payCurrency,
+            payFrequency,
+            payRate,
+          })
           .where(eq(memberRates.id, existing.id))
           .returning()
         rate = newRate ?? undefined
@@ -642,8 +660,12 @@ export const setMemberRateAction = authedActionClient
           .values({
             memberId,
             projectId: resolvedProjectId,
-            hourlyRate,
-            currency,
+            billingCurrency,
+            billingFrequency,
+            billingRate,
+            payCurrency,
+            payFrequency,
+            payRate,
             effectiveFrom: effectiveDate,
           })
           .returning()
@@ -814,8 +836,10 @@ export const sendTimesheetToClientAction = authedActionClient
       for (const entry of entries) {
         const rate = rateByMember.get(entry.memberId)
         if (rate) {
-          totalAmountCents += Math.round(
-            (entry.durationMinutes / 60) * rate.hourlyRate
+          totalAmountCents += computeEntryAmount(
+            entry.durationMinutes,
+            rate.billingRate ?? rate.payRate,
+            rate.billingFrequency ?? rate.payFrequency ?? 'hourly'
           )
         }
       }
@@ -1163,8 +1187,10 @@ export const resendTimesheetReportAction = authedActionClient
       for (const entry of linkedEntries) {
         const rate = rateByMember.get(entry.memberId)
         if (rate) {
-          totalAmountCents += Math.round(
-            (entry.durationMinutes / 60) * rate.hourlyRate
+          totalAmountCents += computeEntryAmount(
+            entry.durationMinutes,
+            rate.billingRate ?? rate.payRate,
+            rate.billingFrequency ?? rate.payFrequency ?? 'hourly'
           )
         }
       }

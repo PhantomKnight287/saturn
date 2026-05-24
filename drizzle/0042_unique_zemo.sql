@@ -1,0 +1,1 @@
+ALTER TABLE "settings" ALTER COLUMN "pay_rate" DROP NOT NULL;

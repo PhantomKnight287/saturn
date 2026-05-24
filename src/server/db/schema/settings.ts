@@ -12,6 +12,7 @@ import {
 } from 'drizzle-orm/pg-core'
 import { organizations } from './auth'
 import { projects } from './project'
+import { billingFrequencyEnum } from './timesheet'
 
 export const timesheetDurationEnum = pgEnum('timesheet_duration', [
   'weekly',
@@ -36,8 +37,6 @@ export const settings = pgTable(
     projectId: text('project_id').references(() => projects.id, {
       onDelete: 'cascade',
     }),
-    memberRate: integer('member_rate').default(0).notNull(),
-    currency: text('currency').default('USD').notNull(),
     invoiceNumberTemplate: text('invoice_number_template')
       .default('INV-%year(short)%month(num)-%seq(4)')
       .notNull(),
@@ -65,6 +64,15 @@ export const settings = pgTable(
         invoices: 'on',
       }))
       .notNull(),
+    currency: text('currency').default('USD').notNull(),
+
+    billingRate: integer('billing_rate'),
+    billingCurrency: text('billing_currency').default('USD').notNull(),
+    billingFrequency:
+      billingFrequencyEnum('billing_frequency').default('hourly'),
+    payRate: integer('pay_rate').notNull().default(0),
+    payCurrency: text('pay_currency').default('USD').notNull(),
+    payFrequency: billingFrequencyEnum('pay_frequency').default('hourly'),
 
     invoiceFromName: text('invoice_from_name'),
     invoiceFromAddress: text('invoice_from_address'),

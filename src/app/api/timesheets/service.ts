@@ -1,4 +1,15 @@
-import { and, asc, desc, eq, gte, inArray, isNull, lte, sum } from 'drizzle-orm'
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  getTableColumns,
+  gte,
+  inArray,
+  isNull,
+  lte,
+  sum,
+} from 'drizzle-orm'
 import type { ReadonlyHeaders } from 'next/dist/server/web/spec-extension/adapters/headers'
 import { getCachedActiveOrgMember } from '@/app/(organization)/[org]/cache'
 import { db } from '@/server/db'
@@ -267,13 +278,25 @@ const getBillableSummary = async (projectId: string) => {
 }
 
 const getMemberRates = async (organizationId: string) => {
+  const {
+    payCurrency,
+    payFrequency,
+    payRate,
+    billingCurrency,
+    billingFrequency,
+    billingRate,
+  } = getTableColumns(memberRates)
   const rates = await db
     .select({
       id: memberRates.id,
       memberId: memberRates.memberId,
       projectId: memberRates.projectId,
-      hourlyRate: memberRates.hourlyRate,
-      currency: memberRates.currency,
+      payCurrency,
+      payFrequency,
+      payRate,
+      billingCurrency,
+      billingFrequency,
+      billingRate,
       effectiveFrom: memberRates.effectiveFrom,
       createdAt: memberRates.createdAt,
       memberName: users.name,
