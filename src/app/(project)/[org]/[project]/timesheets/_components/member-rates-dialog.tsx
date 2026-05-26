@@ -210,6 +210,10 @@ export function MemberRatesDialog({
         current.billingFrequency ?? 'hourly'
       )
       rateForm.setValue('isProjectSpecific', !!current.projectId)
+      rateForm.setValue(
+        'effectiveFrom',
+        current.effectiveFrom?.toString() ?? new Date().toString()
+      )
     } else {
       // No existing rate for this member — start from defaults so the previous
       // member's values can't bleed through on save.

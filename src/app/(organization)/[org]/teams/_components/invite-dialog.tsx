@@ -30,7 +30,7 @@ import { analyticsService } from '@/services/analytics.service'
 import { inviteOrgMemberAction } from '../actions'
 
 const formSchema = z.object({
-  email: z.string().email('Enter a valid email'),
+  email: z.email('Enter a valid email'),
   role: z.enum(['member', 'admin']),
   rate: z.number().optional(),
   currency: z.string(),

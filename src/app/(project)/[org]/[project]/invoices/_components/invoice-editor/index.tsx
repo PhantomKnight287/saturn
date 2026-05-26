@@ -59,7 +59,7 @@ import {
   sendInvoiceAction,
   updateInvoiceAction,
 } from '../../actions'
-import { invoiceFormSchema } from '../../common'
+import { invoiceFormSchema, memberRateKey } from '../../common'
 import type { CustomField, InvoiceEditorProps, MediaItem } from '../../types'
 import DisputeInvoiceDialog from '../dispute-invoice-dialog'
 import { ImportTimeEntriesDialog } from '../import-time-entries-dialog'
@@ -259,13 +259,24 @@ export default function InvoiceEditor({
     }
     autoImportDone.current = true
 
-    const grouped = new Map<string, typeof billableEntries>()
-    for (const entry of billableEntries) {
-      const key = entry.memberId
-      if (!grouped.has(key)) {
-        grouped.set(key, [])
+    const grouped = new Map<
+      string,
+      {
+        entries: typeof billableEntries
+        rate?: { hourlyRate: number; currency: string }
       }
-      grouped.get(key)!.push(entry)
+    >()
+    for (const entry of billableEntries) {
+      const rate = rateMap.get(memberRateKey(entry.memberId, entry.date))
+      // Entries sharing a rate consolidate into one line; a rate change within a
+      // member splits into separate lines so each keeps a coherent unit price.
+      const key = rate
+        ? `${entry.memberId}:${rate.currency}:${rate.hourlyRate}`
+        : entry.memberId
+      if (!grouped.has(key)) {
+        grouped.set(key, { entries: [], rate })
+      }
+      grouped.get(key)!.entries.push(entry)
     }
 
     const newItems: {
@@ -276,8 +287,7 @@ export default function InvoiceEditor({
     }[] = []
     const entryIds: string[] = []
 
-    for (const [memberId, memberEntries] of grouped) {
-      const rate = rateMap.get(memberId)
+    for (const { entries: memberEntries, rate } of grouped.values()) {
       const totalMinutes = memberEntries.reduce(
         (s, e) => s + e.durationMinutes,
         0

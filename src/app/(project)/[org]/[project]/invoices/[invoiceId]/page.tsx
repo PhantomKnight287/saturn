@@ -15,6 +15,7 @@ import { createMetadata } from '@/lib/metadata'
 import type { Role } from '@/types'
 import { InvoiceClientView } from '../_components/invoice-client-view'
 import InvoiceEditor from '../_components/invoice-editor'
+import { memberRateKey } from '../common'
 
 export const metadata: Metadata = createMetadata({
   title: 'Invoice',
@@ -141,14 +142,15 @@ export default async function InvoiceDetail({
     { hourlyRate: number; currency: string }
   > = {}
   for (const entry of billableEntries) {
-    if (!memberRateMap[entry.memberId]) {
+    const key = memberRateKey(entry.memberId, entry.date)
+    if (!memberRateMap[key]) {
       const rate = await timesheetService.getMemberRate(
         entry.memberId,
         currentProject.id,
-        new Date().toISOString()
+        new Date(entry.date).toISOString()
       )
       if (rate) {
-        memberRateMap[entry.memberId] = isMemberInvoice
+        memberRateMap[key] = isMemberInvoice
           ? {
               // Member invoices pay the person their pay rate, normalised to an
               // hourly figure (computeEntryAmount for 60 min yields per-hour).
@@ -160,14 +162,21 @@ export default async function InvoiceDetail({
               currency: rate.payCurrency,
             }
           : {
-              // Charge the client at the billing rate, normalised to an hourly
-              // figure (computeEntryAmount for 60 min yields the per-hour amount).
+              // Charge the client at the billing rate when one is set, otherwise
+              // fall back to the pay rate. The rate/frequency/currency trio must
+              // move together — mixing a billing rate with a pay frequency
+              // misprices the line.
               hourlyRate: computeEntryAmount(
                 60,
                 rate.billingRate ?? rate.payRate,
-                rate.billingFrequency ?? rate.payFrequency ?? 'hourly'
+                rate.billingRate != null
+                  ? (rate.billingFrequency ?? 'hourly')
+                  : rate.payFrequency
               ),
-              currency: rate.billingCurrency ?? rate.payCurrency,
+              currency:
+                rate.billingRate != null
+                  ? rate.billingCurrency
+                  : rate.payCurrency,
             }
       }
     }

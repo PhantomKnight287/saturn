@@ -45,6 +45,9 @@ export const inviteOrgMemberAction = authedActionClient
         throw new Error('Organization mismatch')
       }
 
+      if ((payRate !== undefined) !== !!payCurrency) {
+        throw new Error('Pay rate and currency must be provided together')
+      }
       const result = await auth.api.createInvitation({
         headers: await headers(),
         body: {
@@ -53,14 +56,7 @@ export const inviteOrgMemberAction = authedActionClient
           organizationId,
         },
       })
-
-      // Reject partial rate payloads instead of silently dropping the rate.
-      if ((payRate !== undefined) !== !!payCurrency) {
-        throw new Error('Pay rate and currency must be provided together')
-      }
-
       if (payRate !== undefined && payCurrency) {
-        // Billing columns fall back to the pay values when not provided.
         const rateValues = {
           payRate,
           payCurrency,

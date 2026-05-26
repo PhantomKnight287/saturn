@@ -26,6 +26,7 @@ import {
   type InvoiceTimeUnit,
   timeEntryLineAmounts,
 } from '@/lib/invoice-time-units'
+import { memberRateKey } from '../common'
 
 interface BillableEntry {
   date: Date
@@ -119,7 +120,7 @@ export function ImportTimeEntriesDialog({
 
     if (importIndividually) {
       items = selected.map((entry) => {
-        const rate = rates.get(entry.memberId)
+        const rate = rates.get(memberRateKey(entry.memberId, entry.date))
         const { quantity, unitPrice, amount } = timeEntryLineAmounts({
           durationMinutes: entry.durationMinutes,
           hourlyRateCents: rate?.hourlyRate ?? 0,
@@ -151,25 +152,29 @@ export function ImportTimeEntriesDialog({
           memberName: string
           requirementTitle: string | null
           totalMinutes: number
-          memberId: string
+          rate?: { hourlyRate: number; currency: string }
         }
       > = {}
 
       for (const entry of selected) {
-        const key = `${entry.memberId}__${entry.requirementTitle ?? 'General'}`
+        const rate = rates.get(memberRateKey(entry.memberId, entry.date))
+        // Split a member+requirement across rate changes so each line keeps a
+        // coherent unit price.
+        const rateKey = rate ? `${rate.currency}:${rate.hourlyRate}` : 'none'
+        const key = `${entry.memberId}__${entry.requirementTitle ?? 'General'}__${rateKey}`
         if (!byMemberAndReq[key]) {
           byMemberAndReq[key] = {
             memberName: entry.memberName ?? 'Unknown',
             requirementTitle: entry.requirementTitle,
             totalMinutes: 0,
-            memberId: entry.memberId,
+            rate,
           }
         }
         byMemberAndReq[key].totalMinutes += entry.durationMinutes
       }
 
       items = Object.values(byMemberAndReq).map((group) => {
-        const rate = rates.get(group.memberId)
+        const rate = group.rate
         const { quantity, unitPrice, amount } = timeEntryLineAmounts({
           durationMinutes: group.totalMinutes,
           hourlyRateCents: rate?.hourlyRate ?? 0,
@@ -242,15 +247,29 @@ export function ImportTimeEntriesDialog({
 
             <div className='max-h-96 space-y-4 overflow-y-auto'>
               {Object.entries(grouped).map(([memberId, group]) => {
-                const rate = rates.get(memberId)
+                const distinctRates = new Map(
+                  group.entries
+                    .map((e) => rates.get(memberRateKey(e.memberId, e.date)))
+                    .filter((r) => r !== undefined)
+                    .map((r) => [`${r.currency}:${r.hourlyRate}`, r])
+                )
+                const [singleRate] =
+                  distinctRates.size === 1 ? [...distinctRates.values()] : []
                 return (
                   <div key={memberId}>
                     <div className='mb-2 flex items-center justify-between'>
                       <span className='font-medium text-sm'>{group.name}</span>
-                      {rate && (
+                      {singleRate ? (
                         <Badge className='text-xs' variant='outline'>
-                          {rate.currency} {formatCentsAsRate(rate.hourlyRate)}/h
+                          {singleRate.currency}{' '}
+                          {formatCentsAsRate(singleRate.hourlyRate)}/h
                         </Badge>
+                      ) : (
+                        distinctRates.size > 1 && (
+                          <Badge className='text-xs' variant='outline'>
+                            Rates vary
+                          </Badge>
+                        )
                       )}
                     </div>
                     <div className='space-y-1'>

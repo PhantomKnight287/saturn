@@ -67,7 +67,7 @@ export const auth = betterAuth({
     async sendVerificationEmail({ user, url }) {
       const verifyUrl = new URL(url)
       verifyUrl.searchParams.set(
-        'callbackURL',
+        'redirectTo',
         `${env.NEXT_PUBLIC_BASE_URL}/dashboard`
       )
       const html = await render(

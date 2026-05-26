@@ -1,5 +1,13 @@
 import z from 'zod'
 
+// Member rates are effective-dated, so an entry must be priced with the rate in
+// effect on the day the work was done — not "now". Keying the rate map by
+// member + work date lets a member span a rate change within one invoice.
+export function memberRateKey(memberId: string, date: Date | string): string {
+  const iso = (date instanceof Date ? date : new Date(date)).toISOString()
+  return `${memberId}:${iso.slice(0, 10)}`
+}
+
 const invoiceItemSchema = z.object({
   description: z.string().min(1, 'Description is required'),
   quantity: z.string().min(1),

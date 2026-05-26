@@ -75,6 +75,7 @@ export const updateProjectTimesheetDefaultsAction = authedActionClient
       if (orgMember.organizationId !== organizationId) {
         throw new Error('Organization mismatch')
       }
+      await assertProjectInOrg(projectId, organizationId)
 
       // When no billing rate is set, billing mirrors pay entirely — otherwise
       // stale billing currency/frequency could leak into "same as pay" mode.
