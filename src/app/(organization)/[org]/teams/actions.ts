@@ -54,6 +54,11 @@ export const inviteOrgMemberAction = authedActionClient
         },
       })
 
+      // Reject partial rate payloads instead of silently dropping the rate.
+      if ((payRate !== undefined) !== !!payCurrency) {
+        throw new Error('Pay rate and currency must be provided together')
+      }
+
       if (payRate !== undefined && payCurrency) {
         // Billing columns fall back to the pay values when not provided.
         const rateValues = {

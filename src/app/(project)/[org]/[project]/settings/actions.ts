@@ -76,13 +76,20 @@ export const updateProjectTimesheetDefaultsAction = authedActionClient
         throw new Error('Organization mismatch')
       }
 
+      // When no billing rate is set, billing mirrors pay entirely — otherwise
+      // stale billing currency/frequency could leak into "same as pay" mode.
+      const usePayForBilling = defaultBillingRate === undefined
       const defaults = {
         payRate: defaultPayRate,
         payCurrency: defaultPayCurrency,
         payFrequency: defaultPayFrequency,
-        billingRate: defaultBillingRate ?? defaultPayRate,
-        billingCurrency: defaultBillingCurrency ?? defaultPayCurrency,
-        billingFrequency: defaultBillingFrequency ?? defaultPayFrequency,
+        billingRate: usePayForBilling ? defaultPayRate : defaultBillingRate,
+        billingCurrency: usePayForBilling
+          ? defaultPayCurrency
+          : (defaultBillingCurrency ?? defaultPayCurrency),
+        billingFrequency: usePayForBilling
+          ? defaultPayFrequency
+          : (defaultBillingFrequency ?? defaultPayFrequency),
         timesheetDuration: defaultTimesheetDuration,
       }
       await db

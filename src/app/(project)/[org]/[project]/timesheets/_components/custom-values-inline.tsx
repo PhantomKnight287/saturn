@@ -31,6 +31,9 @@ export function CustomValuesInline({
           key={it.id}
         >
           <span className='text-muted-foreground'>{it.label}</span>
+          {/* Date/datetime values are formatted with the runtime locale and
+              timezone, so server and client output can differ — suppress the
+              expected hydration mismatch. */}
           <span
             className='font-medium text-foreground'
             suppressHydrationWarning

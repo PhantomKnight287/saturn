@@ -1078,7 +1078,7 @@ export default function InvoiceEditor({
                   <div className='max-h-[280px] space-y-2 overflow-y-auto p-3'>
                     {unpaidExpenses.map((exp) => {
                       const isSelected = field.value.includes(exp.id)
-                      const formattedAmount = (exp.amountCents / 100).toFixed(3)
+                      const formattedAmount = (exp.amountCents / 100).toFixed(2)
                       const formattedDate = new Date(
                         exp.date
                       ).toLocaleDateString(undefined, {

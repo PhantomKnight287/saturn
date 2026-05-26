@@ -171,8 +171,12 @@ const getSettings = async (organizationId: string, projectId?: string) => {
 
     if (projectSettings) {
       const fallback = orgSettings ?? SETTINGS_DEFAULTS
-      // Nullable invoice contact fields are "no override" when null/empty,
-      // so fall back to the organization-level values.
+      // A project settings row may exist purely for an invoice-contact override.
+      // Treat an unset pay rate (0) / billing rate (null) as "no rate override"
+      // and inherit the org-level rate triple so the project row can't silently
+      // zero out the organization's configured rates.
+      const hasPayOverride = !!projectSettings.payRate
+      const hasBillingOverride = projectSettings.billingRate != null
       return {
         ...projectSettings,
         invoiceFromName:
@@ -182,6 +186,22 @@ const getSettings = async (organizationId: string, projectId?: string) => {
         invoiceToName: projectSettings.invoiceToName || fallback.invoiceToName,
         invoiceToAddress:
           projectSettings.invoiceToAddress || fallback.invoiceToAddress,
+        payRate: hasPayOverride ? projectSettings.payRate : fallback.payRate,
+        payCurrency: hasPayOverride
+          ? projectSettings.payCurrency
+          : fallback.payCurrency,
+        payFrequency: hasPayOverride
+          ? projectSettings.payFrequency
+          : fallback.payFrequency,
+        billingRate: hasBillingOverride
+          ? projectSettings.billingRate
+          : fallback.billingRate,
+        billingCurrency: hasBillingOverride
+          ? projectSettings.billingCurrency
+          : fallback.billingCurrency,
+        billingFrequency: hasBillingOverride
+          ? projectSettings.billingFrequency
+          : fallback.billingFrequency,
       }
     }
   }

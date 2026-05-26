@@ -72,7 +72,9 @@ export const settings = pgTable(
       billingFrequencyEnum('billing_frequency').default('hourly'),
     payRate: integer('pay_rate').notNull().default(0),
     payCurrency: text('pay_currency').default('USD').notNull(),
-    payFrequency: billingFrequencyEnum('pay_frequency').default('hourly'),
+    payFrequency: billingFrequencyEnum('pay_frequency')
+      .default('hourly')
+      .notNull(),
 
     invoiceFromName: text('invoice_from_name'),
     invoiceFromAddress: text('invoice_from_address'),

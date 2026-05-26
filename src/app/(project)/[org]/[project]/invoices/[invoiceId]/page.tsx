@@ -10,9 +10,9 @@ import { teamService } from '@/app/api/teams/service'
 import { threadService } from '@/app/api/threads/service'
 import { timesheetService } from '@/app/api/timesheets/service'
 import { usersService } from '@/app/api/users/service'
+import { computeEntryAmount } from '@/lib/billing'
 import { createMetadata } from '@/lib/metadata'
 import type { Role } from '@/types'
-import { computeEntryAmount } from '../../timesheets/common'
 import { InvoiceClientView } from '../_components/invoice-client-view'
 import InvoiceEditor from '../_components/invoice-editor'
 
@@ -167,7 +167,7 @@ export default async function InvoiceDetail({
                 rate.billingRate ?? rate.payRate,
                 rate.billingFrequency ?? rate.payFrequency ?? 'hourly'
               ),
-              currency: rate.billingCurrency,
+              currency: rate.billingCurrency ?? rate.payCurrency,
             }
       }
     }

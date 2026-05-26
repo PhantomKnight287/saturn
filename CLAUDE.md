@@ -33,7 +33,7 @@ There is no test runner. Verify changes with `bun typecheck` and `bun check`.
 
 ### The layering rule (non-negotiable)
 
-```
+```text
 page.tsx / page.client.tsx  →  services / actions  →  db
 ```
 

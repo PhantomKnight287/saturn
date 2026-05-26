@@ -72,11 +72,17 @@ function formatRateWithFrequency(
 
 function getCurrentRate(
   rates: MemberRate[],
-  memberId: string
+  memberId: string,
+  projectId: string
 ): MemberRate | undefined {
   const today = new Date()
-  return rates.find(
+  const active = rates.filter(
     (r) => r.memberId === memberId && new Date(r.effectiveFrom) <= today
+  )
+  // Mirror the runtime lookup: a project-specific rate wins over the org default.
+  return (
+    active.find((r) => r.projectId === projectId) ??
+    active.find((r) => r.projectId == null)
   )
 }
 
@@ -188,9 +194,9 @@ export function MemberRatesDialog({
   }
 
   function handleMemberSelect(memberId: string) {
-    rateForm.setValue('memberId', memberId, { shouldValidate: true })
-    const current = getCurrentRate(existingRates, memberId)
+    const current = getCurrentRate(existingRates, memberId, projectId)
     if (current) {
+      rateForm.setValue('memberId', memberId, { shouldValidate: true })
       rateForm.setValue('payRate', current.payRate)
       rateForm.setValue('payCurrency', current.payCurrency)
       rateForm.setValue('payFrequency', current.payFrequency ?? 'hourly')
@@ -204,6 +210,20 @@ export function MemberRatesDialog({
         current.billingFrequency ?? 'hourly'
       )
       rateForm.setValue('isProjectSpecific', !!current.projectId)
+    } else {
+      // No existing rate for this member — start from defaults so the previous
+      // member's values can't bleed through on save.
+      rateForm.reset({
+        memberId,
+        payRate: undefined,
+        payCurrency: defaultCurrency ?? 'USD',
+        payFrequency: 'hourly',
+        billingRate: undefined,
+        billingCurrency: defaultCurrency ?? 'USD',
+        billingFrequency: 'hourly',
+        effectiveFrom: new Date().toString(),
+        isProjectSpecific: true,
+      })
     }
   }
 
@@ -244,7 +264,11 @@ export function MemberRatesDialog({
                 </Label>
                 <div className='max-h-48 space-y-1 overflow-y-auto'>
                   {[...memberRateMap.entries()].map(([memberId, rates]) => {
-                    const current = getCurrentRate(existingRates, memberId)
+                    const current = getCurrentRate(
+                      existingRates,
+                      memberId,
+                      projectId
+                    )
                     if (!current) {
                       return null
                     }

@@ -664,21 +664,32 @@ const ensureMemberRate = async (
   }
   // Fall back to the pay rate for billing when no billing rate is configured.
   const billingConfigured = !!settings.billingRate
-  await db.insert(memberRates).values({
-    memberId,
-    projectId,
-    billingRate: billingConfigured ? settings.billingRate : settings.payRate,
-    billingCurrency: billingConfigured
-      ? settings.billingCurrency
-      : settings.payCurrency,
-    billingFrequency: billingConfigured
-      ? settings.billingFrequency
-      : settings.payFrequency,
-    payRate: settings.payRate,
-    payCurrency: settings.payCurrency,
-    payFrequency: settings.payFrequency,
-    effectiveFrom: asOf,
-  })
+  // Concurrent approvals can both pass the existence check above; rely on the
+  // (member, project, effectiveFrom) unique index to make the insert atomic.
+  await db
+    .insert(memberRates)
+    .values({
+      memberId,
+      projectId,
+      billingRate: billingConfigured ? settings.billingRate : settings.payRate,
+      billingCurrency: billingConfigured
+        ? settings.billingCurrency
+        : settings.payCurrency,
+      billingFrequency: billingConfigured
+        ? settings.billingFrequency
+        : settings.payFrequency,
+      payRate: settings.payRate,
+      payCurrency: settings.payCurrency,
+      payFrequency: settings.payFrequency,
+      effectiveFrom: asOf,
+    })
+    .onConflictDoNothing({
+      target: [
+        memberRates.memberId,
+        memberRates.projectId,
+        memberRates.effectiveFrom,
+      ],
+    })
 }
 
 export const timesheetService = {

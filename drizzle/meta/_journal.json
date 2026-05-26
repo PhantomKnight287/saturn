@@ -309,6 +309,13 @@
       "when": 1779603865121,
       "tag": "0043_foamy_pet_avengers",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1779783155913,
+      "tag": "0044_outgoing_queen_noir",
+      "breakpoints": true
     }
   ]
 }

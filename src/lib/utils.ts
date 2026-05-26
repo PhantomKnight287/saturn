@@ -52,6 +52,10 @@ export function formatDate(date: Date) {
 
 /** Native `<input type="date">` only accepts a `yyyy-MM-dd` value. */
 export function toDateInputValue(value: string): string {
+  // Already a date-only string: return as-is so UTC parsing doesn't shift it.
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return value
+  }
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) {
     return ''

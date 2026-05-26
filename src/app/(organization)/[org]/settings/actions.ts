@@ -78,33 +78,35 @@ export const updateTimesheetDefaultsAction = authedActionClient
       if (orgMember.organizationId !== organizationId) {
         throw new Error('Organization mismatch')
       }
-      try {
-        const defaults = {
-          payRate: defaultPayRate,
-          payCurrency: defaultPayCurrency,
-          payFrequency: defaultPayFrequency,
-          billingRate: defaultBillingRate ?? defaultPayRate,
-          billingCurrency: defaultBillingCurrency ?? defaultPayCurrency,
-          billingFrequency: defaultBillingFrequency ?? defaultPayFrequency,
-          timesheetDuration: defaultTimesheetDuration,
-        }
-        await db
-          .insert(settingsTable)
-          .values({
-            organizationId,
-            ...defaults,
-          })
-          .onConflictDoUpdate({
-            target: [settingsTable.organizationId],
-            targetWhere: sql`${settingsTable.projectId} IS NULL`,
-            set: defaults,
-          })
-
-        return { success: true }
-      } catch (e) {
-        console.error(e)
-        return { success: false }
+      // When no billing rate is set, billing mirrors pay entirely — otherwise
+      // stale billing currency/frequency could leak into "same as pay" mode.
+      const usePayForBilling = defaultBillingRate === undefined
+      const defaults = {
+        payRate: defaultPayRate,
+        payCurrency: defaultPayCurrency,
+        payFrequency: defaultPayFrequency,
+        billingRate: usePayForBilling ? defaultPayRate : defaultBillingRate,
+        billingCurrency: usePayForBilling
+          ? defaultPayCurrency
+          : (defaultBillingCurrency ?? defaultPayCurrency),
+        billingFrequency: usePayForBilling
+          ? defaultPayFrequency
+          : (defaultBillingFrequency ?? defaultPayFrequency),
+        timesheetDuration: defaultTimesheetDuration,
       }
+      await db
+        .insert(settingsTable)
+        .values({
+          organizationId,
+          ...defaults,
+        })
+        .onConflictDoUpdate({
+          target: [settingsTable.organizationId],
+          targetWhere: sql`${settingsTable.projectId} IS NULL`,
+          set: defaults,
+        })
+
+      return { success: true }
     }
   )
 

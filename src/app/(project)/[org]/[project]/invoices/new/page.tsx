@@ -9,10 +9,10 @@ import { requirementsService } from '@/app/api/requirements/service'
 import { teamService } from '@/app/api/teams/service'
 import { timesheetService } from '@/app/api/timesheets/service'
 import { usersService } from '@/app/api/users/service'
+import { computeEntryAmount } from '@/lib/billing'
 import { createMetadata } from '@/lib/metadata'
 import { InvoiceNumberGeneratorEngine } from '@/services/invoice-number.service'
 import type { Role } from '@/types'
-import { computeEntryAmount } from '../../timesheets/common'
 import InvoiceEditor from '../_components/invoice-editor'
 import type { CustomField, ExtendInvoiceData } from '../types'
 
@@ -153,7 +153,7 @@ export default async function NewInvoice({
                 rate.billingRate ?? rate.payRate,
                 rate.billingFrequency ?? rate.payFrequency ?? 'hourly'
               ),
-              currency: rate.billingCurrency,
+              currency: rate.billingCurrency ?? rate.payCurrency,
             }
       }
     }

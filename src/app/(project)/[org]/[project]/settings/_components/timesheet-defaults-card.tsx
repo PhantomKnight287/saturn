@@ -76,6 +76,8 @@ export function TimesheetDefaultsCard({
     if (checked) {
       // Clear billing so it resolves to the pay rate.
       form.setValue('defaultBillingRate', undefined, { shouldDirty: true })
+      form.setValue('defaultBillingCurrency', undefined, { shouldDirty: true })
+      form.setValue('defaultBillingFrequency', undefined, { shouldDirty: true })
     } else {
       // Seed the billing fields from the current pay values.
       form.setValue('defaultBillingRate', form.getValues('defaultPayRate'), {
