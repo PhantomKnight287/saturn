@@ -57,13 +57,18 @@ export const inviteOrgMemberAction = authedActionClient
         },
       })
       if (payRate !== undefined && payCurrency) {
+        const usePayForBilling = billingRate === undefined
         const rateValues = {
           payRate,
           payCurrency,
           payFrequency: payFrequency ?? 'hourly',
-          billingRate: billingRate ?? payRate,
-          billingCurrency: billingCurrency ?? payCurrency,
-          billingFrequency: billingFrequency ?? payFrequency ?? 'hourly',
+          billingRate: usePayForBilling ? payRate : billingRate,
+          billingCurrency: usePayForBilling
+            ? payCurrency
+            : (billingCurrency ?? payCurrency),
+          billingFrequency: usePayForBilling
+            ? (payFrequency ?? 'hourly')
+            : (billingFrequency ?? payFrequency ?? 'hourly'),
         }
 
         await db.insert(pendingMemberRates).values({
