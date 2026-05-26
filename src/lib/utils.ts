@@ -50,6 +50,16 @@ export function formatDate(date: Date) {
   })
 }
 
+/** Native `<input type="date">` only accepts a `yyyy-MM-dd` value. */
+export function toDateInputValue(value: string): string {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return ''
+  }
+  const offset = date.getTimezoneOffset() * 60_000
+  return new Date(date.getTime() - offset).toISOString().slice(0, 10)
+}
+
 export function stripHtml(html: string): string {
   return html
     .replace(/<[^>]*>/g, ' ')

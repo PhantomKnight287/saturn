@@ -12,6 +12,7 @@ import {
 } from 'drizzle-orm'
 import type { ReadonlyHeaders } from 'next/dist/server/web/spec-extension/adapters/headers'
 import { getCachedActiveOrgMember } from '@/app/(organization)/[org]/cache'
+import type { projectsService } from '@/app/api/projects/service'
 import { db } from '@/server/db'
 import {
   customFields,
@@ -637,8 +638,52 @@ const getProjectCustomFields = async (
     .orderBy(asc(customFields.createdAt))
 }
 
+/**
+ * Ensures a member has a usable rate before their entries are approved.
+ * Returns if a member rate already exists. Otherwise seeds a project-level
+ * rate from the org/project default rates. The pay rate is the required
+ * value: a null or 0 default pay rate is treated as "not configured" and
+ * throws. When the default billing rate is unset (null/0), the pay rate's
+ * value is used for billing too.
+ */
+const ensureMemberRate = async (
+  memberId: string,
+  projectId: string,
+  asOf: Date,
+  settings: Awaited<ReturnType<typeof projectsService.getSettings>>
+): Promise<void> => {
+  const existing = await getMemberRate(memberId, projectId, asOf.toString())
+  if (existing) {
+    return
+  }
+  // Pay rate is required; treat 0 (and null) as "not configured".
+  if (!settings.payRate) {
+    throw new Error(
+      'No member rate or default pay rate is configured. Please set a member rate or a default pay rate before approving.'
+    )
+  }
+  // Fall back to the pay rate for billing when no billing rate is configured.
+  const billingConfigured = !!settings.billingRate
+  await db.insert(memberRates).values({
+    memberId,
+    projectId,
+    billingRate: billingConfigured ? settings.billingRate : settings.payRate,
+    billingCurrency: billingConfigured
+      ? settings.billingCurrency
+      : settings.payCurrency,
+    billingFrequency: billingConfigured
+      ? settings.billingFrequency
+      : settings.payFrequency,
+    payRate: settings.payRate,
+    payCurrency: settings.payCurrency,
+    payFrequency: settings.payFrequency,
+    effectiveFrom: asOf,
+  })
+}
+
 export const timesheetService = {
   getEntryForEdit,
+  ensureMemberRate,
   getProjectCustomFields,
   listByProject,
   listByProjectIdsSince,

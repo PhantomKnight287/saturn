@@ -130,12 +130,13 @@ export function TimesheetApproval({
           </Button>
           <Button
             disabled={selectedIds.size === 0 || approveAction.isPending}
+            loading={approveAction.isPending}
             onClick={() =>
               approveAction.execute({ timeEntryIds: [...selectedIds] })
             }
           >
             <CheckCircle2 className='size-4' />
-            {approveAction.isPending ? 'Approving...' : 'Approve'}
+            Approve
           </Button>
         </div>
       </div>

@@ -31,7 +31,12 @@ export function CustomValuesInline({
           key={it.id}
         >
           <span className='text-muted-foreground'>{it.label}</span>
-          <span className='font-medium text-foreground'>{it.value}</span>
+          <span
+            className='font-medium text-foreground'
+            suppressHydrationWarning
+          >
+            {it.value}
+          </span>
         </span>
       ))}
     </div>

@@ -11,8 +11,8 @@ import { threadService } from '@/app/api/threads/service'
 import { timesheetService } from '@/app/api/timesheets/service'
 import { usersService } from '@/app/api/users/service'
 import { createMetadata } from '@/lib/metadata'
-import { computeEntryAmount } from '../../timesheets/common'
 import type { Role } from '@/types'
+import { computeEntryAmount } from '../../timesheets/common'
 import { InvoiceClientView } from '../_components/invoice-client-view'
 import InvoiceEditor from '../_components/invoice-editor'
 
@@ -148,16 +148,27 @@ export default async function InvoiceDetail({
         new Date().toISOString()
       )
       if (rate) {
-        memberRateMap[entry.memberId] = {
-          // Charge the client at the billing rate, normalised to an hourly
-          // figure (computeEntryAmount for 60 min yields the per-hour amount).
-          hourlyRate: computeEntryAmount(
-            60,
-            rate.billingRate ?? rate.payRate,
-            rate.billingFrequency ?? rate.payFrequency ?? 'hourly'
-          ),
-          currency: rate.billingCurrency,
-        }
+        memberRateMap[entry.memberId] = isMemberInvoice
+          ? {
+              // Member invoices pay the person their pay rate, normalised to an
+              // hourly figure (computeEntryAmount for 60 min yields per-hour).
+              hourlyRate: computeEntryAmount(
+                60,
+                rate.payRate,
+                rate.payFrequency ?? 'hourly'
+              ),
+              currency: rate.payCurrency,
+            }
+          : {
+              // Charge the client at the billing rate, normalised to an hourly
+              // figure (computeEntryAmount for 60 min yields the per-hour amount).
+              hourlyRate: computeEntryAmount(
+                60,
+                rate.billingRate ?? rate.payRate,
+                rate.billingFrequency ?? rate.payFrequency ?? 'hourly'
+              ),
+              currency: rate.billingCurrency,
+            }
       }
     }
   }

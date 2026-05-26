@@ -4,6 +4,7 @@ import { useRouter } from '@bprogress/next/app'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Save } from 'lucide-react'
 import { useAction } from 'next-safe-action/hooks'
+import { useId, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import type { z } from 'zod'
@@ -17,14 +18,14 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { CurrencySelect } from '@/components/ui/currency-selector'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Field,
   FieldDescription,
   FieldError,
   FieldLabel,
 } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
+import { RateInput } from '@/components/ui/rate-input'
 import {
   Select,
   SelectContent,
@@ -64,6 +65,35 @@ export function TimesheetDefaultsCard({
     },
   })
 
+  // Billing is optional: when unset, clients are billed at the pay rate.
+  const [billSameAsPay, setBillSameAsPay] = useState(
+    settings.billingRate == null
+  )
+  const billSameAsPayId = useId()
+
+  function handleBillSameAsPayChange(checked: boolean) {
+    setBillSameAsPay(checked)
+    if (checked) {
+      // Clear billing so it resolves to the pay rate.
+      form.setValue('defaultBillingRate', undefined, { shouldDirty: true })
+    } else {
+      // Seed the billing fields from the current pay values.
+      form.setValue('defaultBillingRate', form.getValues('defaultPayRate'), {
+        shouldDirty: true,
+      })
+      form.setValue(
+        'defaultBillingCurrency',
+        form.getValues('defaultPayCurrency'),
+        { shouldDirty: true }
+      )
+      form.setValue(
+        'defaultBillingFrequency',
+        form.getValues('defaultPayFrequency') ?? 'hourly',
+        { shouldDirty: true }
+      )
+    }
+  }
+
   const { execute, isPending } = useAction(
     updateProjectTimesheetDefaultsAction,
     {
@@ -82,157 +112,109 @@ export function TimesheetDefaultsCard({
       <CardHeader>
         <CardTitle>Timesheet Defaults</CardTitle>
         <CardDescription>
-          Set the default hourly rate and currency for this project. These
-          override the workspace-level defaults.
+          These are defaults for this project and override the workspace-level
+          defaults. You can override the rate for an individual member from the
+          rates dialog on the timesheets page.
         </CardDescription>
       </CardHeader>
       <form onSubmit={form.handleSubmit((values) => execute(values))}>
         <CardContent className='space-y-6'>
           <div className='space-y-3'>
             <p className='font-medium text-sm'>Pay (what members are paid)</p>
-            <div className='grid grid-cols-3 gap-4'>
-              <Controller
-                control={form.control}
-                name='defaultPayRate'
-                render={({ field, fieldState }) => (
-                  <Field className='gap-1' data-invalid={fieldState.invalid}>
-                    <FieldLabel>Rate</FieldLabel>
-                    <Input
-                      min={0}
-                      onChange={(e) =>
-                        field.onChange(Math.round(Number(e.target.value) * 1000))
-                      }
-                      placeholder='0.000'
-                      step={0.001}
-                      type='number'
-                      value={field.value ? field.value / 1000 : ''}
-                    />
-                    {fieldState.invalid && (
-                      <FieldError errors={[fieldState.error]} />
-                    )}
-                  </Field>
-                )}
-              />
-              <Controller
-                control={form.control}
-                name='defaultPayCurrency'
-                render={({ field, fieldState }) => (
-                  <Field className='gap-1' data-invalid={fieldState.invalid}>
-                    <FieldLabel>Currency</FieldLabel>
-                    <CurrencySelect
-                      name='payCurrency'
-                      onValueChange={field.onChange}
-                      value={field.value}
-                    />
-                    {fieldState.invalid && (
-                      <FieldError errors={[fieldState.error]} />
-                    )}
-                  </Field>
-                )}
-              />
-              <Controller
-                control={form.control}
-                name='defaultPayFrequency'
-                render={({ field, fieldState }) => (
-                  <Field className='gap-1' data-invalid={fieldState.invalid}>
-                    <FieldLabel>Frequency</FieldLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger className='w-full'>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {billingFrequencyEnum.enumValues.map((f) => (
-                          <SelectItem key={f} value={f}>
-                            {f}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {fieldState.invalid && (
-                      <FieldError errors={[fieldState.error]} />
-                    )}
-                  </Field>
-                )}
-              />
-            </div>
+            <Controller
+              control={form.control}
+              name='defaultPayRate'
+              render={({ field, fieldState }) => (
+                <Field
+                  className='w-auto gap-1'
+                  data-invalid={fieldState.invalid}
+                >
+                  <RateInput
+                    currency={form.watch('defaultPayCurrency')}
+                    frequencies={billingFrequencyEnum.enumValues}
+                    frequency={form.watch('defaultPayFrequency') ?? 'hourly'}
+                    invalid={fieldState.invalid}
+                    name='payCurrency'
+                    onCurrencyChange={(v) =>
+                      form.setValue('defaultPayCurrency', v, {
+                        shouldDirty: true,
+                      })
+                    }
+                    onFrequencyChange={(v) =>
+                      form.setValue(
+                        'defaultPayFrequency',
+                        v as (typeof billingFrequencyEnum.enumValues)[number],
+                        { shouldDirty: true }
+                      )
+                    }
+                    onValueChange={field.onChange}
+                    value={field.value}
+                  />
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
+            />
           </div>
 
           <div className='space-y-3'>
-            <p className='font-medium text-sm'>
-              Billing (what clients are charged)
-              <span className='ml-1 font-normal text-muted-foreground'>
-                — leave rate blank to match pay
-              </span>
-            </p>
-            <div className='grid grid-cols-3 gap-4'>
-              <Controller
-                control={form.control}
-                name='defaultBillingRate'
-                render={({ field, fieldState }) => (
-                  <Field className='gap-1' data-invalid={fieldState.invalid}>
-                    <FieldLabel>Rate</FieldLabel>
-                    <Input
-                      min={0}
-                      onChange={(e) =>
-                        field.onChange(
-                          e.target.value === ''
-                            ? undefined
-                            : Math.round(Number(e.target.value) * 1000)
-                        )
-                      }
-                      placeholder='0.000'
-                      step={0.001}
-                      type='number'
-                      value={field.value ? field.value / 1000 : ''}
-                    />
-                    {fieldState.invalid && (
-                      <FieldError errors={[fieldState.error]} />
-                    )}
-                  </Field>
-                )}
+            <label
+              className='flex items-center gap-2 font-medium text-sm'
+              htmlFor={billSameAsPayId}
+            >
+              <Checkbox
+                checked={billSameAsPay}
+                id={billSameAsPayId}
+                onCheckedChange={(c) => handleBillSameAsPayChange(c === true)}
               />
-              <Controller
-                control={form.control}
-                name='defaultBillingCurrency'
-                render={({ field, fieldState }) => (
-                  <Field className='gap-1' data-invalid={fieldState.invalid}>
-                    <FieldLabel>Currency</FieldLabel>
-                    <CurrencySelect
-                      name='billingCurrency'
-                      onValueChange={field.onChange}
-                      value={field.value}
-                    />
-                    {fieldState.invalid && (
-                      <FieldError errors={[fieldState.error]} />
-                    )}
-                  </Field>
-                )}
-              />
-              <Controller
-                control={form.control}
-                name='defaultBillingFrequency'
-                render={({ field, fieldState }) => (
-                  <Field className='gap-1' data-invalid={fieldState.invalid}>
-                    <FieldLabel>Frequency</FieldLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger className='w-full'>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {billingFrequencyEnum.enumValues.map((f) => (
-                          <SelectItem key={f} value={f}>
-                            {f}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {fieldState.invalid && (
-                      <FieldError errors={[fieldState.error]} />
-                    )}
-                  </Field>
-                )}
-              />
-            </div>
+              Bill clients at the same rate members are paid
+            </label>
+
+            {!billSameAsPay && (
+              <div className='space-y-3'>
+                <p className='font-medium text-sm'>
+                  Billing (what clients are charged)
+                </p>
+                <Controller
+                  control={form.control}
+                  name='defaultBillingRate'
+                  render={({ field, fieldState }) => (
+                    <Field className='gap-1' data-invalid={fieldState.invalid}>
+                      <div>
+                        <RateInput
+                          allowEmpty
+                          currency={form.watch('defaultBillingCurrency')}
+                          frequencies={billingFrequencyEnum.enumValues}
+                          frequency={
+                            form.watch('defaultBillingFrequency') ?? 'hourly'
+                          }
+                          invalid={fieldState.invalid}
+                          name='billingCurrency'
+                          onCurrencyChange={(v) =>
+                            form.setValue('defaultBillingCurrency', v, {
+                              shouldDirty: true,
+                            })
+                          }
+                          onFrequencyChange={(v) =>
+                            form.setValue(
+                              'defaultBillingFrequency',
+                              v as (typeof billingFrequencyEnum.enumValues)[number],
+                              { shouldDirty: true }
+                            )
+                          }
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        />
+                      </div>
+                      {fieldState.invalid && (
+                        <FieldError errors={[fieldState.error]} />
+                      )}
+                    </Field>
+                  )}
+                />
+              </div>
+            )}
           </div>
           <Controller
             control={form.control}

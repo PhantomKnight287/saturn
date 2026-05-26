@@ -94,9 +94,6 @@ RUN \
 #  Compile migration script to a self-contained CJS bundle (drizzle-orm/pg are not in the standalone output's node_modules)
 RUN npx esbuild src/server/db/migrate.ts --bundle --platform=node --format=cjs --outfile=migrate.cjs
 
-#  Same for the one-off rate-scale data migration script
-RUN npx esbuild scripts/migrate-rate-scale.ts --bundle --platform=node --format=cjs --outfile=migrate-rate-scale.cjs
-
 # Production image
 FROM base AS runner
 WORKDIR /app
@@ -116,7 +113,6 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 # Drizzle migrations
 COPY --from=builder --chown=nextjs:nodejs /app/drizzle ./drizzle
 COPY --from=builder --chown=nextjs:nodejs /app/migrate.cjs ./migrate.cjs
-COPY --from=builder --chown=nextjs:nodejs /app/migrate-rate-scale.cjs ./migrate-rate-scale.cjs
 
 USER nextjs
 

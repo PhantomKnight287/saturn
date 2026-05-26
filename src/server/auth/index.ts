@@ -176,7 +176,7 @@ export const auth = betterAuth({
                 isNull(settings.projectId)
               )
             )
-          if (!setting || !setting?.payRate) {
+          if (!setting?.payRate) {
             return
           }
           await db.insert(memberRates).values({

@@ -143,12 +143,13 @@ export function ExpenseApproval({ expenses }: ExpenseApprovalProps) {
           </Button>
           <Button
             disabled={selectedIds.size === 0 || approveAction.isPending}
+            loading={approveAction.isPending}
             onClick={() =>
               approveAction.execute({ expenseIds: Array.from(selectedIds) })
             }
           >
             <CheckCircle2 className='size-4' />
-            {approveAction.isPending ? 'Approving...' : 'Approve'}
+            Approve
           </Button>
         </div>
       </div>

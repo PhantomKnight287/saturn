@@ -1,6 +1,6 @@
 import z from 'zod'
-import type { TimeEntry } from './types'
 import { billingFrequencyEnum } from '@/server/db/schema'
+import type { TimeEntry } from './types'
 
 /**
  * Format minutes as human-readable hours and minutes.
@@ -34,13 +34,10 @@ const HOURS_PER_FREQUENCY: Record<
 
 /**
  * Compute the billable amount in **cents** for a time entry, given its
- * duration in minutes and the member's billing rate.
+ * duration in minutes and the member's billing rate (also in cents).
  *
- * Rates are stored in **thousandths** of a currency unit (so e.g. 141 means
- * 0.141 and supports 3-decimal precision). The rate is normalised to an
- * hourly figure based on its frequency, pro-rated by the logged duration
- * (`/ 60` to go from minutes to hours), then converted from thousandths to
- * cents (`/ 10`).
+ * The rate is normalised to an hourly figure based on its frequency, then
+ * pro-rated by the logged duration (`/ 60` to go from minutes to hours).
  */
 export function computeEntryAmount(
   durationMinutes: number,
@@ -48,8 +45,8 @@ export function computeEntryAmount(
   billingFrequency: (typeof billingFrequencyEnum.enumValues)[number]
 ): number {
   const hours = HOURS_PER_FREQUENCY[billingFrequency] ?? 1
-  const ratePerHourThousandths = billingRate / hours
-  return Math.round(((durationMinutes / 60) * ratePerHourThousandths) / 10)
+  const ratePerHour = billingRate / hours
+  return Math.round((durationMinutes / 60) * ratePerHour)
 }
 
 export function formatShortDate(
@@ -182,11 +179,12 @@ export const timeEntryFormSchema = z.object({
 
 export const memberRateFormSchema = z.object({
   memberId: z.string().min(1, 'Member is required'),
-  payRate: z.string().min(1, 'Pay rate is required'),
+  // Amounts are stored in minor units (cents).
+  payRate: z.number().optional(),
   payCurrency: z.string().min(1, 'Currency is required'),
   payFrequency: z.enum(billingFrequencyEnum.enumValues),
   // Optional — falls back to the pay values when left blank.
-  billingRate: z.string(),
+  billingRate: z.number().optional(),
   billingCurrency: z.string().min(1, 'Currency is required'),
   billingFrequency: z.enum(billingFrequencyEnum.enumValues),
   effectiveFrom: z.string().min(1, 'Effective date is required'),

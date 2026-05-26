@@ -145,6 +145,17 @@ export const createTimeEntryAction = authedActionClient
       )
       const clientOff = settings.clientInvolvement.timesheets === 'off'
 
+      // Admin/owner entries are auto-approved, so they must clear the same rate
+      // requirement as the approval flow before the entry is created.
+      if (isAdmin) {
+        await timesheetService.ensureMemberRate(
+          orgMember.id,
+          projectId,
+          new Date(date),
+          settings
+        )
+      }
+
       const defs = await loadProjectCustomFieldDefs(projectId)
       const validatedCustomValues = validateCustomValues(defs, customValues)
 
@@ -426,25 +437,9 @@ export const approveTimeEntriesAction = authedActionClient
         throw new Error('No time entries found')
       }
 
-      // Batch-fetch all member rates before the loop to avoid N+1 queries
-      const memberIds = [...new Set(entries.map((e) => e.memberId))]
-      const allRates = await Promise.all(
-        memberIds.map((id) =>
-          timesheetService.getMemberRate(
-            id,
-            projectId,
-            entries.find((e) => e.memberId === id)!.createdAt.toString()
-          )
-        )
-      )
-      const rateByMember = new Map(memberIds.map((id, i) => [id, allRates[i]]))
-
       for (const entry of entries) {
         if (entry.status !== 'submitted_to_admin') {
           throw new Error('Only submitted entries can be approved')
-        }
-        if (!rateByMember.get(entry.memberId)) {
-          throw new Error('Please set member rate before approving timesheet.')
         }
       }
 
@@ -452,6 +447,25 @@ export const approveTimeEntriesAction = authedActionClient
         orgMember.organizationId,
         projectId
       )
+
+      // Each member needs a rate before approval — seed from the org/project
+      // defaults when missing, effective from their earliest entry so it
+      // covers every entry being approved. Throws if no default is configured.
+      const memberIds = [...new Set(entries.map((e) => e.memberId))]
+      for (const id of memberIds) {
+        const earliest = entries
+          .filter((e) => e.memberId === id)
+          .reduce(
+            (min, e) => (e.createdAt < min ? e.createdAt : min),
+            entries.find((e) => e.memberId === id)!.createdAt
+          )
+        await timesheetService.ensureMemberRate(
+          id,
+          projectId,
+          earliest,
+          approveSettings
+        )
+      }
       const approvedStatus =
         approveSettings.clientInvolvement.timesheets === 'off'
           ? 'client_accepted'
@@ -624,8 +638,7 @@ export const setMemberRateAction = authedActionClient
       const effectiveDate = new Date(effectiveFrom)
       const resolvedProjectId = projectId || null
 
-      // Upsert: update existing rate if same member+project+effectiveFrom
-      const existing = await db
+      const [existing] = await db
         .select({ id: memberRates.id })
         .from(memberRates)
         .where(
@@ -637,7 +650,6 @@ export const setMemberRateAction = authedActionClient
             eq(memberRates.effectiveFrom, effectiveDate)
           )
         )
-        .then((r) => r.at(0))
 
       let rate: typeof memberRates.$inferSelect | undefined
       if (existing) {

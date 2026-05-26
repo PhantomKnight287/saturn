@@ -33,6 +33,7 @@ interface CurrencySelectProps {
   variant?: "default" | "small";
   valid?: boolean;
   disabled?: boolean;
+  className?: string;
 }
 
 const CurrencySelect = React.forwardRef<HTMLButtonElement, CurrencySelectProps>(
@@ -47,6 +48,7 @@ const CurrencySelect = React.forwardRef<HTMLButtonElement, CurrencySelectProps>(
       variant = "default",
       valid = true,
       disabled,
+      className,
     },
     ref,
   ) => {
@@ -125,6 +127,7 @@ const CurrencySelect = React.forwardRef<HTMLButtonElement, CurrencySelectProps>(
               "w-full justify-between font-normal h-9",
 
               !selected && "text-muted-foreground",
+              className,
             )}
           >
             {selected ? (
