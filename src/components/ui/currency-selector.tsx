@@ -33,7 +33,6 @@ interface CurrencySelectProps {
   variant?: "default" | "small";
   valid?: boolean;
   disabled?: boolean;
-  className?: string;
 }
 
 const CurrencySelect = React.forwardRef<HTMLButtonElement, CurrencySelectProps>(
@@ -48,7 +47,6 @@ const CurrencySelect = React.forwardRef<HTMLButtonElement, CurrencySelectProps>(
       variant = "default",
       valid = true,
       disabled,
-      className,
     },
     ref,
   ) => {
@@ -113,53 +111,38 @@ const CurrencySelect = React.forwardRef<HTMLButtonElement, CurrencySelectProps>(
           if (!o) setSearch("");
         }}
       >
-        return (
-          <>
-            <input name={name} type='hidden' value={value ?? ''} />
-            <Popover
-              open={open}
-              onOpenChange={(o) => {
-                setOpen(o)
-                if (!o) setSearch('')
-              }}
-            >
-              <PopoverTrigger asChild>
-                <Button
-                  ref={ref}
-                  type="button"
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={open}
-                  disabled={disabled}
-                  data-valid={valid}
-                  name={name}
-                  className={cn(
-                    "w-full justify-between font-normal h-9",
-                    !selected && "text-muted-foreground",
-                    className,
-                  )}
-                >
-                  {selected ? (
-                    variant === "small" ? (
-                      <span>{selected.code}</span>
-                    ) : (
-                      <span className="flex min-w-0 items-center gap-2">
-                        <span className="font-semibold">{selected.code}</span>
-                        <span className="truncate text-muted-foreground">
-                          {selected.name}
-                        </span>
-                      </span>
-                    )
-                  ) : (
-                    <span>{placeholder}</span>
-                  )}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              {/* ... rest of Popover content ... */}
-            </Popover>
-          </>
-        )
+        <PopoverTrigger asChild>
+          <Button
+            ref={ref}
+            type="button"
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            disabled={disabled}
+            data-valid={valid}
+            name={name}
+            className={cn(
+              "w-full justify-between font-normal h-9",
+
+              !selected && "text-muted-foreground",
+            )}
+          >
+            {selected ? (
+              variant === "small" ? (
+                <span>{selected.code}</span>
+              ) : (
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="font-semibold">{selected.code}</span>
+                  <span className="truncate text-muted-foreground">
+                    {selected.name}
+                  </span>
+                </span>
+              )
+            ) : (
+              <span>{placeholder}</span>
+            )}
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
         </PopoverTrigger>
         <PopoverContent
           className="w-[var(--radix-popover-trigger-width)] min-w-[260px] p-0"
