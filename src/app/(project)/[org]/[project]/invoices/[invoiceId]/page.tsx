@@ -169,14 +169,14 @@ export default async function InvoiceDetail({
               hourlyRate: computeEntryAmount(
                 60,
                 rate.billingRate ?? rate.payRate,
-                rate.billingRate != null
-                  ? (rate.billingFrequency ?? 'hourly')
-                  : rate.payFrequency
+                rate.billingRate == null
+                  ? rate.payFrequency
+                  : (rate.billingFrequency ?? 'hourly')
               ),
               currency:
-                rate.billingRate != null
-                  ? rate.billingCurrency
-                  : rate.payCurrency,
+                rate.billingRate == null
+                  ? rate.payCurrency
+                  : rate.billingCurrency,
             }
       }
     }
