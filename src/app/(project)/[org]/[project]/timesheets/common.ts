@@ -1,4 +1,5 @@
 import z from 'zod'
+import { billingFrequencyEnum } from '@/server/db/schema'
 import type { TimeEntry } from './types'
 
 /**
@@ -89,13 +90,24 @@ export const rejectTimeEntriesSchema = z.object({
   reason: z.string().min(1, 'Reason is required'),
 })
 
-export const setMemberRateSchema = z.object({
-  memberId: z.string().min(1),
-  projectId: z.string().nullable().optional(),
-  hourlyRate: z.number().int().positive('Rate must be positive'),
-  currency: z.string().min(1).default('USD'),
-  effectiveFrom: z.string().min(1, 'Effective date is required'),
-})
+export const setMemberRateSchema = z
+  .object({
+    memberId: z.string().min(1),
+    projectId: z.string().nullable().optional(),
+    payRate: z.number().int().positive(),
+    payFrequency: z.enum(billingFrequencyEnum.enumValues),
+    payCurrency: z.string(),
+    billingRate: z.number().int().positive().optional(),
+    billingFrequency: z.enum(billingFrequencyEnum.enumValues).optional(),
+    billingCurrency: z.string().optional(),
+    effectiveFrom: z.string().min(1, 'Effective date is required'),
+  })
+  .transform((data) => ({
+    ...data,
+    billingRate: data.billingRate ?? data.payRate,
+    billingFrequency: data.billingFrequency ?? data.payFrequency,
+    billingCurrency: data.billingCurrency ?? data.payCurrency,
+  }))
 
 export const setProjectBudgetSchema = z.object({
   projectId: z.string().min(1),
@@ -136,8 +148,14 @@ export const timeEntryFormSchema = z.object({
 
 export const memberRateFormSchema = z.object({
   memberId: z.string().min(1, 'Member is required'),
-  hourlyRate: z.string().min(1, 'Hourly rate is required'),
-  currency: z.string().min(1, 'Currency is required'),
+  // Amounts are stored in minor units (cents).
+  payRate: z.number().optional(),
+  payCurrency: z.string().min(1, 'Currency is required'),
+  payFrequency: z.enum(billingFrequencyEnum.enumValues),
+  // Optional — falls back to the pay values when left blank.
+  billingRate: z.number().optional(),
+  billingCurrency: z.string().min(1, 'Currency is required'),
+  billingFrequency: z.enum(billingFrequencyEnum.enumValues),
   effectiveFrom: z.string().min(1, 'Effective date is required'),
   isProjectSpecific: z.boolean(),
 })

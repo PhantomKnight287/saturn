@@ -68,8 +68,8 @@ export default async function TeamPage({
   return (
     <TeamPageClient
       canManage={canManage}
-      defaultCurrency={orgSettings.currency}
-      defaultMemberRate={orgSettings.memberRate}
+      defaultCurrency={orgSettings.payCurrency}
+      defaultMemberRate={orgSettings.payRate}
       organizationId={organization.id}
       orgMembers={orgMembers}
       orgSlug={org}

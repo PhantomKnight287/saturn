@@ -1,4 +1,5 @@
 import z from 'zod'
+import { billingFrequencyEnum } from '@/server/db/schema'
 
 export const linkInvitationSchema = z.object({
   invitationId: z.string().min(1),
@@ -34,7 +35,12 @@ export const addExistingMemberToProjectSchema = z.object({
   projectId: z.string().min(1),
   organizationId: z.string().min(1),
   type: z.enum(['member', 'client']),
-  hourlyRate: z.number().int().nonnegative().optional(),
-  currency: z.string().min(1).optional(),
+  payRate: z.number().int().nonnegative().optional(),
+  payCurrency: z.string().min(1).optional(),
+  payFrequency: z.enum(billingFrequencyEnum.enumValues).optional(),
+  // Billing columns are optional and fall back to the pay values when omitted.
+  billingRate: z.number().int().nonnegative().optional(),
+  billingCurrency: z.string().min(1).optional(),
+  billingFrequency: z.enum(billingFrequencyEnum.enumValues).optional(),
   setAsOrgDefault: z.boolean().optional(),
 })

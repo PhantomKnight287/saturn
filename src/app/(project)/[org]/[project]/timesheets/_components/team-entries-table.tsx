@@ -330,7 +330,10 @@ export function TeamEntriesTable({
                           )}
                         </span>
                       </TableCell>
-                      <TableCell className='whitespace-nowrap text-sm'>
+                      <TableCell
+                        className='whitespace-nowrap text-sm'
+                        suppressHydrationWarning
+                      >
                         {formatShortDate(entry.date)}
                       </TableCell>
                       <TableCell className='text-right font-medium text-sm'>

@@ -12,7 +12,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { CurrencySelect } from '@/components/ui/currency-selector'
 import {
   Dialog,
   DialogContent,
@@ -22,6 +21,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { RateInput } from '@/components/ui/rate-input'
 import {
   Select,
   SelectContent,
@@ -39,7 +39,7 @@ import type { OrgMember, ProjectMember } from '../types'
 const formSchema = z.object({
   email: z.string(),
   role: z.enum(['member', 'admin', 'client']),
-  rateInput: z.string(),
+  rate: z.number().optional(),
   currency: z.string(),
   setAsOrgDefault: z.boolean(),
 })
@@ -82,7 +82,7 @@ export default function InviteDialog({
     () => ({
       email: '',
       role,
-      rateInput: '',
+      rate: undefined,
       currency: '',
       setAsOrgDefault: false,
     }),
@@ -95,6 +95,8 @@ export default function InviteDialog({
   })
 
   const email = form.watch('email')
+  const rate = form.watch('rate')
+  const currency = form.watch('currency')
 
   const { execute: executeLinkInvitation } = useAction(
     linkInvitationToProjectAction
@@ -124,12 +126,9 @@ export default function InviteDialog({
   }, [orgMembers, projectMemberIds, search])
 
   const resolveRate = (data: FormValues) => {
-    const parsedRate = data.rateInput
-      ? Math.round(Number(data.rateInput) * 100)
-      : undefined
     const resolvedCurrency = data.currency || undefined
 
-    let finalRate = parsedRate
+    let finalRate = data.rate
     let finalCurrency = resolvedCurrency
 
     if (finalRate === undefined || !finalCurrency) {
@@ -144,7 +143,7 @@ export default function InviteDialog({
       }
     }
 
-    return { hourlyRate: finalRate, currency: finalCurrency }
+    return { payRate: finalRate, payCurrency: finalCurrency }
   }
 
   const handleSelectMember = (member: OrgMember) => {
@@ -166,7 +165,7 @@ export default function InviteDialog({
       return
     }
 
-    let rateData: { hourlyRate: number; currency: string } | undefined
+    let rateData: { payRate: number; payCurrency: string } | undefined
     if (showRateFields) {
       const resolved = resolveRate(data)
       if (!resolved) {
@@ -204,7 +203,7 @@ export default function InviteDialog({
       return
     }
 
-    let rateData: { hourlyRate: number; currency: string } | undefined
+    let rateData: { payRate: number; payCurrency: string } | undefined
     if (showRateFields) {
       const resolved = resolveRate(data)
       if (!resolved) {
@@ -263,51 +262,34 @@ export default function InviteDialog({
 
   const rateAndDefaultFields = (
     <>
-      <div className='grid grid-cols-2 gap-3'>
-        <Controller
-          control={form.control}
-          name='rateInput'
-          render={({ field }) => (
-            <div className='space-y-2'>
-              <Label>
-                Hourly rate
-                {defaultMemberRate !== undefined &&
-                  defaultMemberRate !== null &&
-                  defaultMemberRate > 0 && (
-                    <span className='ml-1 font-normal text-muted-foreground'>
-                      (default: {(defaultMemberRate / 100).toFixed(2)})
-                    </span>
-                  )}
-              </Label>
-              <Input
-                {...field}
-                min='0'
-                placeholder={
-                  defaultMemberRate && defaultMemberRate > 0
-                    ? (defaultMemberRate / 100).toFixed(2)
-                    : '0.00'
-                }
-                step='0.01'
-                type='number'
-              />
-            </div>
-          )}
-        />
-        <Controller
-          control={form.control}
-          name='currency'
-          render={({ field }) => (
-            <div className='space-y-2'>
-              <Label>Currency</Label>
-              <CurrencySelect
-                name='currency'
-                onValueChange={field.onChange}
-                placeholder={defaultCurrency || 'Select'}
-                value={field.value}
-                variant='default'
-              />
-            </div>
-          )}
+      <div className='space-y-2'>
+        <Label>
+          Hourly rate
+          {defaultMemberRate !== undefined &&
+            defaultMemberRate !== null &&
+            defaultMemberRate > 0 && (
+              <span className='ml-1 font-normal text-muted-foreground'>
+                (default: {(defaultMemberRate / 100).toFixed(2)})
+              </span>
+            )}
+        </Label>
+        <RateInput
+          allowEmpty
+          currency={currency || undefined}
+          frequencies={['hourly']}
+          frequency='hourly'
+          onCurrencyChange={(c) => form.setValue('currency', c)}
+          onFrequencyChange={() => {
+            // hourly-only in this flow
+          }}
+          onValueChange={(v) => form.setValue('rate', v)}
+          placeholder={
+            defaultMemberRate && defaultMemberRate > 0
+              ? (defaultMemberRate / 100).toFixed(2)
+              : '0.00'
+          }
+          useFrequencyShorthand
+          value={rate}
         />
       </div>
       <Controller
@@ -419,6 +401,7 @@ export default function InviteDialog({
                         form.setValue('email', search)
                         setSelectedMember(null)
                         setSearch('')
+                        setShowEmailForm(true)
                       }}
                       variant='outline'
                     >
@@ -548,13 +531,14 @@ export default function InviteDialog({
               <div className='flex justify-end gap-2'>
                 {showOrgList && (
                   <Button
+                    className='mr-auto'
                     onClick={() => {
                       setSearch('')
                       form.setValue('email', '')
                       setShowEmailForm(false)
                     }}
                     type='button'
-                    variant='ghost'
+                    variant={'outline'}
                   >
                     Back
                   </Button>

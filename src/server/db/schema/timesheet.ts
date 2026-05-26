@@ -17,6 +17,13 @@ import { invoices } from './invoice'
 import { projects } from './project'
 import { requirements } from './requirements'
 
+export const billingFrequencyEnum = pgEnum('billing_frequency', [
+  'weekly',
+  'biweekly',
+  'monthly',
+  'hourly',
+])
+
 export const timeEntries = pgTable(
   'time_entries',
   {
@@ -72,8 +79,15 @@ export const memberRates = pgTable(
     projectId: text('project_id').references(() => projects.id, {
       onDelete: 'cascade',
     }),
-    hourlyRate: integer('hourly_rate').notNull(),
-    currency: text('currency').default('USD').notNull(),
+    billingRate: integer('billing_rate'),
+    billingCurrency: text('billing_currency').default('USD').notNull(),
+    billingFrequency:
+      billingFrequencyEnum('billing_frequency').default('hourly'),
+    payRate: integer('pay_rate').notNull(),
+    payCurrency: text('pay_currency').default('USD').notNull(),
+    payFrequency: billingFrequencyEnum('pay_frequency')
+      .default('hourly')
+      .notNull(),
     effectiveFrom: timestamp('effective_from').notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
@@ -189,8 +203,15 @@ export const pendingMemberRates = pgTable(
     invitationId: text('invitation_id').notNull().unique(),
     organizationId: text('organization_id').notNull(),
     email: text('email').notNull(),
-    hourlyRate: integer('hourly_rate').notNull(),
-    currency: text('currency').default('USD').notNull(),
+    billingRate: integer('billing_rate'),
+    billingCurrency: text('billing_currency').default('USD').notNull(),
+    billingFrequency:
+      billingFrequencyEnum('billing_frequency').default('hourly'),
+    payRate: integer('pay_rate').notNull(),
+    payCurrency: text('pay_currency').default('USD').notNull(),
+    payFrequency: billingFrequencyEnum('pay_frequency')
+      .default('hourly')
+      .notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()

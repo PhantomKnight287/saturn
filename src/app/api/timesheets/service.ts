@@ -1,6 +1,18 @@
-import { and, asc, desc, eq, gte, inArray, isNull, lte, sum } from 'drizzle-orm'
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  getTableColumns,
+  gte,
+  inArray,
+  isNull,
+  lte,
+  sum,
+} from 'drizzle-orm'
 import type { ReadonlyHeaders } from 'next/dist/server/web/spec-extension/adapters/headers'
 import { getCachedActiveOrgMember } from '@/app/(organization)/[org]/cache'
+import type { projectsService } from '@/app/api/projects/service'
 import { db } from '@/server/db'
 import {
   customFields,
@@ -267,13 +279,25 @@ const getBillableSummary = async (projectId: string) => {
 }
 
 const getMemberRates = async (organizationId: string) => {
+  const {
+    payCurrency,
+    payFrequency,
+    payRate,
+    billingCurrency,
+    billingFrequency,
+    billingRate,
+  } = getTableColumns(memberRates)
   const rates = await db
     .select({
       id: memberRates.id,
       memberId: memberRates.memberId,
       projectId: memberRates.projectId,
-      hourlyRate: memberRates.hourlyRate,
-      currency: memberRates.currency,
+      payCurrency,
+      payFrequency,
+      payRate,
+      billingCurrency,
+      billingFrequency,
+      billingRate,
       effectiveFrom: memberRates.effectiveFrom,
       createdAt: memberRates.createdAt,
       memberName: users.name,
@@ -614,8 +638,63 @@ const getProjectCustomFields = async (
     .orderBy(asc(customFields.createdAt))
 }
 
+/**
+ * Ensures a member has a usable rate before their entries are approved.
+ * Returns if a member rate already exists. Otherwise seeds a project-level
+ * rate from the org/project default rates. The pay rate is the required
+ * value: a null or 0 default pay rate is treated as "not configured" and
+ * throws. When the default billing rate is unset (null/0), the pay rate's
+ * value is used for billing too.
+ */
+const ensureMemberRate = async (
+  memberId: string,
+  projectId: string,
+  asOf: Date,
+  settings: Awaited<ReturnType<typeof projectsService.getSettings>>
+): Promise<void> => {
+  const existing = await getMemberRate(memberId, projectId, asOf.toString())
+  if (existing) {
+    return
+  }
+  // Pay rate is required; treat 0 (and null) as "not configured".
+  if (!settings.payRate) {
+    throw new Error(
+      'No member rate or default pay rate is configured. Please set a member rate or a default pay rate before approving.'
+    )
+  }
+  // Fall back to the pay rate for billing when no billing rate is configured.
+  const billingConfigured = !!settings.billingRate
+  // Concurrent approvals can both pass the existence check above; rely on the
+  // (member, project, effectiveFrom) unique index to make the insert atomic.
+  await db
+    .insert(memberRates)
+    .values({
+      memberId,
+      projectId,
+      billingRate: billingConfigured ? settings.billingRate : settings.payRate,
+      billingCurrency: billingConfigured
+        ? settings.billingCurrency
+        : settings.payCurrency,
+      billingFrequency: billingConfigured
+        ? settings.billingFrequency
+        : settings.payFrequency,
+      payRate: settings.payRate,
+      payCurrency: settings.payCurrency,
+      payFrequency: settings.payFrequency,
+      effectiveFrom: asOf,
+    })
+    .onConflictDoNothing({
+      target: [
+        memberRates.memberId,
+        memberRates.projectId,
+        memberRates.effectiveFrom,
+      ],
+    })
+}
+
 export const timesheetService = {
   getEntryForEdit,
+  ensureMemberRate,
   getProjectCustomFields,
   listByProject,
   listByProjectIdsSince,

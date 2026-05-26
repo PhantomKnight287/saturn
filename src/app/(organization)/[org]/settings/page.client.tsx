@@ -12,6 +12,7 @@ import { InvoiceImportDefaultsCard } from './_components/invoice-import-defaults
 import { InvoiceNumberingCard } from './_components/invoice-numbering-card'
 import { TimesheetDefaultsCard } from './_components/timesheet-defaults-card'
 import type {
+  BillingFrequency,
   ClientInvolvementValue,
   InvoiceTimeUnit,
   TimesheetDuration,
@@ -21,9 +22,13 @@ export function SettingsPageClient({
   organization,
   orgSlug,
   canDelete,
-  defaultMemberRate,
+  defaultPayRate,
+  defaultPayCurrency,
+  defaultPayFrequency,
+  defaultBillingRate,
+  defaultBillingCurrency,
+  defaultBillingFrequency,
   defaultTimesheetDuration,
-  defaultCurrency,
   invoiceNumberTemplate,
   invoiceTimeUnit,
   invoiceFromName,
@@ -34,8 +39,12 @@ export function SettingsPageClient({
   organization: { id: string; name: string; slug: string }
   orgSlug: string
   canDelete: boolean
-  defaultMemberRate: number
-  defaultCurrency: string
+  defaultPayRate: number
+  defaultPayCurrency: string
+  defaultPayFrequency: BillingFrequency | null
+  defaultBillingRate: number | null
+  defaultBillingCurrency: string
+  defaultBillingFrequency: BillingFrequency | null
   defaultTimesheetDuration: TimesheetDuration
   invoiceNumberTemplate: string
   invoiceTimeUnit: InvoiceTimeUnit
@@ -66,8 +75,12 @@ export function SettingsPageClient({
 
         <TabsContent className='space-y-6' value='timesheet'>
           <TimesheetDefaultsCard
-            defaultCurrency={defaultCurrency}
-            defaultMemberRate={defaultMemberRate}
+            defaultBillingCurrency={defaultBillingCurrency}
+            defaultBillingFrequency={defaultBillingFrequency}
+            defaultBillingRate={defaultBillingRate}
+            defaultPayCurrency={defaultPayCurrency}
+            defaultPayFrequency={defaultPayFrequency}
+            defaultPayRate={defaultPayRate}
             defaultTimesheetDuration={defaultTimesheetDuration}
             organizationId={organization.id}
           />

@@ -11,6 +11,7 @@ import TimesheetClientRespondedEmail from '@/emails/templates/timesheet-client-r
 import TimesheetRejectedEmail from '@/emails/templates/timesheet-rejected'
 import TimesheetSentToClientEmail from '@/emails/templates/timesheet-sent-to-client'
 import TimesheetSubmittedEmail from '@/emails/templates/timesheet-submitted'
+import { computeEntryAmount } from '@/lib/billing'
 import {
   buildCustomValuesSchema,
   type CustomFieldDefinition,
@@ -143,6 +144,17 @@ export const createTimeEntryAction = authedActionClient
         projectId
       )
       const clientOff = settings.clientInvolvement.timesheets === 'off'
+
+      // Admin/owner entries are auto-approved, so they must clear the same rate
+      // requirement as the approval flow before the entry is created.
+      if (isAdmin) {
+        await timesheetService.ensureMemberRate(
+          orgMember.id,
+          projectId,
+          new Date(date),
+          settings
+        )
+      }
 
       const defs = await loadProjectCustomFieldDefs(projectId)
       const validatedCustomValues = validateCustomValues(defs, customValues)
@@ -425,25 +437,9 @@ export const approveTimeEntriesAction = authedActionClient
         throw new Error('No time entries found')
       }
 
-      // Batch-fetch all member rates before the loop to avoid N+1 queries
-      const memberIds = [...new Set(entries.map((e) => e.memberId))]
-      const allRates = await Promise.all(
-        memberIds.map((id) =>
-          timesheetService.getMemberRate(
-            id,
-            projectId,
-            entries.find((e) => e.memberId === id)!.createdAt.toString()
-          )
-        )
-      )
-      const rateByMember = new Map(memberIds.map((id, i) => [id, allRates[i]]))
-
       for (const entry of entries) {
         if (entry.status !== 'submitted_to_admin') {
           throw new Error('Only submitted entries can be approved')
-        }
-        if (!rateByMember.get(entry.memberId)) {
-          throw new Error('Please set member rate before approving timesheet.')
         }
       }
 
@@ -451,6 +447,25 @@ export const approveTimeEntriesAction = authedActionClient
         orgMember.organizationId,
         projectId
       )
+
+      // Each member needs a rate before approval — seed from the org/project
+      // defaults when missing, effective from their earliest entry so it
+      // covers every entry being approved. Throws if no default is configured.
+      const memberIds = [...new Set(entries.map((e) => e.memberId))]
+      for (const id of memberIds) {
+        const earliest = entries
+          .filter((e) => e.memberId === id)
+          .reduce(
+            (min, e) => (e.date < min ? e.date : min),
+            entries.find((e) => e.memberId === id)!.date
+          )
+        await timesheetService.ensureMemberRate(
+          id,
+          projectId,
+          earliest,
+          approveSettings
+        )
+      }
       const approvedStatus =
         approveSettings.clientInvolvement.timesheets === 'off'
           ? 'client_accepted'
@@ -593,12 +608,38 @@ export const setMemberRateAction = authedActionClient
   .inputSchema(setMemberRateSchema)
   .action(
     async ({
-      parsedInput: { memberId, projectId, hourlyRate, currency, effectiveFrom },
+      parsedInput: {
+        memberId,
+        projectId,
+        effectiveFrom,
+        billingCurrency,
+        billingFrequency,
+        billingRate,
+        payCurrency,
+        payFrequency,
+        payRate,
+      },
       ctx: { role, user, orgMember },
     }) => {
       if (!role.authorize({ member_rate: ['manage'] }).success) {
         throw new Error('You do not have permission to manage member rates')
       }
+
+      // Verify the target member belongs to this org before writing — with
+      // projectId null this would otherwise be a cross-tenant write path.
+      const [targetMember] = await db
+        .select({ id: members.id })
+        .from(members)
+        .where(
+          and(
+            eq(members.id, memberId),
+            eq(members.organizationId, orgMember.organizationId)
+          )
+        )
+      if (!targetMember) {
+        throw new Error('Member not found')
+      }
+
       if (projectId) {
         const hasProjectAccess = await authService.checkProjectAccess(
           orgMember.organizationId,
@@ -613,8 +654,7 @@ export const setMemberRateAction = authedActionClient
       const effectiveDate = new Date(effectiveFrom)
       const resolvedProjectId = projectId || null
 
-      // Upsert: update existing rate if same member+project+effectiveFrom
-      const existing = await db
+      const [existing] = await db
         .select({ id: memberRates.id })
         .from(memberRates)
         .where(
@@ -626,13 +666,19 @@ export const setMemberRateAction = authedActionClient
             eq(memberRates.effectiveFrom, effectiveDate)
           )
         )
-        .then((r) => r.at(0))
 
       let rate: typeof memberRates.$inferSelect | undefined
       if (existing) {
         const [newRate] = await db
           .update(memberRates)
-          .set({ hourlyRate, currency })
+          .set({
+            billingCurrency,
+            billingFrequency,
+            billingRate,
+            payCurrency,
+            payFrequency,
+            payRate,
+          })
           .where(eq(memberRates.id, existing.id))
           .returning()
         rate = newRate ?? undefined
@@ -642,8 +688,12 @@ export const setMemberRateAction = authedActionClient
           .values({
             memberId,
             projectId: resolvedProjectId,
-            hourlyRate,
-            currency,
+            billingCurrency,
+            billingFrequency,
+            billingRate,
+            payCurrency,
+            payFrequency,
+            payRate,
             effectiveFrom: effectiveDate,
           })
           .returning()
@@ -798,24 +848,36 @@ export const sendTimesheetToClientAction = authedActionClient
         0
       )
 
-      const memberIds = [...new Set(entries.map((e) => e.memberId))]
-      const allRates = await Promise.all(
-        memberIds.map((id) =>
-          timesheetService.getMemberRate(
-            id,
-            projectId,
-            entries.find((e) => e.memberId === id)!.date.toISOString()
+      // Resolve each member's rate as of the entry's own date, memoised per
+      // (member, date), so totals stay correct when the selected entries
+      // straddle a rate change.
+      const rateCache = new Map<
+        string,
+        Awaited<ReturnType<typeof timesheetService.getMemberRate>>
+      >()
+      const resolveRate = async (memberId: string, date: Date) => {
+        const key = `${memberId}|${date.toISOString()}`
+        if (!rateCache.has(key)) {
+          rateCache.set(
+            key,
+            await timesheetService.getMemberRate(
+              memberId,
+              projectId,
+              date.toISOString()
+            )
           )
-        )
-      )
-      const rateByMember = new Map(memberIds.map((id, i) => [id, allRates[i]]))
+        }
+        return rateCache.get(key)
+      }
 
       let totalAmountCents = 0
       for (const entry of entries) {
-        const rate = rateByMember.get(entry.memberId)
+        const rate = await resolveRate(entry.memberId, entry.date)
         if (rate) {
-          totalAmountCents += Math.round(
-            (entry.durationMinutes / 60) * rate.hourlyRate
+          totalAmountCents += computeEntryAmount(
+            entry.durationMinutes,
+            rate.billingRate ?? rate.payRate,
+            rate.billingFrequency ?? rate.payFrequency ?? 'hourly'
           )
         }
       }
@@ -1147,24 +1209,36 @@ export const resendTimesheetReportAction = authedActionClient
         0
       )
 
-      const memberIds = [...new Set(linkedEntries.map((e) => e.memberId))]
-      const allRates = await Promise.all(
-        memberIds.map((id) =>
-          timesheetService.getMemberRate(
-            id,
-            report.projectId,
-            linkedEntries.find((e) => e.memberId === id)!.date.toISOString()
+      // Resolve each member's rate as of the entry's own date, memoised per
+      // (member, date), so totals stay correct when the linked entries
+      // straddle a rate change.
+      const rateCache = new Map<
+        string,
+        Awaited<ReturnType<typeof timesheetService.getMemberRate>>
+      >()
+      const resolveRate = async (memberId: string, date: Date) => {
+        const key = `${memberId}|${date.toISOString()}`
+        if (!rateCache.has(key)) {
+          rateCache.set(
+            key,
+            await timesheetService.getMemberRate(
+              memberId,
+              report.projectId,
+              date.toISOString()
+            )
           )
-        )
-      )
-      const rateByMember = new Map(memberIds.map((id, i) => [id, allRates[i]]))
+        }
+        return rateCache.get(key)
+      }
 
       let totalAmountCents = 0
       for (const entry of linkedEntries) {
-        const rate = rateByMember.get(entry.memberId)
+        const rate = await resolveRate(entry.memberId, entry.date)
         if (rate) {
-          totalAmountCents += Math.round(
-            (entry.durationMinutes / 60) * rate.hourlyRate
+          totalAmountCents += computeEntryAmount(
+            entry.durationMinutes,
+            rate.billingRate ?? rate.payRate,
+            rate.billingFrequency ?? rate.payFrequency ?? 'hourly'
           )
         }
       }

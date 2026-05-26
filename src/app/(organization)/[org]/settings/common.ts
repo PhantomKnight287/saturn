@@ -3,6 +3,7 @@ import {
   customFieldDefinitionCreateSchema,
   customFieldDefinitionUpdateSchema,
 } from '@/lib/custom-fields'
+import { billingFrequencyEnum } from '@/server/db/schema'
 
 const clientInvolvementToggleSchema = z.enum(['on', 'off'])
 
@@ -34,6 +35,8 @@ export const renameOrganizationSchema = z.object({
     .regex(/^[a-z0-9-]+$/, 'Slug must be lowercase alphanumeric with hyphens'),
 })
 
+export type BillingFrequency = (typeof billingFrequencyEnum.enumValues)[number]
+
 export const timesheetDurationOptions = [
   'weekly',
   'biweekly',
@@ -43,8 +46,17 @@ export type TimesheetDuration = (typeof timesheetDurationOptions)[number]
 
 export const updateTimesheetDefaultsSchema = z.object({
   organizationId: z.string().min(1),
-  defaultMemberRate: z.number().int().min(0, 'Rate must be non-negative'),
-  defaultCurrency: z.string().min(3).max(3),
+  defaultPayRate: z.number().int().min(0, 'Rate must be non-negative'),
+  defaultPayCurrency: z.string().min(3).max(3),
+  defaultPayFrequency: z.enum(billingFrequencyEnum.enumValues),
+  // Billing defaults are optional and fall back to the pay values in the action.
+  defaultBillingRate: z
+    .number()
+    .int()
+    .min(0, 'Rate must be non-negative')
+    .optional(),
+  defaultBillingCurrency: z.string().min(3).max(3).optional(),
+  defaultBillingFrequency: z.enum(billingFrequencyEnum.enumValues).optional(),
   defaultTimesheetDuration: z.enum(timesheetDurationOptions),
 })
 

@@ -279,8 +279,12 @@ export const addExistingMemberToProjectAction = authedActionClient
         projectId,
         organizationId,
         type,
-        hourlyRate,
-        currency,
+        payRate,
+        payCurrency,
+        payFrequency,
+        billingRate,
+        billingCurrency,
+        billingFrequency,
         setAsOrgDefault,
       },
       ctx: { role, user, orgMember },
@@ -336,35 +340,43 @@ export const addExistingMemberToProjectAction = authedActionClient
           .onConflictDoNothing()
       }
 
-      // Set member rate if provided
-      if (hourlyRate !== undefined && currency && type !== 'client') {
+      // Set member rate if provided. Billing columns fall back to pay values.
+      if (payRate !== undefined && payCurrency && type !== 'client') {
         await db
           .insert(memberRates)
           .values({
             memberId: member.id,
-            hourlyRate,
-            currency,
+            payRate,
+            payCurrency,
+            payFrequency: payFrequency ?? 'hourly',
+            billingRate: billingRate ?? payRate,
+            billingCurrency: billingCurrency ?? payCurrency,
+            billingFrequency: billingFrequency ?? payFrequency ?? 'hourly',
             effectiveFrom: new Date(),
           })
           .onConflictDoNothing()
       }
 
       // Update workspace wide defaults if checkbox was checked
-      if (setAsOrgDefault && hourlyRate !== undefined && currency) {
+      if (setAsOrgDefault && payRate !== undefined && payCurrency) {
+        const defaults = {
+          payRate,
+          payCurrency,
+          payFrequency: payFrequency ?? 'hourly',
+          billingRate: billingRate ?? payRate,
+          billingCurrency: billingCurrency ?? payCurrency,
+          billingFrequency: billingFrequency ?? payFrequency ?? 'hourly',
+        }
         await db
           .insert(settingsTable)
           .values({
             organizationId,
-            memberRate: hourlyRate,
-            currency,
+            ...defaults,
           })
           .onConflictDoUpdate({
             target: [settingsTable.organizationId],
             targetWhere: sql`${settingsTable.projectId} IS NULL`,
-            set: {
-              memberRate: hourlyRate,
-              currency,
-            },
+            set: defaults,
           })
       }
 

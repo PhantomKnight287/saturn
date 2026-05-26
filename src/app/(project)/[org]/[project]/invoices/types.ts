@@ -143,6 +143,8 @@ export interface InvoiceEditorProps {
   linkedRequirements?: LinkedRequirement[]
   mediaItems?: MediaItem[]
   member?: ProjectMember | null
+  // Keyed by `memberRateKey(memberId, date)` — rates are effective-dated, so an
+  // entry is priced with the rate in effect on its work date.
   memberRateMap?: Record<string, { hourlyRate: number; currency: string }>
   mode: 'create' | 'edit'
   orgName: string

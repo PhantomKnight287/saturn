@@ -1,5 +1,6 @@
 'use client'
 
+import { useRouter } from '@bprogress/next/app'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import { useAction } from 'next-safe-action/hooks'
@@ -8,7 +9,6 @@ import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { CurrencySelect } from '@/components/ui/currency-selector'
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { RateInput } from '@/components/ui/rate-input'
 import {
   Select,
   SelectContent,
@@ -27,6 +28,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { toDateInputValue } from '@/lib/utils'
+import type { billingFrequencyEnum } from '@/server/db/schema'
 import { setMemberRateAction, setProjectBudgetAction } from '../actions'
 import {
   type MemberRateFormValues,
@@ -45,17 +48,41 @@ interface MemberRatesDialogProps {
   projectMembers: ProjectMember[]
 }
 
-function formatRate(thousandths: number): string {
-  return (thousandths / 1000).toFixed(3)
+function formatRate(cents: number): string {
+  return (cents / 100).toFixed(2)
+}
+
+type BillingFrequency = (typeof billingFrequencyEnum.enumValues)[number]
+
+const FREQUENCY_LABELS: Record<BillingFrequency, string> = {
+  hourly: '/h',
+  weekly: '/wk',
+  biweekly: '/2wk',
+  monthly: '/mo',
+}
+
+function formatRateWithFrequency(
+  cents: number | null,
+  currency: string,
+  frequency: BillingFrequency | null
+): string {
+  const rate = cents == null ? 0 : formatRate(cents)
+  return `${currency} ${rate}${FREQUENCY_LABELS[frequency ?? 'hourly']}`
 }
 
 function getCurrentRate(
   rates: MemberRate[],
-  memberId: string
+  memberId: string,
+  projectId: string
 ): MemberRate | undefined {
   const today = new Date()
-  return rates.find(
+  const active = rates.filter(
     (r) => r.memberId === memberId && new Date(r.effectiveFrom) <= today
+  )
+  // Mirror the runtime lookup: a project-specific rate wins over the org default.
+  return (
+    active.find((r) => r.projectId === projectId) ??
+    active.find((r) => r.projectId == null)
   )
 }
 
@@ -70,14 +97,18 @@ export function MemberRatesDialog({
   const [expandedMember, setExpandedMember] = useState<string | null>(null)
 
   const ids = useId()
-
+  const router = useRouter()
   const rateForm = useForm<MemberRateFormValues>({
     resolver: zodResolver(memberRateFormSchema),
     defaultValues: {
       memberId: '',
-      hourlyRate: '',
-      currency: defaultCurrency ?? 'USD',
-      effectiveFrom: new Date().toISOString().split('T').at(0)!,
+      payRate: undefined,
+      payCurrency: defaultCurrency ?? 'USD',
+      payFrequency: 'hourly',
+      billingRate: undefined,
+      billingCurrency: defaultCurrency ?? 'USD',
+      billingFrequency: 'hourly',
+      effectiveFrom: new Date().toString(),
       isProjectSpecific: true,
     },
   })
@@ -95,11 +126,16 @@ export function MemberRatesDialog({
       toast.success('Rate saved')
       rateForm.reset({
         memberId: '',
-        hourlyRate: '',
-        currency: 'USD',
-        effectiveFrom: new Date().toISOString().split('T').at(0)!,
+        payRate: undefined,
+        payCurrency: defaultCurrency ?? 'USD',
+        payFrequency: 'hourly',
+        billingRate: undefined,
+        billingCurrency: defaultCurrency ?? 'USD',
+        billingFrequency: 'hourly',
+        effectiveFrom: new Date().toString(),
         isProjectSpecific: true,
       })
+      router.refresh()
     },
     onError: ({ error }) => {
       toast.error(error.serverError ?? 'Failed to save rate')
@@ -116,19 +152,28 @@ export function MemberRatesDialog({
   })
 
   function handleSaveRate(values: MemberRateFormValues) {
-    const rateThousandths = Math.round(
-      Number.parseFloat(values.hourlyRate) * 1000
-    )
-    if (Number.isNaN(rateThousandths) || rateThousandths <= 0) {
-      toast.error('Enter a valid hourly rate')
+    const payCents = values.payRate
+    if (!payCents || payCents <= 0) {
+      toast.error('Enter a valid pay rate')
+      return
+    }
+
+    // Billing rate is optional; when blank it falls back to the pay rate.
+    const billingCents = values.billingRate
+    if (billingCents !== undefined && billingCents <= 0) {
+      toast.error('Enter a valid billing rate')
       return
     }
 
     setRateAction.execute({
       memberId: values.memberId,
       projectId: values.isProjectSpecific ? projectId : null,
-      hourlyRate: rateThousandths,
-      currency: values.currency,
+      payRate: payCents,
+      payCurrency: values.payCurrency,
+      payFrequency: values.payFrequency,
+      billingRate: billingCents,
+      billingCurrency: values.billingCurrency,
+      billingFrequency: values.billingFrequency,
       effectiveFrom: values.effectiveFrom,
     })
   }
@@ -149,12 +194,40 @@ export function MemberRatesDialog({
   }
 
   function handleMemberSelect(memberId: string) {
-    rateForm.setValue('memberId', memberId, { shouldValidate: true })
-    const current = getCurrentRate(existingRates, memberId)
+    const current = getCurrentRate(existingRates, memberId, projectId)
     if (current) {
-      rateForm.setValue('hourlyRate', formatRate(current.hourlyRate))
-      rateForm.setValue('currency', current.currency)
+      rateForm.setValue('memberId', memberId, { shouldValidate: true })
+      rateForm.setValue('payRate', current.payRate)
+      rateForm.setValue('payCurrency', current.payCurrency)
+      rateForm.setValue('payFrequency', current.payFrequency ?? 'hourly')
+      rateForm.setValue(
+        'billingRate',
+        current.billingRate == null ? undefined : current.billingRate
+      )
+      rateForm.setValue('billingCurrency', current.billingCurrency)
+      rateForm.setValue(
+        'billingFrequency',
+        current.billingFrequency ?? 'hourly'
+      )
       rateForm.setValue('isProjectSpecific', !!current.projectId)
+      rateForm.setValue(
+        'effectiveFrom',
+        current.effectiveFrom?.toString() ?? new Date().toString()
+      )
+    } else {
+      // No existing rate for this member — start from defaults so the previous
+      // member's values can't bleed through on save.
+      rateForm.reset({
+        memberId,
+        payRate: undefined,
+        payCurrency: defaultCurrency ?? 'USD',
+        payFrequency: 'hourly',
+        billingRate: undefined,
+        billingCurrency: defaultCurrency ?? 'USD',
+        billingFrequency: 'hourly',
+        effectiveFrom: new Date().toString(),
+        isProjectSpecific: true,
+      })
     }
   }
 
@@ -195,7 +268,11 @@ export function MemberRatesDialog({
                 </Label>
                 <div className='max-h-48 space-y-1 overflow-y-auto'>
                   {[...memberRateMap.entries()].map(([memberId, rates]) => {
-                    const current = getCurrentRate(existingRates, memberId)
+                    const current = getCurrentRate(
+                      existingRates,
+                      memberId,
+                      projectId
+                    )
                     if (!current) {
                       return null
                     }
@@ -228,8 +305,20 @@ export function MemberRatesDialog({
                           </div>
                           <div className='flex items-center gap-2'>
                             <Badge className='text-xs' variant='outline'>
-                              {current.currency}{' '}
-                              {formatRate(current.hourlyRate)}/h
+                              Pay{' '}
+                              {formatRateWithFrequency(
+                                current.payRate,
+                                current.payCurrency,
+                                current.payFrequency
+                              )}
+                            </Badge>
+                            <Badge className='text-xs' variant='outline'>
+                              Bill{' '}
+                              {formatRateWithFrequency(
+                                current.billingRate ?? current.payRate,
+                                current.billingCurrency,
+                                current.billingFrequency
+                              )}
                             </Badge>
                             {current.projectId && (
                               <Badge className='text-xs' variant='secondary'>
@@ -257,8 +346,18 @@ export function MemberRatesDialog({
                                   })}
                                 </span>
                                 <span className='text-xs'>
-                                  {rate.currency} {formatRate(rate.hourlyRate)}
-                                  /h
+                                  Pay{' '}
+                                  {formatRateWithFrequency(
+                                    rate.payRate,
+                                    rate.payCurrency,
+                                    rate.payFrequency
+                                  )}{' '}
+                                  · Bill{' '}
+                                  {formatRateWithFrequency(
+                                    rate.billingRate ?? rate.payRate,
+                                    rate.billingCurrency,
+                                    rate.billingFrequency
+                                  )}
                                   {rate.projectId ? ' (project)' : ' (org)'}
                                 </span>
                               </div>
@@ -298,50 +397,82 @@ export function MemberRatesDialog({
                 )}
               </div>
 
-              <div className='grid grid-cols-2 gap-3'>
-                <div className='space-y-2'>
-                  <Label htmlFor={`${ids}-rate`}>Hourly Rate</Label>
-                  <div className='relative'>
-                    <Input
-                      id={`${ids}-rate`}
-                      min='0'
-                      placeholder='0.000'
-                      step='0.001'
-                      type='number'
-                      {...rateForm.register('hourlyRate')}
-                    />
-                  </div>
-                  {rateForm.formState.errors.hourlyRate && (
-                    <p className='text-destructive text-xs'>
-                      {rateForm.formState.errors.hourlyRate.message}
-                    </p>
-                  )}
-                </div>
-                <div className='space-y-2'>
-                  <Label htmlFor={`${ids}-currency`}>Currency</Label>
-                  <CurrencySelect
-                    name={`${ids}-currency`}
-                    onCurrencySelect={(e) =>
-                      rateForm.setValue('currency', e.code, {
-                        shouldValidate: true,
-                      })
-                    }
-                    value={rateForm.watch('currency')}
-                  />
-                  {rateForm.formState.errors.currency && (
-                    <p className='text-destructive text-xs'>
-                      {rateForm.formState.errors.currency.message}
-                    </p>
-                  )}
-                </div>
+              <div className='space-y-2'>
+                <Label className='text-muted-foreground text-xs'>
+                  Pay rate (what the member is paid)
+                </Label>
+                <RateInput
+                  currency={rateForm.watch('payCurrency')}
+                  frequency={rateForm.watch('payFrequency')}
+                  invalid={!!rateForm.formState.errors.payRate}
+                  onCurrencyChange={(c) =>
+                    rateForm.setValue('payCurrency', c, {
+                      shouldValidate: true,
+                    })
+                  }
+                  onFrequencyChange={(f) =>
+                    rateForm.setValue('payFrequency', f as BillingFrequency, {
+                      shouldValidate: true,
+                    })
+                  }
+                  onValueChange={(v) =>
+                    rateForm.setValue('payRate', v, { shouldValidate: true })
+                  }
+                  value={rateForm.watch('payRate')}
+                />
+                {rateForm.formState.errors.payRate && (
+                  <p className='text-destructive text-xs'>
+                    {rateForm.formState.errors.payRate.message}
+                  </p>
+                )}
+              </div>
+
+              <div className='space-y-2'>
+                <Label className='text-muted-foreground text-xs'>
+                  Billing rate
+                </Label>
+                <RateInput
+                  allowEmpty
+                  currency={rateForm.watch('billingCurrency')}
+                  frequency={rateForm.watch('billingFrequency')}
+                  invalid={!!rateForm.formState.errors.billingRate}
+                  onCurrencyChange={(c) =>
+                    rateForm.setValue('billingCurrency', c, {
+                      shouldValidate: true,
+                    })
+                  }
+                  onFrequencyChange={(f) =>
+                    rateForm.setValue(
+                      'billingFrequency',
+                      f as BillingFrequency,
+                      { shouldValidate: true }
+                    )
+                  }
+                  onValueChange={(v) =>
+                    rateForm.setValue('billingRate', v, {
+                      shouldValidate: true,
+                    })
+                  }
+                  value={rateForm.watch('billingRate')}
+                />
+                {rateForm.formState.errors.billingRate && (
+                  <p className='text-destructive text-xs'>
+                    {rateForm.formState.errors.billingRate.message}
+                  </p>
+                )}
               </div>
 
               <div className='space-y-2'>
                 <Label htmlFor={`${ids}-from`}>Effective From</Label>
                 <Input
                   id={`${ids}-from`}
+                  onChange={(e) =>
+                    rateForm.setValue('effectiveFrom', e.target.value, {
+                      shouldValidate: true,
+                    })
+                  }
                   type='date'
-                  {...rateForm.register('effectiveFrom')}
+                  value={toDateInputValue(rateForm.watch('effectiveFrom'))}
                 />
                 {rateForm.formState.errors.effectiveFrom && (
                   <p className='text-destructive text-xs'>

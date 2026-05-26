@@ -58,8 +58,12 @@ export const updateProjectTimesheetDefaultsAction = authedActionClient
       parsedInput: {
         organizationId,
         projectId,
-        defaultMemberRate,
-        defaultCurrency,
+        defaultPayRate,
+        defaultPayCurrency,
+        defaultPayFrequency,
+        defaultBillingRate,
+        defaultBillingCurrency,
+        defaultBillingFrequency,
         defaultTimesheetDuration,
       },
       ctx: { role, orgMember },
@@ -71,23 +75,34 @@ export const updateProjectTimesheetDefaultsAction = authedActionClient
       if (orgMember.organizationId !== organizationId) {
         throw new Error('Organization mismatch')
       }
+      await assertProjectInOrg(projectId, organizationId)
 
+      // When no billing rate is set, billing mirrors pay entirely — otherwise
+      // stale billing currency/frequency could leak into "same as pay" mode.
+      const usePayForBilling = defaultBillingRate === undefined
+      const defaults = {
+        payRate: defaultPayRate,
+        payCurrency: defaultPayCurrency,
+        payFrequency: defaultPayFrequency,
+        billingRate: usePayForBilling ? defaultPayRate : defaultBillingRate,
+        billingCurrency: usePayForBilling
+          ? defaultPayCurrency
+          : (defaultBillingCurrency ?? defaultPayCurrency),
+        billingFrequency: usePayForBilling
+          ? defaultPayFrequency
+          : (defaultBillingFrequency ?? defaultPayFrequency),
+        timesheetDuration: defaultTimesheetDuration,
+      }
       await db
         .insert(settingsTable)
         .values({
           organizationId,
           projectId,
-          memberRate: defaultMemberRate,
-          currency: defaultCurrency,
-          timesheetDuration: defaultTimesheetDuration,
+          ...defaults,
         })
         .onConflictDoUpdate({
           target: [settingsTable.organizationId, settingsTable.projectId],
-          set: {
-            memberRate: defaultMemberRate,
-            currency: defaultCurrency,
-            timesheetDuration: defaultTimesheetDuration,
-          },
+          set: defaults,
         })
 
       return { success: true }
