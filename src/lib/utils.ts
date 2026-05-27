@@ -42,12 +42,39 @@ export function seedToColor(seed: string) {
   return `#${f(0)}${f(8)}${f(4)}`
 }
 
-export function formatDate(date: Date) {
+/**
+ * Format a genuine moment (a UTC instant) as a date in the viewer's timezone.
+ * Pass the viewer's IANA zone; falls back to the runtime zone when omitted.
+ */
+export function formatDate(date: Date, timeZone?: string) {
   return date.toLocaleDateString(undefined, {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
+    timeZone,
   })
+}
+
+/** Today as a `'YYYY-MM-DD'` calendar-date string in the given IANA zone (UTC by default). */
+export function todayDateOnly(timeZone = 'UTC') {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date())
+}
+
+/**
+ * Format a calendar date stored as a zoneless `'YYYY-MM-DD'` string. The same
+ * literal day for every viewer — never shifted by a timezone.
+ */
+export function formatDateOnly(value: string) {
+  const [y, m, d] = value.split('-').map(Number)
+  if (!(y && m && d)) {
+    return value
+  }
+  return formatDate(new Date(y, m - 1, d))
 }
 
 /** Native `<input type="date">` only accepts a `yyyy-MM-dd` value. */

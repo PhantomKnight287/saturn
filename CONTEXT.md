@@ -103,5 +103,31 @@ Two flows convert billable time entries into line items, and both honor the reso
 ### Import amount accuracy
 A line item's `amount` is always derived from the **exact duration** (`durationMinutes / 60 × hourlyRate`, rounded to 2 dp), independent of the displayed unit or the rounded per-minute `unitPrice`. This keeps invoice totals identical regardless of the import unit and free of per-minute rounding drift. Note: the invoice editor recomputes `amount = quantity × unitPrice` (4 dp) when a user manually edits a row, so the duration-derived value is authoritative only until a row is hand-edited — sub-cent and invisible at the PDF's 2-dp display.
 
+### User Timezone
+The IANA timezone identifier (e.g. `America/New_York`) for one **person**, stored as a single `timezone` text column on the `users` table (added via better-auth `additionalFields`, then `bun auth:generate`). It is a property of the human, not of an organization or project — every user, including **clients**, carries their own. A US-based client stores `America/New_York`; a Lisbon contractor billing them stores `Europe/Lisbon`; each sees dates in their own zone.
+
+- **Not** stored per-membership (`members`) or on the `settings` cascade — timezone is location, not workspace config.
+- Stored as an IANA identifier, never a fixed UTC offset (offsets don't survive DST).
+- **Auto-detected, no visible control.** Added to the `users` table through better-auth `additionalFields` (`bun auth:generate`). A mounted `TimezoneSync` client component (`src/components/timezone-sync.tsx`) reads the browser zone (`Intl.DateTimeFormat().resolvedOptions().timeZone`) for any authenticated viewer and writes it via `updateTimezoneAction` whenever it differs from the stored value — capturing it right after sign-up and following the user if their zone later changes. There is no form field. (The action uses the base `actionClient`, not `authedActionClient`, because a just-signed-up user has no active organization yet.)
+- **Null fallback.** The column is nullable; a viewer whose zone hasn't been written yet (the brief window before `TimezoneSync` runs, and pre-existing users until their next authenticated load) renders moments in **UTC** — never the server's incidental local zone.
+- **When it changes:** moments re-render in the new zone (they are UTC instants); [[calendar-date-vs-moment|calendar dates]] do not move (zoneless). Nothing is rewritten.
+
+### Calendar date vs. Moment
+Every displayed date is exactly one of two kinds, and the [[user-timezone]] applies to only one:
+
+- **Calendar date** — a day a user picks (`time_entries.date`, `time_entry_rates.effectiveFrom`, `invoices.issueDate`, `invoices.dueDate`, `expenses.date`, `milestones.dueDate`, `projects.dueDate`, `proposals.validUntil`). Zoneless: the **same literal day for every viewer**. "Due June 1" reads June 1 in every timezone — a deadline is not relative to where the viewer stands. Never zone-shifted. (Same treatment as the custom-field `date` type.)
+- **Moment** — a genuine instant (`createdAt`, `sentAt`, `signedAt`, `respondedAt`, `completedAt`, etc., and the custom-field `datetime` type). Rendered in the **viewer's** timezone.
+
+These columns are currently all stored as Postgres `timestamp`. The calendar-date ones are mis-typed: a `"YYYY-MM-DD"` input becomes `new Date(...)` → UTC midnight, then locale formatting renders the day before for viewers west of UTC. The fix for those is a storage/format change, **not** timezone handling (see [ADR-0003](docs/adr/0003-calendar-dates-as-date-not-timestamp.md)).
+
+A calendar-date field that defaults to "today" (e.g. `invoices.issueDate`) resolves today in the **creator's** [[user-timezone]], not the server's — the DB-level `defaultNow()` is dropped and the value comes from the client's local date. Otherwise a creator in Auckland at 9 AM gets the server's (UTC) yesterday.
+
+### Dates-only display
+Saturn's first-class records display **dates, not times of day**. A time entry shows its calendar `date`; an invoice shows its `issueDate`/`dueDate`; etc. So:
+
+- **Calendar dates** are identical for every viewer by construction (zoneless `date` columns).
+- **Moments** (`createdAt`, `sentAt`, …) are shown as their *date in the viewer's timezone*. The wall-clock time is not surfaced, so there is no author-zone display, no hover conversion, and no per-row timezone snapshot. The viewer's [[user-timezone]] only decides which calendar day a UTC instant falls on for that viewer.
+- Times of day appear only in custom-field `datetime`/`time` values, which already have their own rules.
+
 ### Custom Field Value
 The user-supplied data for one custom field on one time entry. Values are stored on `time_entries` in a single `custom_values jsonb` column shaped `{fieldId: value}` (value is the raw scalar — string, number, boolean, or ISO date/time depending on the field type). Validation lives in the app layer (Zod) using the field definition. Deleting a field removes its key from every entry's `custom_values` via a single `UPDATE … SET custom_values = custom_values - $fieldId` over the affected scope.

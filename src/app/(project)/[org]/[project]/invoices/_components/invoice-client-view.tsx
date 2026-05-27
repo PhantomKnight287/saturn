@@ -55,8 +55,9 @@ function formatAmount(amount: string, currency: string) {
   })
 }
 
-function formatDate(date: Date) {
-  return new Date(date).toLocaleDateString(undefined, {
+function formatDate(value: string) {
+  const [y, m, d] = value.split('-').map(Number)
+  return new Date(y!, m! - 1, d!).toLocaleDateString(undefined, {
     month: 'long',
     day: 'numeric',
     year: 'numeric',

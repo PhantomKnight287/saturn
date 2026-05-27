@@ -69,10 +69,10 @@ const listByProject = async (
     conditions.push(eq(timeEntries.billable, filters.billable))
   }
   if (filters?.dateFrom) {
-    conditions.push(gte(timeEntries.date, new Date(filters.dateFrom)))
+    conditions.push(gte(timeEntries.date, filters.dateFrom))
   }
   if (filters?.dateTo) {
-    conditions.push(lte(timeEntries.date, new Date(filters.dateTo)))
+    conditions.push(lte(timeEntries.date, filters.dateTo))
   }
 
   const entries = await db
@@ -144,9 +144,10 @@ const getWeeklyTimesheet = async (
   memberId: string,
   weekStart: string
 ) => {
-  const startDate = new Date(weekStart)
-  const endDate = new Date(startDate)
-  endDate.setDate(endDate.getDate() + 6)
+  const startDate = weekStart
+  const end = new Date(`${weekStart}T00:00:00Z`)
+  end.setUTCDate(end.getUTCDate() + 6)
+  const endDate = end.toISOString().slice(0, 10)
 
   const entries = await db
     .select({
@@ -213,8 +214,6 @@ const getMemberRate = async (
   projectId: string,
   date: string
 ) => {
-  const targetDate = new Date(date)
-
   const [projectRate] = await db
     .select()
     .from(memberRates)
@@ -222,7 +221,7 @@ const getMemberRate = async (
       and(
         eq(memberRates.memberId, memberId),
         eq(memberRates.projectId, projectId),
-        lte(memberRates.effectiveFrom, targetDate)
+        lte(memberRates.effectiveFrom, date)
       )
     )
     .orderBy(desc(memberRates.effectiveFrom))
@@ -239,7 +238,7 @@ const getMemberRate = async (
       and(
         eq(memberRates.memberId, memberId),
         isNull(memberRates.projectId),
-        lte(memberRates.effectiveFrom, targetDate)
+        lte(memberRates.effectiveFrom, date)
       )
     )
     .orderBy(desc(memberRates.effectiveFrom))
@@ -385,7 +384,7 @@ const getReportEntriesBatch = async (reportIds: string[]) => {
     billable: boolean
     createdAt: Date
     customValues: Record<string, unknown>
-    date: Date
+    date: string
     description: string
     durationMinutes: number
     id: string
@@ -583,7 +582,7 @@ const listByProjectIdsSince = async (
     .where(
       and(
         inArray(timeEntries.projectId, projectIds),
-        gte(timeEntries.date, since),
+        gte(timeEntries.date, since.toISOString().slice(0, 10)),
         memberId ? eq(timeEntries.memberId, memberId) : undefined
       )
     )
@@ -649,10 +648,10 @@ const getProjectCustomFields = async (
 const ensureMemberRate = async (
   memberId: string,
   projectId: string,
-  asOf: Date,
+  asOf: string,
   settings: Awaited<ReturnType<typeof projectsService.getSettings>>
 ): Promise<void> => {
-  const existing = await getMemberRate(memberId, projectId, asOf.toString())
+  const existing = await getMemberRate(memberId, projectId, asOf)
   if (existing) {
     return
   }
@@ -664,32 +663,24 @@ const ensureMemberRate = async (
   }
   // Fall back to the pay rate for billing when no billing rate is configured.
   const billingConfigured = !!settings.billingRate
-  // Concurrent approvals can both pass the existence check above; rely on the
-  // (member, project, effectiveFrom) unique index to make the insert atomic.
-  await db
-    .insert(memberRates)
-    .values({
-      memberId,
-      projectId,
-      billingRate: billingConfigured ? settings.billingRate : settings.payRate,
-      billingCurrency: billingConfigured
-        ? settings.billingCurrency
-        : settings.payCurrency,
-      billingFrequency: billingConfigured
-        ? settings.billingFrequency
-        : settings.payFrequency,
-      payRate: settings.payRate,
-      payCurrency: settings.payCurrency,
-      payFrequency: settings.payFrequency,
-      effectiveFrom: asOf,
-    })
-    .onConflictDoNothing({
-      target: [
-        memberRates.memberId,
-        memberRates.projectId,
-        memberRates.effectiveFrom,
-      ],
-    })
+  // The existence check above guards the common case. Concurrent approvals
+  // could still both insert a same-day rate; readers tolerate duplicates by
+  // taking the latest effectiveFrom, so a plain insert is fine.
+  await db.insert(memberRates).values({
+    memberId,
+    projectId,
+    billingRate: billingConfigured ? settings.billingRate : settings.payRate,
+    billingCurrency: billingConfigured
+      ? settings.billingCurrency
+      : settings.payCurrency,
+    billingFrequency: billingConfigured
+      ? settings.billingFrequency
+      : settings.payFrequency,
+    payRate: settings.payRate,
+    payCurrency: settings.payCurrency,
+    payFrequency: settings.payFrequency,
+    effectiveFrom: asOf,
+  })
 }
 
 export const timesheetService = {

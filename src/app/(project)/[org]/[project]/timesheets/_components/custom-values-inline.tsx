@@ -1,3 +1,6 @@
+'use client'
+
+import { authClient } from '@/lib/auth-client'
 import {
   type CustomFieldDefinition,
   formatCustomFieldValue,
@@ -10,12 +13,14 @@ export function CustomValuesInline({
   customFields: CustomFieldDefinition[]
   values: Record<string, unknown> | null | undefined
 }) {
+  const { data: session } = authClient.useSession()
+  const timeZone = session?.user.timezone ?? undefined
   if (!values || customFields.length === 0) {
     return null
   }
   const items: { id: string; label: string; value: string }[] = []
   for (const def of customFields) {
-    const formatted = formatCustomFieldValue(def, values[def.id])
+    const formatted = formatCustomFieldValue(def, values[def.id], timeZone)
     if (formatted !== null) {
       items.push({ id: def.id, label: def.label, value: formatted })
     }

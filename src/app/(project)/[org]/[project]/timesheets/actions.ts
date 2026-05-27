@@ -151,7 +151,7 @@ export const createTimeEntryAction = authedActionClient
         await timesheetService.ensureMemberRate(
           orgMember.id,
           projectId,
-          new Date(date),
+          date,
           settings
         )
       }
@@ -166,7 +166,7 @@ export const createTimeEntryAction = authedActionClient
           requirementId: requirementId || null,
           memberId: orgMember.id,
           description,
-          date: new Date(date),
+          date,
           durationMinutes,
           billable,
           customValues: validatedCustomValues,
@@ -250,7 +250,7 @@ export const updateTimeEntryAction = authedActionClient
         updates.description = description
       }
       if (date !== undefined) {
-        updates.date = new Date(date)
+        updates.date = date
       }
       if (durationMinutes !== undefined) {
         updates.durationMinutes = durationMinutes
@@ -651,7 +651,7 @@ export const setMemberRateAction = authedActionClient
         }
       }
 
-      const effectiveDate = new Date(effectiveFrom)
+      const effectiveDate = effectiveFrom
       const resolvedProjectId = projectId || null
 
       const [existing] = await db
@@ -855,16 +855,12 @@ export const sendTimesheetToClientAction = authedActionClient
         string,
         Awaited<ReturnType<typeof timesheetService.getMemberRate>>
       >()
-      const resolveRate = async (memberId: string, date: Date) => {
-        const key = `${memberId}|${date.toISOString()}`
+      const resolveRate = async (memberId: string, date: string) => {
+        const key = `${memberId}|${date}`
         if (!rateCache.has(key)) {
           rateCache.set(
             key,
-            await timesheetService.getMemberRate(
-              memberId,
-              projectId,
-              date.toISOString()
-            )
+            await timesheetService.getMemberRate(memberId, projectId, date)
           )
         }
         return rateCache.get(key)
@@ -1216,15 +1212,15 @@ export const resendTimesheetReportAction = authedActionClient
         string,
         Awaited<ReturnType<typeof timesheetService.getMemberRate>>
       >()
-      const resolveRate = async (memberId: string, date: Date) => {
-        const key = `${memberId}|${date.toISOString()}`
+      const resolveRate = async (memberId: string, date: string) => {
+        const key = `${memberId}|${date}`
         if (!rateCache.has(key)) {
           rateCache.set(
             key,
             await timesheetService.getMemberRate(
               memberId,
               report.projectId,
-              date.toISOString()
+              date
             )
           )
         }
@@ -1314,16 +1310,21 @@ export const resendTimesheetReportAction = authedActionClient
     }
   )
 
-function formatWeekLabel(dates: Date[]): string {
+function formatWeekLabel(dates: string[]): string {
   if (dates.length === 0) {
     return ''
   }
-  const sorted = [...dates].sort((a, b) => a.getTime() - b.getTime())
+  const sorted = [...dates].sort()
   const first = sorted.at(0)!
   const last = sorted.at(-1)!
-  const fmt = (d: Date) =>
-    d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-  const year = last.getFullYear()
+  const fmt = (d: string) => {
+    const [y, m, day] = d.split('-').map(Number)
+    return new Date(y!, m! - 1, day!).toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+    })
+  }
+  const year = last.split('-').at(0)
   return `${fmt(first)} – ${fmt(last)}, ${year}`
 }
 

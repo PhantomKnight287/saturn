@@ -2,6 +2,7 @@
 
 import { and, eq } from 'drizzle-orm'
 import { authService } from '@/app/api/auth/service'
+import { formatLocalDateOnly } from '@/lib/custom-fields'
 import { authedActionClient } from '@/lib/safe-action'
 import { db } from '@/server/db'
 import {
@@ -64,7 +65,7 @@ export const createMilestoneAction = authedActionClient
           projectId,
           name,
           description,
-          dueDate,
+          dueDate: dueDate ? formatLocalDateOnly(dueDate) : null,
           budgetMinutes,
           budgetAmountCents,
           sortOrder: nextSortOrder,
@@ -133,7 +134,7 @@ export const updateMilestoneAction = authedActionClient
         updates.description = description
       }
       if (dueDate !== undefined) {
-        updates.dueDate = dueDate
+        updates.dueDate = dueDate ? formatLocalDateOnly(dueDate) : null
       }
       if (status !== undefined) {
         updates.status = status

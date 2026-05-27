@@ -351,7 +351,8 @@ export function normalizeCustomFieldLabel(label: string): string {
 
 export function formatCustomFieldValue(
   def: CustomFieldDefinition,
-  raw: unknown
+  raw: unknown,
+  timeZone?: string
 ): string | null {
   if (raw == null || raw === '') {
     return null
@@ -381,6 +382,7 @@ export function formatCustomFieldValue(
         day: 'numeric',
         hour: 'numeric',
         minute: '2-digit',
+        timeZone,
       })
     }
     default:

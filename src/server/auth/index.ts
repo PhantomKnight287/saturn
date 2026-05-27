@@ -17,6 +17,7 @@ import InvitationEmail from '@/emails/templates/invitation'
 import VerifyEmail from '@/emails/templates/verify-email'
 import { env } from '@/env'
 import { polarClient } from '@/lib/polar'
+import { todayDateOnly } from '@/lib/utils'
 import { FREE_PLAN_LIMITS } from '@/limits'
 import { db } from '@/server/db'
 import * as schema from '@/server/db/schema'
@@ -41,6 +42,15 @@ export const auth = betterAuth({
     usePlural: true,
     schema,
   }),
+  user: {
+    additionalFields: {
+      timezone: {
+        type: 'string',
+        required: false,
+        input: true,
+      },
+    },
+  },
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,
@@ -154,7 +164,7 @@ export const auth = betterAuth({
             // failure can't leave a stale pending row or duplicate the rate.
             await db.transaction(async (tx) => {
               await tx.insert(memberRates).values({
-                effectiveFrom: new Date(),
+                effectiveFrom: todayDateOnly(),
                 memberId: member.id,
                 payRate: pendingRate.payRate,
                 billingCurrency: pendingRate.billingCurrency,
@@ -184,7 +194,7 @@ export const auth = betterAuth({
             return
           }
           await db.insert(memberRates).values({
-            effectiveFrom: new Date(),
+            effectiveFrom: todayDateOnly(),
             memberId: member.id,
             payRate: setting.payRate,
             billingCurrency: setting.billingCurrency,

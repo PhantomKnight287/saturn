@@ -9,7 +9,7 @@ import type { RouteImpl } from '@/types'
 import { MilestoneStatusDot } from './milestone-status-dot'
 
 interface Milestone {
-  dueDate: Date | null
+  dueDate: string | null
   id: string
   name: string
   progress: { signed: number; total: number }

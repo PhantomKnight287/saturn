@@ -1,5 +1,6 @@
 import { createId } from '@paralleldrive/cuid2'
 import {
+  date,
   index,
   integer,
   jsonb,
@@ -39,8 +40,8 @@ export const invoices = pgTable(
       .notNull(),
     invoiceNumber: text('invoice_number').notNull(),
     status: invoiceStatusEnum('status').default('draft').notNull(),
-    issueDate: timestamp('issue_date').defaultNow().notNull(),
-    dueDate: timestamp('due_date'),
+    issueDate: date('issue_date', { mode: 'string' }).defaultNow().notNull(),
+    dueDate: date('due_date', { mode: 'string' }),
     notes: text('notes'),
     totalAmount: numeric('total_amount', { precision: 16, scale: 4 })
       .default('0')
