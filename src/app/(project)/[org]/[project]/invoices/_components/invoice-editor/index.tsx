@@ -41,6 +41,7 @@ import DatePicker from '@/components/ui/date-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { parseDateOnlyAsLocal } from '@/lib/custom-fields'
 import {
   formatDurationInUnit,
   timeEntryLineAmounts,
@@ -77,6 +78,18 @@ function formatDateForInput(date: string | Date): string {
   const m = String(date.getMonth() + 1).padStart(2, '0')
   const d = String(date.getDate()).padStart(2, '0')
   return `${y}-${m}-${d}`
+}
+
+// Date-only strings parse as UTC via `new Date(...)`, shifting the day for
+// viewers west of UTC; parse them as local instead.
+function toPickerDate(value: string | Date | undefined): Date | undefined {
+  if (!value) {
+    return
+  }
+  if (typeof value === 'string') {
+    return parseDateOnlyAsLocal(value) ?? undefined
+  }
+  return value
 }
 
 export default function InvoiceEditor({
@@ -700,7 +713,7 @@ export default function InvoiceEditor({
                     <DatePicker
                       disablePastDates={false}
                       onChange={field.onChange}
-                      value={field.value ? new Date(field.value) : undefined}
+                      value={toPickerDate(field.value)}
                     />
                   )}
                 />
@@ -714,7 +727,7 @@ export default function InvoiceEditor({
                     <DatePicker
                       disablePastDates={false}
                       onChange={field.onChange}
-                      value={field.value ? new Date(field.value) : undefined}
+                      value={toPickerDate(field.value)}
                     />
                   )}
                 />

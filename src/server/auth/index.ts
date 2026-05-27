@@ -47,7 +47,9 @@ export const auth = betterAuth({
       timezone: {
         type: 'string',
         required: false,
-        input: true,
+        // Written only through the IANA-validated updateTimezoneAction, never
+        // accepted as untrusted sign-up input.
+        input: false,
       },
     },
   },

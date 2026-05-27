@@ -7,10 +7,23 @@ import { getSession } from '@/server/auth'
 import { db } from '@/server/db'
 import { users } from '@/server/db/schema'
 
+const timezoneSchema = z
+  .string()
+  .min(1)
+  .max(64)
+  .refine((tz) => {
+    try {
+      new Intl.DateTimeFormat(undefined, { timeZone: tz })
+      return true
+    } catch {
+      return false
+    }
+  }, 'Invalid IANA timezone')
+
 // Auth-only (not authedActionClient): a freshly signed-up user has no active
 // organization yet, but still needs their timezone recorded.
 export const updateTimezoneAction = actionClient
-  .inputSchema(z.object({ timezone: z.string().min(1).max(64) }))
+  .inputSchema(z.object({ timezone: timezoneSchema }))
   .action(async ({ parsedInput: { timezone } }) => {
     const session = await getSession()
     if (!session) {

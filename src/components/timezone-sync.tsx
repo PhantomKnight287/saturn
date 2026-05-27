@@ -22,9 +22,23 @@ export function TimezoneSync() {
     if (!userId) {
       return
     }
-    const detected = Intl.DateTimeFormat().resolvedOptions().timeZone
-    if (detected && detected !== stored) {
-      execute({ timezone: detected })
+    const sync = () => {
+      const detected = Intl.DateTimeFormat().resolvedOptions().timeZone
+      if (detected && detected !== stored) {
+        execute({ timezone: detected })
+      }
+    }
+    sync()
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        sync()
+      }
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    const id = window.setInterval(sync, 60_000)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible)
+      window.clearInterval(id)
     }
   }, [userId, stored, execute])
 

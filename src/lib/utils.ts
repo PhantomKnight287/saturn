@@ -70,11 +70,22 @@ export function todayDateOnly(timeZone = 'UTC') {
  * literal day for every viewer — never shifted by a timezone.
  */
 export function formatDateOnly(value: string) {
-  const [y, m, d] = value.split('-').map(Number)
-  if (!(y && m && d)) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  if (!match) {
     return value
   }
-  return formatDate(new Date(y, m - 1, d))
+  const y = Number(match[1])
+  const m = Number(match[2])
+  const d = Number(match[3])
+  const date = new Date(y, m - 1, d)
+  if (
+    date.getFullYear() !== y ||
+    date.getMonth() !== m - 1 ||
+    date.getDate() !== d
+  ) {
+    return value
+  }
+  return formatDate(date)
 }
 
 /** Native `<input type="date">` only accepts a `yyyy-MM-dd` value. */

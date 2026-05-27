@@ -40,7 +40,7 @@ export const invoices = pgTable(
       .notNull(),
     invoiceNumber: text('invoice_number').notNull(),
     status: invoiceStatusEnum('status').default('draft').notNull(),
-    issueDate: date('issue_date', { mode: 'string' }).defaultNow().notNull(),
+    issueDate: date('issue_date', { mode: 'string' }).notNull(),
     dueDate: date('due_date', { mode: 'string' }),
     notes: text('notes'),
     totalAmount: numeric('total_amount', { precision: 16, scale: 4 })
