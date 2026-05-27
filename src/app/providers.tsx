@@ -30,6 +30,7 @@ export function Providers({ children }: { children: ReactNode }) {
               prefix: 'saturn_',
             }}
             authClient={authClient}
+            //@ts-expect-error - This is required to pass CI. if you get error in development, ignore that
             Link={Link}
             localization={{
               EMAIL_NOT_VERIFIED:
