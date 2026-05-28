@@ -10,12 +10,12 @@ import { teamService } from '@/app/api/teams/service'
 import { threadService } from '@/app/api/threads/service'
 import { timesheetService } from '@/app/api/timesheets/service'
 import { usersService } from '@/app/api/users/service'
-import { computeEntryAmount } from '@/lib/billing'
 import { createMetadata } from '@/lib/metadata'
+import { currencyConversionService } from '@/services/currency-conversion.service'
 import type { Role } from '@/types'
 import { InvoiceClientView } from '../_components/invoice-client-view'
 import InvoiceEditor from '../_components/invoice-editor'
-import { memberRateKey } from '../common'
+import { buildMemberRateMap } from '../_lib/build-rate-map'
 
 export const metadata: Metadata = createMetadata({
   title: 'Invoice',
@@ -30,6 +30,7 @@ export const metadata: Metadata = createMetadata({
 
 export default async function InvoiceDetail({
   params,
+  searchParams,
 }: PageProps<'/[org]/[project]/invoices/[invoiceId]'>) {
   const { org, project: projectSlug, invoiceId } = await params
   const {
@@ -44,7 +45,7 @@ export default async function InvoiceDetail({
       `/error/403?message=${encodeURIComponent('You do not have permission to view invoices')}`
     )
   }
-
+  const { currency } = await searchParams
   const invoice = await invoicesService.getById({
     invoiceId,
     projectId: currentProject.id,
@@ -58,13 +59,15 @@ export default async function InvoiceDetail({
 
   const isClient = orgMember.role === 'client'
 
-  const [items, linkedReqs, recipients, threads, settings] = await Promise.all([
-    invoicesService.getItems(invoiceId),
-    invoicesService.getLinkedRequirements(invoiceId),
-    invoicesService.getRecipients(invoiceId),
-    threadService.getThreads(currentProject.id, invoiceId),
-    projectsService.getSettings(organization.id, currentProject.id),
-  ])
+  const [items, linkedReqs, recipients, threads, settings, capturedRates] =
+    await Promise.all([
+      invoicesService.getItems(invoiceId),
+      invoicesService.getLinkedRequirements(invoiceId),
+      invoicesService.getRecipients(invoiceId),
+      threadService.getThreads(currentProject.id, invoiceId),
+      projectsService.getSettings(organization.id, currentProject.id),
+      invoicesService.getConversionRates(invoiceId),
+    ])
 
   const isRecipient = recipients.some((r) => r.memberId === orgMember.id)
   const isMemberInvoice = invoice.recipient === 'member'
@@ -104,7 +107,6 @@ export default async function InvoiceDetail({
     )
   }
 
-  // Admin/owner/member gets the full editor
   const canEdit = role.authorize({ invoice: ['update'] }).success
   const canSend = role.authorize({ invoice: ['send'] }).success
   const canDelete = role.authorize({ invoice: ['delete'] }).success
@@ -131,56 +133,36 @@ export default async function InvoiceDetail({
     expensesServices.listExpensesByInvoiceId(invoiceId),
   ])
 
-  const availableExpenses = [
+  // A saved invoice's currency is the source of truth — never let a query
+  // param override it, since line item unit prices are stored in that
+  // currency and switching would misprice them.
+  const hasSavedItems = items.length > 0
+  const baseCurrency = hasSavedItems
+    ? invoice.currency
+    : ((currency as string | undefined) ?? invoice.currency)
+
+  const dedupedExpenses = [
     ...new Map(
       [...unpaidExpenses, ...linkedExpenses].map((e) => [e.id, e])
     ).values(),
   ]
-
-  const memberRateMap: Record<
-    string,
-    { hourlyRate: number; currency: string }
-  > = {}
-  for (const entry of billableEntries) {
-    const key = memberRateKey(entry.memberId, entry.date)
-    if (!memberRateMap[key]) {
-      const rate = await timesheetService.getMemberRate(
-        entry.memberId,
-        currentProject.id,
-        new Date(entry.date).toISOString()
+  const availableExpenses = await Promise.all(
+    dedupedExpenses.map(async (exp) => {
+      const { amount, rate } = await currencyConversionService.convertCents(
+        exp.amountCents,
+        exp.currency,
+        baseCurrency
       )
-      if (rate) {
-        memberRateMap[key] = isMemberInvoice
-          ? {
-              // Member invoices pay the person their pay rate, normalised to an
-              // hourly figure (computeEntryAmount for 60 min yields per-hour).
-              hourlyRate: computeEntryAmount(
-                60,
-                rate.payRate,
-                rate.payFrequency ?? 'hourly'
-              ),
-              currency: rate.payCurrency,
-            }
-          : {
-              // Charge the client at the billing rate when one is set, otherwise
-              // fall back to the pay rate. The rate/frequency/currency trio must
-              // move together — mixing a billing rate with a pay frequency
-              // misprices the line.
-              hourlyRate: computeEntryAmount(
-                60,
-                rate.billingRate ?? rate.payRate,
-                rate.billingRate == null
-                  ? rate.payFrequency
-                  : (rate.billingFrequency ?? 'hourly')
-              ),
-              currency:
-                rate.billingRate == null
-                  ? rate.payCurrency
-                  : rate.billingCurrency,
-            }
-      }
-    }
-  }
+      return { ...exp, convertedAmountCents: amount, rateUsed: rate }
+    })
+  )
+
+  const memberRateMap = await buildMemberRateMap({
+    billableEntries,
+    projectId: currentProject.id,
+    isMemberInvoice,
+    baseCurrency,
+  })
 
   return (
     <InvoiceEditor
@@ -191,9 +173,11 @@ export default async function InvoiceDetail({
       canMarkPaid={canMarkPaid}
       canResolveThread={canResolveThread}
       canSend={canSend}
+      capturedRates={capturedRates}
       clients={clients}
       defaultClientAddress={settings.invoiceToAddress}
       defaultClientName={settings.invoiceToName}
+      defaultCurrency={baseCurrency}
       defaultSenderAddress={settings.invoiceFromAddress}
       defaultSenderName={settings.invoiceFromName}
       defaultTimeUnit={settings.invoiceTimeUnit}

@@ -1,6 +1,10 @@
 import type z from 'zod'
 import type { InvoiceTimeUnit } from '@/lib/invoice-time-units'
-import type { expenses, invoiceRecipientEnum } from '@/server/db/schema'
+import type {
+  billingFrequencyEnum,
+  expenses,
+  invoiceRecipientEnum,
+} from '@/server/db/schema'
 import type { Role } from '@/types'
 import type { Thread } from '../requirements/types'
 import type { ProjectClient } from '../team/types'
@@ -128,6 +132,7 @@ export interface InvoiceEditorProps {
   canMarkPaid?: boolean
   canResolveThread?: boolean
   canSend?: boolean
+  capturedRates?: CapturedConversionRate[]
   clients: ProjectClient[]
   defaultClientAddress?: string | null
   defaultClientName?: string | null
@@ -145,7 +150,7 @@ export interface InvoiceEditorProps {
   member?: ProjectMember | null
   // Keyed by `memberRateKey(memberId, date)` — rates are effective-dated, so an
   // entry is priced with the rate in effect on its work date.
-  memberRateMap?: Record<string, { hourlyRate: number; currency: string }>
+  memberRateMap?: Record<string, MemberRateMapEntry>
   mode: 'create' | 'edit'
   orgName: string
   orgSlug: string
@@ -159,7 +164,41 @@ export interface InvoiceEditorProps {
   threads?: Thread[]
   timesheetWarning?: string | null
   unbilledTimeEntries?: BillableTimeEntry[]
-  unpaidExpenses?: (typeof expenses.$inferSelect)[]
+  unpaidExpenses?: InvoiceExpense[]
+}
+
+export interface CapturedConversionRate {
+  capturedAt: Date | string
+  fromCurrency: string
+  rate: string
+  toCurrency: string
+}
+
+export type InvoiceExpense = typeof expenses.$inferSelect & {
+  // Pre-converted amount (in cents) in the invoice's currency.
+  convertedAmountCents: number
+  // Multiplier used for the conversion (target = source * rateUsed). 1 when
+  // the source and invoice currencies match.
+  rateUsed: number
+}
+
+export interface MemberRateMapEntry {
+  currency: string
+  // Hourly rate in the invoice's currency (already converted when available).
+  hourlyRate: number
+  originalCurrency?: string
+  // The same hourly rate before currency conversion, so the UI can show the
+  // original alongside the converted amount.
+  originalHourlyRate?: number
+  // What the member is actually paid (independent of what's billed to the client).
+  pay?: {
+    rate: number
+    currency: string
+    frequency: (typeof billingFrequencyEnum.enumValues)[number]
+  }
+  // Multiplier used for the conversion (target = source * rateUsed). 1 when
+  // the source and invoice currencies match.
+  rateUsed?: number
 }
 
 export interface CustomField {

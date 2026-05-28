@@ -25,6 +25,7 @@ import {
   threads,
   users,
 } from '@/server/db/schema'
+import { currencyConversionService } from '@/services/currency-conversion.service'
 import {
   changeInvoiceStatusSchema,
   createInvoiceSchema,
@@ -36,6 +37,23 @@ import {
   sendInvoiceSchema,
   updateInvoiceSchema,
 } from './common'
+
+// Items track the rate that was applied at conversion time. Collapse the
+// list down to one entry per source currency — if the same currency was
+// converted at different rates (shouldn't happen, but defensively), the last
+// one wins. Items without a rate (`manual` lines, or pre-metadata legacy
+// items) contribute nothing.
+function collectRatesFromItems(
+  items: { sourceCurrency?: string; rateUsed?: number }[]
+): Map<string, number> {
+  const rates = new Map<string, number>()
+  for (const item of items) {
+    if (item.sourceCurrency && item.rateUsed) {
+      rates.set(item.sourceCurrency, item.rateUsed)
+    }
+  }
+  return rates
+}
 
 export const createInvoiceAction = authedActionClient
   .inputSchema(createInvoiceSchema)
@@ -211,6 +229,19 @@ export const createInvoiceAction = authedActionClient
             )
             .onConflictDoNothing()
         }
+
+        // Snapshot the rates actually used to price the line items so any
+        // future dispute can be settled against the same numbers — even if
+        // live rates move. Source currency + rate are carried on each item
+        // by the editor (see invoiceItemSchema), so we don't have to
+        // re-derive them and risk capturing a different rate.
+        const ratesUsed = collectRatesFromItems(items)
+        await currencyConversionService.snapshotRates(
+          tx,
+          insertedInvoice!.id,
+          ratesUsed,
+          currency
+        )
 
         return insertedInvoice
       })
@@ -475,6 +506,13 @@ export const updateInvoiceAction = authedActionClient
               }))
             )
           }
+
+          await currencyConversionService.snapshotRates(
+            tx,
+            invoiceId,
+            collectRatesFromItems(items),
+            currency
+          )
         })
 
         return invoice

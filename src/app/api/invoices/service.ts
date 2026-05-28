@@ -13,6 +13,7 @@ import { getCachedActiveOrgMember } from '@/app/(organization)/[org]/cache'
 
 import { db } from '@/server/db'
 import {
+  invoiceConversionRates,
   invoiceItems,
   invoiceRecipients,
   invoiceRequirements,
@@ -261,6 +262,18 @@ const listByProjectIds = async (
     .orderBy(desc(invoices.createdAt))
 }
 
+const getConversionRates = async (invoiceId: string) =>
+  await db
+    .select({
+      fromCurrency: invoiceConversionRates.fromCurrency,
+      toCurrency: invoiceConversionRates.toCurrency,
+      rate: invoiceConversionRates.rate,
+      capturedAt: invoiceConversionRates.capturedAt,
+    })
+    .from(invoiceConversionRates)
+    .where(eq(invoiceConversionRates.invoiceId, invoiceId))
+    .orderBy(asc(invoiceConversionRates.fromCurrency))
+
 const getNextSequence = async (projectId: string) => {
   const [row] = await db
     .select({ value: count() })
@@ -276,5 +289,6 @@ export const invoicesService = {
   getRecipients,
   getItems,
   getLinkedRequirements,
+  getConversionRates,
   getNextSequence,
 }
