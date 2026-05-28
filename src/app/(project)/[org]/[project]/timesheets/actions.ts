@@ -1248,16 +1248,28 @@ export const resendTimesheetReportAction = authedActionClient
         return rateCache.get(key)
       }
 
+      const reportCurrency = report.currency
+
       let totalAmountCents = 0
       for (const entry of linkedEntries) {
         const rate = await resolveRate(entry.memberId, entry.date)
-        if (rate) {
-          totalAmountCents += computeEntryAmount(
-            entry.durationMinutes,
-            rate.billingRate ?? rate.payRate,
-            rate.billingFrequency ?? rate.payFrequency ?? 'hourly'
-          )
+        if (!rate) {
+          continue
         }
+        const entryAmount = computeEntryAmount(
+          entry.durationMinutes,
+          rate.billingRate ?? rate.payRate,
+          rate.billingFrequency ?? rate.payFrequency ?? 'hourly'
+        )
+        const entryCurrency =
+          rate.billingRate == null ? rate.payCurrency : rate.billingCurrency
+        const { amount: converted } =
+          await currencyConversionService.convertCents(
+            entryAmount,
+            entryCurrency,
+            reportCurrency
+          )
+        totalAmountCents += converted
       }
 
       await db

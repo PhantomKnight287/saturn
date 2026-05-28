@@ -6,6 +6,7 @@ import { invoiceConversionRates } from '@/server/db/schema'
 const RATES_KEY = 'rates:latest'
 const BASE_URL = 'https://latest.currency-api.pages.dev/v1/currencies/usd.json'
 const TTL_SECONDS = 4 * 60 * 60
+const FETCH_TIMEOUT_MS = 10_000
 
 export class CurrencyConversionError extends Error {
   readonly from: string
@@ -41,16 +42,27 @@ export const currencyConversionService = {
       return
     }
     inFlightFetch = (async () => {
-      const response = await fetch(BASE_URL)
-      const data = (await response.json()) as {
-        date: string
-        usd: Record<string, number>
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
+      try {
+        const response = await fetch(BASE_URL, { signal: controller.signal })
+        if (!response.ok) {
+          throw new Error(
+            `Upstream rates fetch failed: ${response.status} ${response.statusText}`
+          )
+        }
+        const data = (await response.json()) as {
+          date: string
+          usd: Record<string, number>
+        }
+        if (!data.usd) {
+          throw new Error('No exchange rates returned from upstream')
+        }
+        await redis.hset(RATES_KEY, data.usd)
+        await redis.expire(RATES_KEY, TTL_SECONDS)
+      } finally {
+        clearTimeout(timer)
       }
-      if (!data.usd) {
-        throw new Error('No exchange rates returned from upstream')
-      }
-      await redis.hset(RATES_KEY, data.usd)
-      await redis.expire(RATES_KEY, TTL_SECONDS)
     })()
     try {
       await inFlightFetch

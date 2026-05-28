@@ -277,10 +277,17 @@ export default function InvoiceEditor({
     remove: removeItem,
   } = useFieldArray({ control, name: 'items' })
 
-  // Switching currency once a line item exists would silently misprice it —
-  // unit prices are entered/converted against the currency at the time the
-  // item is added. Lock the selector regardless of mode.
-  const currencyLocked = itemFields.length > 0
+  // Switching currency once a real line item exists would silently misprice
+  // it — unit prices are entered/converted against the currency at the time
+  // the item is added. The form seeds an empty placeholder row, so check for
+  // user-entered content rather than just row count.
+  const watchedItems = form.watch('items')
+  const currencyLocked = watchedItems.some(
+    (item) =>
+      item.description.trim() !== '' ||
+      (item.unitPrice !== '' && item.unitPrice !== '0') ||
+      (item.quantity !== '' && item.quantity !== '1')
+  )
 
   const { execute: executeLinkEntries } = useAction(
     linkTimeEntriesToInvoiceAction

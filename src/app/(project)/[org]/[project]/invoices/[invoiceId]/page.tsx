@@ -46,6 +46,7 @@ export default async function InvoiceDetail({
     )
   }
   const { currency } = await searchParams
+  const currencyParam = Array.isArray(currency) ? currency[0] : currency
   const invoice = await invoicesService.getById({
     invoiceId,
     projectId: currentProject.id,
@@ -139,7 +140,7 @@ export default async function InvoiceDetail({
   const hasSavedItems = items.length > 0
   const baseCurrency = hasSavedItems
     ? invoice.currency
-    : ((currency as string | undefined) ?? invoice.currency)
+    : (currencyParam ?? invoice.currency)
 
   const dedupedExpenses = [
     ...new Map(

@@ -39,18 +39,25 @@ import {
 } from './common'
 
 // Items track the rate that was applied at conversion time. Collapse the
-// list down to one entry per source currency — if the same currency was
-// converted at different rates (shouldn't happen, but defensively), the last
-// one wins. Items without a rate (`manual` lines, or pre-metadata legacy
-// items) contribute nothing.
+// list down to one entry per source currency. A given source currency must
+// have a single consistent rate within an invoice — diverging rates would
+// silently break audit integrity, so fail fast. Items without a rate
+// (`manual` lines, or pre-metadata legacy items) contribute nothing.
 function collectRatesFromItems(
   items: { sourceCurrency?: string; rateUsed?: number }[]
 ): Map<string, number> {
   const rates = new Map<string, number>()
   for (const item of items) {
-    if (item.sourceCurrency && item.rateUsed) {
-      rates.set(item.sourceCurrency, item.rateUsed)
+    if (!(item.sourceCurrency && item.rateUsed)) {
+      continue
     }
+    const existing = rates.get(item.sourceCurrency)
+    if (existing !== undefined && existing !== item.rateUsed) {
+      throw new Error(
+        `Inconsistent conversion rates for ${item.sourceCurrency}: ${existing} vs ${item.rateUsed}`
+      )
+    }
+    rates.set(item.sourceCurrency, item.rateUsed)
   }
   return rates
 }
