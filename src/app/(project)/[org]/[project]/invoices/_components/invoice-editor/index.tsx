@@ -23,7 +23,7 @@ import {
 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useAction } from 'next-safe-action/hooks'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Controller, useFieldArray, useForm } from 'react-hook-form'
@@ -61,14 +61,22 @@ import {
   updateInvoiceAction,
 } from '../../actions'
 import { invoiceFormSchema, memberRateKey } from '../../common'
-import type { CustomField, InvoiceEditorProps, MediaItem } from '../../types'
+import type {
+  CustomField,
+  InvoiceEditorProps,
+  InvoiceFormValues,
+  MediaItem,
+  MemberRateMapEntry,
+} from '../../types'
 import DisputeInvoiceDialog from '../dispute-invoice-dialog'
 import { ImportTimeEntriesDialog } from '../import-time-entries-dialog'
 import InvoiceStatusBadge from '../status-badge'
+import { CapturedRatesDialog } from './captured-rates-dialog'
 import { CustomFieldsEditor } from './custom-fields-editor'
 import { InvoiceItemRow } from './invoice-item'
 import { ItemsTotal } from './items-total'
 import { PdfPreviewPane } from './pdf-preview-pane'
+import { RateBreakdownDialog } from './rates-breakdown-dialog'
 
 function formatDateForInput(date: string | Date): string {
   if (typeof date === 'string') {
@@ -110,6 +118,7 @@ export default function InvoiceEditor({
   canDelete = false,
   canMarkPaid = false,
   canResolveThread = false,
+  capturedRates = [],
   extendData,
   mediaItems = [],
   billableEntries = [],
@@ -133,11 +142,14 @@ export default function InvoiceEditor({
 }: InvoiceEditorProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const pathname = usePathname()
   const backUrl = `/${orgSlug}/${projectSlug}/invoices` as RouteImpl
   const [importOpen, setImportOpen] = useState(false)
   const [sendOpen, setSendOpen] = useState(false)
   const [disputeOpen, setDisputeOpen] = useState(false)
   const [signatureDialogOpen, setSignatureDialogOpen] = useState(false)
+  const [rateBreakdownOpen, setRateBreakdownOpen] = useState(false)
+  const [capturedRatesOpen, setCapturedRatesOpen] = useState(false)
   const [isUploadingSignature, setIsUploadingSignature] = useState(false)
   const [importedEntryIds, setImportedEntryIds] = useState<string[]>([])
   const [uploadedMedia, setUploadedMedia] = useState<MediaItem[]>([])
@@ -163,7 +175,9 @@ export default function InvoiceEditor({
     },
     []
   )
-  const rateMap = new Map(Object.entries(memberRateMap))
+  const rateMap = new Map<string, MemberRateMapEntry>(
+    Object.entries(memberRateMap)
+  )
   const isEditable =
     mode === 'create' ||
     (canEdit && (invoice?.status === 'draft' || invoice?.status === 'disputed'))
@@ -173,7 +187,7 @@ export default function InvoiceEditor({
     defaultValues: {
       invoiceNumber: invoice?.invoiceNumber ?? suggestedInvoiceNumber ?? '',
       currency:
-        extendData?.currency ?? invoice?.currency ?? defaultCurrency ?? 'USD',
+        defaultCurrency ?? extendData?.currency ?? invoice?.currency ?? 'USD',
       issueDate: invoice
         ? formatDateForInput(invoice.issueDate)
         : formatDateForInput(new Date()),
@@ -263,6 +277,18 @@ export default function InvoiceEditor({
     remove: removeItem,
   } = useFieldArray({ control, name: 'items' })
 
+  // Switching currency once a real line item exists would silently misprice
+  // it — unit prices are entered/converted against the currency at the time
+  // the item is added. The form seeds an empty placeholder row, so check for
+  // user-entered content rather than just row count.
+  const watchedItems = form.watch('items')
+  const currencyLocked = watchedItems.some(
+    (item) =>
+      item.description.trim() !== '' ||
+      (item.unitPrice !== '' && item.unitPrice !== '0') ||
+      (item.quantity !== '' && item.quantity !== '1')
+  )
+
   const { execute: executeLinkEntries } = useAction(
     linkTimeEntriesToInvoiceAction
   )
@@ -282,7 +308,7 @@ export default function InvoiceEditor({
       string,
       {
         entries: typeof billableEntries
-        rate?: { hourlyRate: number; currency: string }
+        rate?: MemberRateMapEntry
       }
     >()
     for (const entry of billableEntries) {
@@ -298,12 +324,7 @@ export default function InvoiceEditor({
       grouped.get(key)!.entries.push(entry)
     }
 
-    const newItems: {
-      description: string
-      quantity: string
-      unitPrice: string
-      amount: string
-    }[] = []
+    const newItems: InvoiceFormValues['items'] = []
     const entryIds: string[] = []
 
     for (const { entries: memberEntries, rate } of grouped.values()) {
@@ -311,7 +332,8 @@ export default function InvoiceEditor({
         (s, e) => s + e.durationMinutes,
         0
       )
-      const memberName = memberEntries.at(0)?.memberName ?? 'Team member'
+      const firstEntry = memberEntries.at(0)
+      const memberName = firstEntry?.memberName ?? 'Team member'
       const { quantity, unitPrice, amount } = rate
         ? timeEntryLineAmounts({
             durationMinutes: totalMinutes,
@@ -332,6 +354,15 @@ export default function InvoiceEditor({
         quantity,
         unitPrice,
         amount,
+        source: firstEntry
+          ? {
+              kind: 'time',
+              memberId: firstEntry.memberId,
+              workDate: firstEntry.date,
+            }
+          : { kind: 'manual' },
+        sourceCurrency: rate?.originalCurrency,
+        rateUsed: rate?.rateUsed,
       })
 
       for (const e of memberEntries) {
@@ -608,6 +639,24 @@ export default function InvoiceEditor({
               Send to Client
             </Button>
           )}
+          {isEditable && Object.keys(memberRateMap).length > 0 && (
+            <Button
+              onClick={() => setRateBreakdownOpen(true)}
+              variant='outline'
+            >
+              <Receipt className='size-4' />
+              Rate breakdown
+            </Button>
+          )}
+          {mode === 'edit' && capturedRates.length > 0 && (
+            <Button
+              onClick={() => setCapturedRatesOpen(true)}
+              variant='outline'
+            >
+              <Receipt className='size-4' />
+              Captured rates
+            </Button>
+          )}
           {isEditable && (
             <Button loading={isPending} onClick={handleSave}>
               <Save className='size-4' />
@@ -616,6 +665,20 @@ export default function InvoiceEditor({
           )}
         </div>
       </div>
+
+      <RateBreakdownDialog
+        billableEntries={billableEntries}
+        memberRateMap={memberRateMap}
+        onOpenChange={setRateBreakdownOpen}
+        open={rateBreakdownOpen}
+        recipientType={recipientType}
+      />
+
+      <CapturedRatesDialog
+        onOpenChange={setCapturedRatesOpen}
+        open={capturedRatesOpen}
+        rates={capturedRates}
+      />
 
       {timesheetWarning && (
         <div className='mb-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm dark:border-amber-900 dark:bg-amber-950/50'>
@@ -696,9 +759,20 @@ export default function InvoiceEditor({
                   name='currency'
                   render={({ field }) => (
                     <CurrencySelect
-                      disabled={!isEditable}
+                      disabled={!isEditable || currencyLocked}
                       name='currency'
-                      onCurrencySelect={(c) => field.onChange(c.code)}
+                      onCurrencySelect={(c) => {
+                        field.onChange(c.code)
+                        const search = new URLSearchParams(
+                          window.location.search
+                        )
+                        search.set('currency', c.code)
+                        router.replace(
+                          `${pathname}?${search.toString()}` as Parameters<
+                            typeof router.replace
+                          >[0]
+                        )
+                      }}
                       value={field.value}
                     />
                   )}
@@ -959,6 +1033,7 @@ export default function InvoiceEditor({
                         quantity: '1',
                         unitPrice: '0',
                         amount: '0',
+                        source: { kind: 'manual' },
                       })
                     }
                     variant='outline'
@@ -986,20 +1061,12 @@ export default function InvoiceEditor({
                   key={field.id}
                   onRemove={() => {
                     const removedItem = getValues('items')[index]
-                    if (removedItem?.description.startsWith('Expense: ')) {
-                      const expTitle = removedItem.description.slice(
-                        'Expense: '.length
+                    if (removedItem?.source?.kind === 'expense') {
+                      const expenseId = removedItem.source.expenseId
+                      setValue(
+                        'expenseIds',
+                        getValues('expenseIds').filter((id) => id !== expenseId)
                       )
-                      const matchedExp = unpaidExpenses.find(
-                        (e) => e.title === expTitle
-                      )
-                      if (matchedExp) {
-                        const currentExpIds = getValues('expenseIds')
-                        setValue(
-                          'expenseIds',
-                          currentExpIds.filter((id) => id !== matchedExp.id)
-                        )
-                      }
                     }
                     removeItem(index)
                   }}
@@ -1108,6 +1175,12 @@ export default function InvoiceEditor({
                     {unpaidExpenses.map((exp) => {
                       const isSelected = field.value.includes(exp.id)
                       const formattedAmount = (exp.amountCents / 100).toFixed(2)
+                      const convertedFormatted = (
+                        exp.convertedAmountCents / 100
+                      ).toFixed(2)
+                      const wasConverted =
+                        exp.currency.toUpperCase() !==
+                        getValues('currency').toUpperCase()
                       const parsedExpenseDate = parseDateOnlyAsLocal(exp.date)
                       const formattedDate = parsedExpenseDate
                         ? parsedExpenseDate.toLocaleDateString(undefined, {
@@ -1130,21 +1203,27 @@ export default function InvoiceEditor({
                               field.onChange(
                                 field.value.filter((id) => id !== exp.id)
                               )
-                              const items = getValues('items')
-                              const expDesc = `Expense: ${exp.title}`
-                              const itemIndex = items.findIndex(
-                                (item) => item.description === expDesc
+                              const itemIndex = getValues('items').findIndex(
+                                (item) =>
+                                  item.source?.kind === 'expense' &&
+                                  item.source.expenseId === exp.id
                               )
                               if (itemIndex !== -1) {
                                 removeItem(itemIndex)
                               }
                             } else {
                               field.onChange([...field.value, exp.id])
+                              const description = wasConverted
+                                ? `Expense: ${exp.title} (originally ${exp.currency} ${formattedAmount})`
+                                : `Expense: ${exp.title}`
                               appendItem({
-                                description: `Expense: ${exp.title}`,
+                                description,
                                 quantity: '1',
-                                unitPrice: formattedAmount,
-                                amount: formattedAmount,
+                                unitPrice: convertedFormatted,
+                                amount: convertedFormatted,
+                                source: { kind: 'expense', expenseId: exp.id },
+                                sourceCurrency: exp.currency,
+                                rateUsed: exp.rateUsed,
                               })
                             }
                           }}
@@ -1176,7 +1255,18 @@ export default function InvoiceEditor({
                             className='shrink-0 font-mono'
                             variant='secondary'
                           >
-                            {exp.currency} {formattedAmount}
+                            {wasConverted ? (
+                              <>
+                                {getValues('currency')} {convertedFormatted}
+                                <span className='ml-1 text-muted-foreground'>
+                                  ({exp.currency} {formattedAmount})
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                {exp.currency} {formattedAmount}
+                              </>
+                            )}
                           </Badge>
                         </button>
                       )

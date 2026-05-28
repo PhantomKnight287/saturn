@@ -8,11 +8,28 @@ export function memberRateKey(memberId: string, date: Date | string): string {
   return `${memberId}:${iso.slice(0, 10)}`
 }
 
+// Items carry optional metadata so the editor (and the server) can reason
+// about origin without parsing the description. `source` records what spawned
+// the line; `sourceCurrency` + `rateUsed` make the conversion auditable —
+// these are the rates the server snapshots into `invoice_conversion_rates`.
+const invoiceItemSourceSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('manual') }),
+  z.object({ kind: z.literal('expense'), expenseId: z.string().min(1) }),
+  z.object({
+    kind: z.literal('time'),
+    memberId: z.string().min(1),
+    workDate: z.string().min(1),
+  }),
+])
+
 const invoiceItemSchema = z.object({
   description: z.string().min(1, 'Description is required'),
   quantity: z.string().min(1),
   unitPrice: z.string().min(1),
   amount: z.string().min(1),
+  source: invoiceItemSourceSchema.optional(),
+  sourceCurrency: z.string().min(1).optional(),
+  rateUsed: z.number().positive().optional(),
 })
 
 const customFieldSchema = z.object({
@@ -108,16 +125,7 @@ export const invoiceFormSchema = z.object({
   clientAddress: z.string(),
   clientCustomFields: z.array(customFieldSchema),
   clientMemberIds: z.array(z.string()),
-  items: z
-    .array(
-      z.object({
-        description: z.string(),
-        quantity: z.string(),
-        unitPrice: z.string(),
-        amount: z.string(),
-      })
-    )
-    .min(1),
+  items: z.array(invoiceItemSchema).min(1),
   expenseIds: z.array(z.string()),
   selectedRequirementIds: z.array(z.string()),
   paymentTerms: z.string(),

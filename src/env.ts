@@ -78,6 +78,8 @@ export const env = createEnv({
     S3_BUCKET: z.string().min(1),
     // Featurebase
     FEATUREBASE_JWT_SECRET: z.string().min(1).optional(),
+    // Redis URL
+    REDIS_URL: z.string().default('redis://localhost:6379'),
   },
   client: {
     NEXT_PUBLIC_BASE_URL: z.url(),

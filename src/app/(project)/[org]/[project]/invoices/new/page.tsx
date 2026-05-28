@@ -9,12 +9,12 @@ import { requirementsService } from '@/app/api/requirements/service'
 import { teamService } from '@/app/api/teams/service'
 import { timesheetService } from '@/app/api/timesheets/service'
 import { usersService } from '@/app/api/users/service'
-import { computeEntryAmount } from '@/lib/billing'
 import { createMetadata } from '@/lib/metadata'
+import { currencyConversionService } from '@/services/currency-conversion.service'
 import { InvoiceNumberGeneratorEngine } from '@/services/invoice-number.service'
 import type { Role } from '@/types'
 import InvoiceEditor from '../_components/invoice-editor'
-import { memberRateKey } from '../common'
+import { buildMemberRateMap } from '../_lib/build-rate-map'
 import type { CustomField, ExtendInvoiceData } from '../types'
 
 export const metadata: Metadata = createMetadata({
@@ -36,10 +36,11 @@ export default async function NewInvoice({
     extend?: string
     fromTimesheet?: string
     memberId?: string
+    currency?: string
   }>
 }) {
   const { org, project: projectSlug } = await params
-  const { extend, fromTimesheet, memberId } = await searchParams
+  const { extend, fromTimesheet, memberId, currency } = await searchParams
   const {
     organization,
     project: currentProject,
@@ -123,51 +124,6 @@ export default async function NewInvoice({
     ? allBillableEntries.filter((e) => e.memberId === memberId)
     : allBillableEntries
 
-  const memberRateMap: Record<
-    string,
-    { hourlyRate: number; currency: string }
-  > = {}
-  for (const entry of [...billableEntries, ...filteredAllBillableEntries]) {
-    const key = memberRateKey(entry.memberId, entry.date)
-    if (!memberRateMap[key]) {
-      const rate = await timesheetService.getMemberRate(
-        entry.memberId,
-        currentProject.id,
-        new Date(entry.date).toISOString()
-      )
-      if (rate) {
-        memberRateMap[key] = memberId
-          ? {
-              // Member invoices pay the person their pay rate, normalised to an
-              // hourly figure (computeEntryAmount for 60 min yields per-hour).
-              hourlyRate: computeEntryAmount(
-                60,
-                rate.payRate,
-                rate.payFrequency ?? 'hourly'
-              ),
-              currency: rate.payCurrency,
-            }
-          : {
-              // Charge the client at the billing rate when one is set, otherwise
-              // fall back to the pay rate. The rate/frequency/currency trio must
-              // move together — mixing a billing rate with a pay frequency
-              // misprices the line.
-              hourlyRate: computeEntryAmount(
-                60,
-                rate.billingRate ?? rate.payRate,
-                rate.billingRate == null
-                  ? rate.payFrequency
-                  : (rate.billingFrequency ?? 'hourly')
-              ),
-              currency:
-                rate.billingRate == null
-                  ? rate.payCurrency
-                  : rate.billingCurrency,
-            }
-      }
-    }
-  }
-
   let extendData: ExtendInvoiceData | undefined
   if (extend && typeof extend === 'string') {
     const [sourceInvoice, sourceItems, sourceRecipients] = await Promise.all([
@@ -213,6 +169,42 @@ export default async function NewInvoice({
       }
     }
   }
+
+  const memberPayCurrency = memberId
+    ? (
+        await timesheetService.getMemberRate(
+          memberId,
+          currentProject.id,
+          new Date().toISOString()
+        )
+      )?.payCurrency
+    : undefined
+
+  const baseCurrency =
+    currency ??
+    memberPayCurrency ??
+    extendData?.currency ??
+    projectOrOrgSettings?.currency ??
+    'USD'
+
+  const memberRateMap = await buildMemberRateMap({
+    billableEntries: [...billableEntries, ...filteredAllBillableEntries],
+    projectId: currentProject.id,
+    isMemberInvoice: !!memberId,
+    baseCurrency,
+  })
+
+  const convertedUnpaidExpenses = await Promise.all(
+    unpaidExpenses.map(async (exp) => {
+      const { amount, rate } = await currencyConversionService.convertCents(
+        exp.amountCents,
+        exp.currency,
+        baseCurrency
+      )
+      return { ...exp, convertedAmountCents: amount, rateUsed: rate }
+    })
+  )
+
   return (
     <InvoiceEditor
       autoImportTime={!!fromTimesheet}
@@ -220,7 +212,7 @@ export default async function NewInvoice({
       clients={clients}
       defaultClientAddress={projectOrOrgSettings?.invoiceToAddress}
       defaultClientName={projectOrOrgSettings?.invoiceToName}
-      defaultCurrency={projectOrOrgSettings?.currency}
+      defaultCurrency={baseCurrency}
       defaultSenderAddress={projectOrOrgSettings?.invoiceFromAddress}
       defaultSenderName={projectOrOrgSettings?.invoiceFromName}
       defaultTimeUnit={projectOrOrgSettings?.invoiceTimeUnit}
@@ -228,6 +220,7 @@ export default async function NewInvoice({
       isClientInvolved={
         projectOrOrgSettings.clientInvolvement.invoices === 'on'
       }
+      key={baseCurrency}
       mediaItems={usersMedia}
       member={
         member?.users && member?.members
@@ -251,7 +244,7 @@ export default async function NewInvoice({
       suggestedInvoiceNumber={suggestedInvoiceNumber}
       timesheetWarning={timesheetWarning}
       unbilledTimeEntries={filteredAllBillableEntries}
-      unpaidExpenses={unpaidExpenses}
+      unpaidExpenses={convertedUnpaidExpenses}
     />
   )
 }

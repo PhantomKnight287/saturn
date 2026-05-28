@@ -353,7 +353,6 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
               clientMemberIds,
               title: reportTitle.trim(),
               timeEntryIds: [...selectedEntryIds],
-              currency: defaultCurrency ?? 'USD',
             })
             toast.success('Timesheet sent to client')
             setSendOpen(false)
