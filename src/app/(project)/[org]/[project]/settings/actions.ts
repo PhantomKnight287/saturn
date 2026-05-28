@@ -1,6 +1,7 @@
 'use server'
 
 import { and, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { formatLocalDateOnly } from '@/lib/custom-fields'
 import { authedActionClient } from '@/lib/safe-action'
 import { db } from '@/server/db'
 import {
@@ -39,7 +40,11 @@ export const renameProjectAction = authedActionClient
 
       await db
         .update(projects)
-        .set({ name, slug, dueDate: dueDate ?? null })
+        .set({
+          name,
+          slug,
+          dueDate: dueDate ? formatLocalDateOnly(dueDate) : null,
+        })
         .where(
           and(
             eq(projects.id, projectId),

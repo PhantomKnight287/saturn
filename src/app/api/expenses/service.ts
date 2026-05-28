@@ -115,9 +115,7 @@ const listUnpaidExpensesByProject = async (
       )
     )
 
-  return rows
-    .map((r) => r.expense)
-    .sort((a, b) => b.date.getTime() - a.date.getTime())
+  return rows.map((r) => r.expense).sort((a, b) => b.date.localeCompare(a.date))
 }
 
 const listExpensesByInvoiceId = async (invoiceId: string) =>

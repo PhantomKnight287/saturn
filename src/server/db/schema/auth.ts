@@ -20,6 +20,7 @@ export const users = pgTable('users', {
     .defaultNow()
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
+  timezone: text('timezone'),
 })
 
 export const sessions = pgTable(
@@ -98,8 +99,8 @@ export const apikeys = pgTable(
     lastRefillAt: timestamp('last_refill_at'),
     enabled: boolean('enabled').default(true),
     rateLimitEnabled: boolean('rate_limit_enabled').default(true),
-    rateLimitTimeWindow: integer('rate_limit_time_window').default(86_400_000),
-    rateLimitMax: integer('rate_limit_max').default(10),
+    rateLimitTimeWindow: integer('rate_limit_time_window').default(60_000),
+    rateLimitMax: integer('rate_limit_max').default(120),
     requestCount: integer('request_count').default(0),
     remaining: integer('remaining'),
     lastRequest: timestamp('last_request'),

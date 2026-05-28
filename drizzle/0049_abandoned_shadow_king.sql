@@ -1,0 +1,1 @@
+ALTER TABLE "invoices" ALTER COLUMN "issue_date" DROP DEFAULT;

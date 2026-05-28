@@ -1,5 +1,6 @@
 import { createId } from '@paralleldrive/cuid2'
 import {
+  date,
   integer,
   pgEnum,
   pgTable,
@@ -28,7 +29,7 @@ export const milestones = pgTable('milestones', {
   description: text('description'),
   status: milestoneStatusEnum('status').default('pending').notNull(),
   sortOrder: integer('sort_order').default(0).notNull(),
-  dueDate: timestamp('due_date'),
+  dueDate: date('due_date', { mode: 'string' }),
   completedAt: timestamp('completed_at'),
   budgetMinutes: integer('budget_minutes'),
   currency: text('currency').default('USD'),

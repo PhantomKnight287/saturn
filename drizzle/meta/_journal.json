@@ -316,6 +316,41 @@
       "when": 1779783155913,
       "tag": "0044_outgoing_queen_noir",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1779861680250,
+      "tag": "0045_curvy_natasha_romanoff",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1779861988930,
+      "tag": "0046_greedy_changeling",
+      "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1779863270364,
+      "tag": "0047_unknown_jasper_sitwell",
+      "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1779863851611,
+      "tag": "0048_charming_puppet_master",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1779869675638,
+      "tag": "0049_abandoned_shadow_king",
+      "breakpoints": true
     }
   ]
 }

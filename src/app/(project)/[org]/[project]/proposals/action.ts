@@ -87,7 +87,7 @@ export const createProposalAction = authedActionClient
           slug: proposalWithSlug ? slugifiedWithSuffix : slugified,
           body: body || '',
           terms: terms || null,
-          validUntil: validUntil ? new Date(validUntil) : null,
+          validUntil: validUntil || null,
           currency: currency || 'USD',
           totalAmount: calculateTotal(deliverables),
           status:
@@ -172,7 +172,7 @@ export const updateProposalAction = authedActionClient
           title,
           body,
           terms: terms || null,
-          validUntil: validUntil ? new Date(validUntil) : null,
+          validUntil: validUntil || null,
           currency,
           totalAmount: calculateTotal(deliverables),
         })
@@ -280,11 +280,14 @@ export const sendProposalAction = authedActionClient
             currency: proposal.currency,
             pricingType: 'fixed',
             validUntil: proposal.validUntil
-              ? proposal.validUntil.toLocaleDateString('en-GB', {
-                  month: 'long',
-                  day: 'numeric',
-                  year: 'numeric',
-                })
+              ? new Date(`${proposal.validUntil}T00:00:00`).toLocaleDateString(
+                  'en-GB',
+                  {
+                    month: 'long',
+                    day: 'numeric',
+                    year: 'numeric',
+                  }
+                )
               : null,
             orgSlug,
             proposalSlug: proposal.slug,

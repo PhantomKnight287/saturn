@@ -29,7 +29,7 @@ interface Props {
     id: string
     name: string
     slug: string
-    dueDate: Date | null
+    dueDate: string | null
   }
 }
 
@@ -51,7 +51,7 @@ export function ProjectSummaryCard({
   const paidTotals = sumByCurrency(paid, (i) => Number(i.totalAmount))
   const primaryPaid = Object.entries(paidTotals).sort((a, b) => b[1] - a[1])[0]
 
-  const due = project.dueDate && new Date(project.dueDate)
+  const due = project.dueDate && new Date(`${project.dueDate}T00:00:00`)
 
   return (
     <Link

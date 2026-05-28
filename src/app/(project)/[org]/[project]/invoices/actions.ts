@@ -9,6 +9,7 @@ import InvoicePaidEmail from '@/emails/templates/invoice-paid'
 import InvoiceSentEmail from '@/emails/templates/invoice-sent'
 import InvoiceUnpaidEmail from '@/emails/templates/invoice-unpaid'
 import ThreadNewMessageEmail from '@/emails/templates/thread-new-message'
+import { formatLocalDateOnly } from '@/lib/custom-fields'
 import { getAdminsAndOwners, sendEmailsToRecipients } from '@/lib/notifications'
 import { authedActionClient } from '@/lib/safe-action'
 import { db } from '@/server/db'
@@ -141,8 +142,8 @@ export const createInvoiceAction = authedActionClient
           .values({
             projectId,
             invoiceNumber,
-            issueDate: new Date(issueDate),
-            dueDate: dueDate ? new Date(dueDate) : null,
+            issueDate: formatLocalDateOnly(issueDate),
+            dueDate: dueDate ? formatLocalDateOnly(dueDate) : null,
             notes: notes || null,
             currency,
             totalAmount,
@@ -229,12 +230,14 @@ export const createInvoiceAction = authedActionClient
           const { projectName, projectSlug, orgSlug } =
             await projectsService.getProjectDetails(projectId)
 
-          const formatDateLong = (d: Date) =>
-            d.toLocaleDateString(undefined, {
+          const formatDateLong = (value: string) => {
+            const [y, m, d] = value.split('-').map(Number)
+            return new Date(y!, m! - 1, d!).toLocaleDateString(undefined, {
               month: 'long',
               day: 'numeric',
               year: 'numeric',
             })
+          }
 
           await sendEmailsToRecipients(
             recipients.map((r) => ({ email: r.userEmail, name: r.userName })),
@@ -389,8 +392,8 @@ export const updateInvoiceAction = authedActionClient
             .update(invoices)
             .set({
               invoiceNumber,
-              issueDate: new Date(issueDate),
-              dueDate: dueDate ? new Date(dueDate) : null,
+              issueDate: formatLocalDateOnly(issueDate),
+              dueDate: dueDate ? formatLocalDateOnly(dueDate) : null,
               notes: notes || null,
               currency,
               totalAmount,
@@ -578,12 +581,14 @@ export const sendInvoiceAction = authedActionClient
       const { projectName, projectSlug, orgSlug } =
         await projectsService.getProjectDetails(invoice.projectId)
 
-      const formatDateLong = (d: Date) =>
-        d.toLocaleDateString(undefined, {
+      const formatDateLong = (value: string) => {
+        const [y, m, d] = value.split('-').map(Number)
+        return new Date(y!, m! - 1, d!).toLocaleDateString(undefined, {
           month: 'long',
           day: 'numeric',
           year: 'numeric',
         })
+      }
 
       // Send email to all recipients
       await sendEmailsToRecipients(

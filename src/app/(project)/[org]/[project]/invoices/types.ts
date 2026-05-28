@@ -11,7 +11,7 @@ export type InvoiceFormValues = z.infer<typeof invoiceFormSchema>
 
 export interface Invoice {
   currency: string
-  dueDate: Date | null
+  dueDate: string | null
   id: string
   invoiceNumber: string
   recipient: (typeof invoiceRecipientEnum.enumValues)[number] | null
@@ -37,7 +37,7 @@ export interface InvoiceCardProps {
     status: 'draft' | 'sent' | 'paid' | 'disputed' | 'cancelled'
     totalAmount: string
     currency: string
-    dueDate: Date | null
+    dueDate: string | null
     updatedAt: Date
     recipient: (typeof invoiceRecipientEnum.enumValues)[number] | null
     recipients: ProjectClient[]
@@ -90,10 +90,10 @@ export interface InvoiceData {
   currency: string
   discountAmount: string | null
   discountLabel: string | null
-  dueDate: Date | null
+  dueDate: string | null
   id: string
   invoiceNumber: string
-  issueDate: Date
+  issueDate: string
   notes: string | null
   paymentTerms: string | null
   recipient: (typeof invoiceRecipientEnum.enumValues)[number] | null
@@ -108,7 +108,7 @@ export interface InvoiceData {
 }
 
 export interface BillableTimeEntry {
-  date: Date
+  date: string
   description: string
   durationMinutes: number
   id: string

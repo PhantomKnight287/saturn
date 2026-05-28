@@ -1,6 +1,7 @@
 import { createId } from '@paralleldrive/cuid2'
 import {
   boolean,
+  date,
   index,
   integer,
   jsonb,
@@ -9,7 +10,6 @@ import {
   text,
   timestamp,
   unique,
-  uniqueIndex,
 } from 'drizzle-orm/pg-core'
 import { members } from './auth'
 import { statusEnum } from './base'
@@ -40,7 +40,7 @@ export const timeEntries = pgTable(
       .references(() => members.id, { onDelete: 'cascade' })
       .notNull(),
     description: text('description').notNull(),
-    date: timestamp('date').notNull(),
+    date: date('date', { mode: 'string' }).notNull(),
     durationMinutes: integer('duration_minutes').notNull(),
     billable: boolean('billable').default(true).notNull(),
     status: statusEnum('status').default('draft').notNull(),
@@ -67,42 +67,31 @@ export const timeEntries = pgTable(
   ]
 )
 
-export const memberRates = pgTable(
-  'member_rates',
-  {
-    id: text('id')
-      .primaryKey()
-      .$defaultFn(() => `mr_${createId()}`),
-    memberId: text('member_id')
-      .references(() => members.id, { onDelete: 'cascade' })
-      .notNull(),
-    projectId: text('project_id').references(() => projects.id, {
-      onDelete: 'cascade',
-    }),
-    billingRate: integer('billing_rate'),
-    billingCurrency: text('billing_currency').default('USD').notNull(),
-    billingFrequency:
-      billingFrequencyEnum('billing_frequency').default('hourly'),
-    payRate: integer('pay_rate').notNull(),
-    payCurrency: text('pay_currency').default('USD').notNull(),
-    payFrequency: billingFrequencyEnum('pay_frequency')
-      .default('hourly')
-      .notNull(),
-    effectiveFrom: timestamp('effective_from').notNull(),
-    createdAt: timestamp('created_at').defaultNow().notNull(),
-    updatedAt: timestamp('updated_at')
-      .defaultNow()
-      .$onUpdate(() => new Date())
-      .notNull(),
-  },
-  (table) => [
-    uniqueIndex('member_rate_effective_unique').on(
-      table.memberId,
-      table.projectId,
-      table.effectiveFrom
-    ),
-  ]
-)
+export const memberRates = pgTable('member_rates', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => `mr_${createId()}`),
+  memberId: text('member_id')
+    .references(() => members.id, { onDelete: 'cascade' })
+    .notNull(),
+  projectId: text('project_id').references(() => projects.id, {
+    onDelete: 'cascade',
+  }),
+  billingRate: integer('billing_rate'),
+  billingCurrency: text('billing_currency').default('USD').notNull(),
+  billingFrequency: billingFrequencyEnum('billing_frequency').default('hourly'),
+  payRate: integer('pay_rate').notNull(),
+  payCurrency: text('pay_currency').default('USD').notNull(),
+  payFrequency: billingFrequencyEnum('pay_frequency')
+    .default('hourly')
+    .notNull(),
+  effectiveFrom: date('effective_from', { mode: 'string' }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at')
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+})
 
 export const timesheetReportStatusEnum = pgEnum('timesheet_report_status', [
   'draft',

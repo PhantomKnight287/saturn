@@ -68,7 +68,9 @@ export default function ProjectCard({
               (project.status === 'in-progress' ||
                 project.status === 'planning') && (
                 <div className='mt-3'>
-                  <DueDateBadge dueDate={new Date(project.dueDate)} />
+                  <DueDateBadge
+                    dueDate={new Date(`${project.dueDate}T00:00:00`)}
+                  />
                 </div>
               )}
             <ProjectStatusBadge status={project.status} />

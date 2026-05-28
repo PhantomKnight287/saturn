@@ -1,5 +1,6 @@
 import { createId } from '@paralleldrive/cuid2'
 import {
+  date,
   index,
   integer,
   numeric,
@@ -30,7 +31,7 @@ export const proposals = pgTable(
     body: text('body').notNull().default(''),
     terms: text('terms'),
     status: statusEnum('status').default('draft').notNull(),
-    validUntil: timestamp('valid_until'),
+    validUntil: date('valid_until', { mode: 'string' }),
     currency: text('currency').default('USD').notNull(),
     totalAmount: numeric('total_amount', { precision: 16, scale: 4 })
       .default('0')

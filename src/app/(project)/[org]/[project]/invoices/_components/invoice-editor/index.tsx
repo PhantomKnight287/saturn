@@ -41,6 +41,7 @@ import DatePicker from '@/components/ui/date-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { parseDateOnlyAsLocal } from '@/lib/custom-fields'
 import {
   formatDurationInUnit,
   timeEntryLineAmounts,
@@ -69,8 +70,26 @@ import { InvoiceItemRow } from './invoice-item'
 import { ItemsTotal } from './items-total'
 import { PdfPreviewPane } from './pdf-preview-pane'
 
-function formatDateForInput(date: Date): string {
-  return new Date(date).toISOString().split('T')[0]!
+function formatDateForInput(date: string | Date): string {
+  if (typeof date === 'string') {
+    return date.slice(0, 10)
+  }
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+// Date-only strings parse as UTC via `new Date(...)`, shifting the day for
+// viewers west of UTC; parse them as local instead.
+function toPickerDate(value: string | Date | undefined): Date | undefined {
+  if (!value) {
+    return
+  }
+  if (typeof value === 'string') {
+    return parseDateOnlyAsLocal(value) ?? undefined
+  }
+  return value
 }
 
 export default function InvoiceEditor({
@@ -694,7 +713,7 @@ export default function InvoiceEditor({
                     <DatePicker
                       disablePastDates={false}
                       onChange={field.onChange}
-                      value={field.value ? new Date(field.value) : undefined}
+                      value={toPickerDate(field.value)}
                     />
                   )}
                 />
@@ -708,7 +727,7 @@ export default function InvoiceEditor({
                     <DatePicker
                       disablePastDates={false}
                       onChange={field.onChange}
-                      value={field.value ? new Date(field.value) : undefined}
+                      value={toPickerDate(field.value)}
                     />
                   )}
                 />
@@ -1089,13 +1108,14 @@ export default function InvoiceEditor({
                     {unpaidExpenses.map((exp) => {
                       const isSelected = field.value.includes(exp.id)
                       const formattedAmount = (exp.amountCents / 100).toFixed(2)
-                      const formattedDate = new Date(
-                        exp.date
-                      ).toLocaleDateString(undefined, {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })
+                      const parsedExpenseDate = parseDateOnlyAsLocal(exp.date)
+                      const formattedDate = parsedExpenseDate
+                        ? parsedExpenseDate.toLocaleDateString(undefined, {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                          })
+                        : exp.date
                       return (
                         <button
                           className={`flex w-full cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors ${

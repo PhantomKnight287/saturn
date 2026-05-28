@@ -3,6 +3,7 @@
 import { and, asc, count, eq, isNull } from 'drizzle-orm'
 // import { PROJECTS_CACHE_TAG } from '@/api/projects/service'
 import { getUserBillingStatus } from '@/cache/billing'
+import { formatLocalDateOnly } from '@/lib/custom-fields'
 import { authedActionClient } from '@/lib/safe-action'
 import { titleToSlug } from '@/lib/utils'
 import { FREE_PLAN_LIMITS } from '@/limits'
@@ -100,7 +101,7 @@ export const createProjectAction = authedActionClient
             slug: projectWithSlug ? slugifiedWithSuffix : slugified,
             description: description || null,
             organizationId,
-            dueDate: dueDate ?? null,
+            dueDate: dueDate ? formatLocalDateOnly(dueDate) : null,
           })
           .returning()
 

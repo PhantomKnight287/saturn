@@ -29,7 +29,7 @@ import {
 import { memberRateKey } from '../common'
 
 interface BillableEntry {
-  date: Date
+  date: string
   description: string
   durationMinutes: number
   id: string
@@ -128,11 +128,14 @@ export function ImportTimeEntriesDialog({
         })
 
         const memberName = entry.memberName ?? 'Unknown'
-        const dateLabel = new Date(entry.date).toLocaleDateString(undefined, {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-        })
+        const dateLabel = new Date(`${entry.date}T00:00:00`).toLocaleDateString(
+          undefined,
+          {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+          }
+        )
         const reqPart = entry.requirementTitle
           ? ` — ${entry.requirementTitle}`
           : ''
@@ -288,13 +291,12 @@ export function ImportTimeEntriesDialog({
                             </p>
                             <p className='text-muted-foreground text-xs'>
                               {entry.requirementTitle ?? 'General'} ·{' '}
-                              {new Date(entry.date).toLocaleDateString(
-                                undefined,
-                                {
-                                  month: 'short',
-                                  day: 'numeric',
-                                }
-                              )}
+                              {new Date(
+                                `${entry.date}T00:00:00`
+                              ).toLocaleDateString(undefined, {
+                                month: 'short',
+                                day: 'numeric',
+                              })}
                             </p>
                           </div>
                           <span className='font-medium text-sm'>

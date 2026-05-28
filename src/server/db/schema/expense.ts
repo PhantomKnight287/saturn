@@ -1,6 +1,7 @@
 import { createId } from '@paralleldrive/cuid2'
 import {
   boolean,
+  date,
   index,
   integer,
   pgEnum,
@@ -56,7 +57,7 @@ export const expenses = pgTable(
     description: text('description'),
     amountCents: integer('amount_cents').notNull(),
     currency: text('currency').notNull().default('USD'),
-    date: timestamp().notNull(),
+    date: date({ mode: 'string' }).notNull(),
     billable: boolean().default(true).notNull(),
     status: statusEnum().notNull().default('draft'),
     rejectReason: text('reject_reason'),

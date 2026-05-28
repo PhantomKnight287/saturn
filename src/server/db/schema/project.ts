@@ -1,5 +1,6 @@
 import { createId } from '@paralleldrive/cuid2'
 import {
+  date,
   pgEnum,
   pgTable,
   text,
@@ -30,7 +31,7 @@ export const projects = pgTable(
       .references(() => organizations.id, { onDelete: 'cascade' })
       .notNull(),
     status: projectStatus().default('planning').notNull(),
-    dueDate: timestamp('due_date'),
+    dueDate: date('due_date', { mode: 'string' }),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()

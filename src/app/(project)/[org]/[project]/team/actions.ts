@@ -9,6 +9,7 @@ import { projectsService } from '@/app/api/projects/service'
 import TeamAssignedToProjectEmail from '@/emails/templates/team-assigned-to-project'
 import { sendEmailsToRecipients } from '@/lib/notifications'
 import { authedActionClient } from '@/lib/safe-action'
+import { todayDateOnly } from '@/lib/utils'
 import { auth } from '@/server/auth'
 import { db } from '@/server/db'
 import { settings as settingsTable } from '@/server/db/schema'
@@ -352,7 +353,7 @@ export const addExistingMemberToProjectAction = authedActionClient
             billingRate: billingRate ?? payRate,
             billingCurrency: billingCurrency ?? payCurrency,
             billingFrequency: billingFrequency ?? payFrequency ?? 'hourly',
-            effectiveFrom: new Date(),
+            effectiveFrom: todayDateOnly(),
           })
           .onConflictDoNothing()
       }

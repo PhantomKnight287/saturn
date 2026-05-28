@@ -9,7 +9,7 @@ import type { RouteImpl } from '@/types'
 import { MilestoneStatusDot } from './milestone-status-dot'
 
 interface Milestone {
-  dueDate: Date | null
+  dueDate: string | null
   id: string
   name: string
   progress: { signed: number; total: number }
@@ -39,11 +39,12 @@ export function ActiveMilestonesCard({
       </CardHeader>
       <CardContent className='space-y-3'>
         {milestones.slice(0, 5).map((m) => {
+          const due = m.dueDate ? new Date(`${m.dueDate}T00:00:00`) : null
           const progressPercent =
             m.progress.total > 0
               ? Math.round((m.progress.signed / m.progress.total) * 100)
               : 0
-          const overdue = m.dueDate && isPast(new Date(m.dueDate))
+          const overdue = due && isPast(due)
           return (
             <Link
               className='flex items-center gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-muted/50'
@@ -60,9 +61,9 @@ export function ActiveMilestonesCard({
                     </Badge>
                   )}
                 </div>
-                {m.dueDate && !overdue && (
+                {due && !overdue && (
                   <p className='text-muted-foreground text-xs'>
-                    Due {format(new Date(m.dueDate), 'MMM d')}
+                    Due {format(due, 'MMM d')}
                   </p>
                 )}
                 {m.progress.total > 0 && (
