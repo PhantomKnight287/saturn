@@ -115,7 +115,7 @@ The IANA timezone identifier (e.g. `America/New_York`) for one **person**, store
 ### Calendar date vs. Moment
 Every displayed date is exactly one of two kinds, and the [[user-timezone]] applies to only one:
 
-- **Calendar date** — a day a user picks (`time_entries.date`, `time_entry_rates.effectiveFrom`, `invoices.issueDate`, `invoices.dueDate`, `expenses.date`, `milestones.dueDate`, `projects.dueDate`, `proposals.validUntil`). Zoneless: the **same literal day for every viewer**. "Due June 1" reads June 1 in every timezone — a deadline is not relative to where the viewer stands. Never zone-shifted. (Same treatment as the custom-field `date` type.)
+- **Calendar date** — a day a user picks (`time_entries.date`, `member_rates.effective_from`, `invoices.issueDate`, `invoices.dueDate`, `expenses.date`, `milestones.dueDate`, `projects.dueDate`, `proposals.validUntil`). Zoneless: the **same literal day for every viewer**. "Due June 1" reads June 1 in every timezone — a deadline is not relative to where the viewer stands. Never zone-shifted. (Same treatment as the custom-field `date` type.)
 - **Moment** — a genuine instant (`createdAt`, `sentAt`, `signedAt`, `respondedAt`, `completedAt`, etc., and the custom-field `datetime` type). Rendered in the **viewer's** timezone.
 
 These columns are currently all stored as Postgres `timestamp`. The calendar-date ones are mis-typed: a `"YYYY-MM-DD"` input becomes `new Date(...)` → UTC midnight, then locale formatting renders the day before for viewers west of UTC. The fix for those is a storage/format change, **not** timezone handling (see [ADR-0003](docs/adr/0003-calendar-dates-as-date-not-timestamp.md)).

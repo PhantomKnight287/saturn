@@ -29,7 +29,7 @@ interface Props {
     id: string
     name: string
     slug: string
-    dueDate: Date | null
+    dueDate: string | null
   }
 }
 

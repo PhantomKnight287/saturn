@@ -1,6 +1,6 @@
 # Calendar-date columns use Postgres `date`, not `timestamp`
 
-User-picked day fields — `time_entries.date`, `time_entry_rates.effectiveFrom`, `invoices.issueDate`, `invoices.dueDate`, `expenses.date`, `milestones.dueDate`, `projects.dueDate`, `proposals.validUntil` — are stored as Postgres `date` (`'YYYY-MM-DD'`), not `timestamp`. They are zoneless calendar facts: "due June 1" must read June 1 for every viewer regardless of timezone, and a deadline is not relative to where the viewer stands.
+User-picked day fields — `time_entries.date`, `member_rates.effective_from`, `invoices.issueDate`, `invoices.dueDate`, `expenses.date`, `milestones.dueDate`, `projects.dueDate`, `proposals.validUntil` — are stored as Postgres `date` (`'YYYY-MM-DD'`), not `timestamp`. They are zoneless calendar facts: "due June 1" must read June 1 for every viewer regardless of timezone, and a deadline is not relative to where the viewer stands.
 
 They were originally `timestamp`, written via `new Date("YYYY-MM-DD")` (UTC midnight) and rendered with locale formatting — which shifted the day backwards for any viewer west of UTC (server-rendered vs client-rendered surfaces could already disagree). Storing the day as an instant was the root cause; the saved user timezone would have made the bug worse, not better, by applying a zone to a value that should have none.
 

@@ -1,7 +1,7 @@
 'use client'
 
 import { useAction } from 'next-safe-action/hooks'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { updateTimezoneAction } from '@/lib/actions/timezone.action'
 import { authClient } from '@/lib/auth-client'
 
@@ -17,6 +17,7 @@ export function TimezoneSync() {
 
   const userId = session?.user.id
   const stored = session?.user.timezone
+  const lastSentTimezone = useRef<string | null>(null)
 
   useEffect(() => {
     if (!userId) {
@@ -24,7 +25,12 @@ export function TimezoneSync() {
     }
     const sync = () => {
       const detected = Intl.DateTimeFormat().resolvedOptions().timeZone
-      if (detected && detected !== stored) {
+      if (
+        detected &&
+        detected !== stored &&
+        detected !== lastSentTimezone.current
+      ) {
+        lastSentTimezone.current = detected
         execute({ timezone: detected })
       }
     }

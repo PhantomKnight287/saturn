@@ -376,13 +376,14 @@ export function formatCustomFieldValue(
       if (Number.isNaN(d.getTime())) {
         return String(raw)
       }
+      const resolvedTimeZone = timeZone ?? 'UTC'
       return d.toLocaleString(undefined, {
         year: 'numeric',
         month: 'short',
         day: 'numeric',
         hour: 'numeric',
         minute: '2-digit',
-        timeZone,
+        timeZone: resolvedTimeZone,
       })
     }
     default:
