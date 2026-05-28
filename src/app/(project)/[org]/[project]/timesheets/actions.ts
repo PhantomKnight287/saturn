@@ -890,6 +890,9 @@ export const sendTimesheetToClientAction = authedActionClient
         )
         const entryCurrency =
           rate.billingRate == null ? rate.payCurrency : rate.billingCurrency
+        if (!entryCurrency) {
+          continue
+        }
         const { amount: converted } =
           await currencyConversionService.convertCents(
             entryAmount,
@@ -1263,6 +1266,9 @@ export const resendTimesheetReportAction = authedActionClient
         )
         const entryCurrency =
           rate.billingRate == null ? rate.payCurrency : rate.billingCurrency
+        if (!entryCurrency) {
+          continue
+        }
         const { amount: converted } =
           await currencyConversionService.convertCents(
             entryAmount,

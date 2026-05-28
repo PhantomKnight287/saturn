@@ -74,13 +74,19 @@ export async function buildMemberRateMap({
           baseCurrency
         )
 
+      const paySource = {
+        rate: rate.payRate,
+        currency: rate.payCurrency,
+        frequency: rate.payFrequency ?? ('hourly' as const),
+      }
+
       const entry: MemberRateMapEntry = {
         hourlyRate: convertedHourly,
         currency: baseCurrency,
         originalHourlyRate: sourceHourly,
         originalCurrency: sourceRate.currency,
         rateUsed,
-        pay: sourceRate,
+        pay: paySource,
       }
       return { key, entry }
     })

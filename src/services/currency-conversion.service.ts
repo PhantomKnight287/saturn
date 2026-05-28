@@ -121,11 +121,18 @@ export const currencyConversionService = {
         `No exchange rate available for ${to.toUpperCase()}`
       )
     }
-    if (fromRate === 0) {
+    if (!(Number.isFinite(fromRate) && fromRate > 0)) {
       throw new CurrencyConversionError(
         from,
         to,
-        `Invalid exchange rate (zero) for ${from.toUpperCase()}`
+        `Invalid exchange rate (${fromRate}) for ${from.toUpperCase()}`
+      )
+    }
+    if (!(Number.isFinite(toRate) && toRate > 0)) {
+      throw new CurrencyConversionError(
+        from,
+        to,
+        `Invalid exchange rate (${toRate}) for ${to.toUpperCase()}`
       )
     }
     return toRate / fromRate
@@ -164,17 +171,28 @@ export const currencyConversionService = {
   ): Promise<void> {
     const target = targetCurrency.toUpperCase()
     const rows: (typeof invoiceConversionRates.$inferInsert)[] = []
+    const invalid: string[] = []
     for (const [fromCurrency, rate] of rates.entries()) {
       const from = fromCurrency.toUpperCase()
       if (from === target) {
+        continue
+      }
+      const numeric = Number(rate)
+      if (!(Number.isFinite(numeric) && numeric > 0)) {
+        invalid.push(`${from}=${rate}`)
         continue
       }
       rows.push({
         invoiceId,
         fromCurrency: from,
         toCurrency: target,
-        rate: rate.toString(),
+        rate: numeric.toString(),
       })
+    }
+    if (invalid.length > 0) {
+      throw new Error(
+        `Refusing to snapshot invalid conversion rates: ${invalid.join(', ')}`
+      )
     }
     if (rows.length === 0) {
       return
