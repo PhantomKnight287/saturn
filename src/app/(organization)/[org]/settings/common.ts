@@ -1,4 +1,9 @@
 import z from 'zod'
+import {
+  customFieldDefinitionCreateSchema,
+  customFieldDefinitionUpdateSchema,
+} from '@/lib/custom-fields'
+import { billingFrequencyEnum } from '@/server/db/schema'
 
 const clientInvolvementToggleSchema = z.enum(['on', 'off'])
 
@@ -30,6 +35,8 @@ export const renameOrganizationSchema = z.object({
     .regex(/^[a-z0-9-]+$/, 'Slug must be lowercase alphanumeric with hyphens'),
 })
 
+export type BillingFrequency = (typeof billingFrequencyEnum.enumValues)[number]
+
 export const timesheetDurationOptions = [
   'weekly',
   'biweekly',
@@ -39,8 +46,17 @@ export type TimesheetDuration = (typeof timesheetDurationOptions)[number]
 
 export const updateTimesheetDefaultsSchema = z.object({
   organizationId: z.string().min(1),
-  defaultMemberRate: z.number().int().min(0, 'Rate must be non-negative'),
-  defaultCurrency: z.string().min(3).max(3),
+  defaultPayRate: z.number().int().min(0, 'Rate must be non-negative'),
+  defaultPayCurrency: z.string().min(3).max(3),
+  defaultPayFrequency: z.enum(billingFrequencyEnum.enumValues),
+  // Billing defaults are optional and fall back to the pay values in the action.
+  defaultBillingRate: z
+    .number()
+    .int()
+    .min(0, 'Rate must be non-negative')
+    .optional(),
+  defaultBillingCurrency: z.string().min(3).max(3).optional(),
+  defaultBillingFrequency: z.enum(billingFrequencyEnum.enumValues).optional(),
   defaultTimesheetDuration: z.enum(timesheetDurationOptions),
 })
 
@@ -54,7 +70,38 @@ export const updateInvoiceNumberTemplateSchema = z.object({
     .max(100, 'Template is too long'),
 })
 
+export const invoiceTimeUnitOptions = ['hours', 'minutes'] as const
+export type InvoiceTimeUnit = (typeof invoiceTimeUnitOptions)[number]
+
+export const updateInvoiceImportDefaultsSchema = z.object({
+  organizationId: z.string().min(1),
+  projectId: z.string().min(1).optional(),
+  invoiceTimeUnit: z.enum(invoiceTimeUnitOptions),
+})
+
+export const updateInvoiceFromDetailsSchema = z.object({
+  organizationId: z.string().min(1),
+  invoiceFromName: z.string().max(200).optional(),
+  invoiceFromAddress: z.string().max(1000).optional(),
+})
+
 export const deleteOrganizationSchema = z.object({
   organizationId: z.string().min(1),
   confirmName: z.string().min(1, 'Please type the workspace name to confirm'),
+})
+
+export const createOrgCustomFieldSchema = z.object({
+  organizationId: z.string().min(1),
+  definition: customFieldDefinitionCreateSchema,
+})
+
+export const updateOrgCustomFieldSchema = z.object({
+  organizationId: z.string().min(1),
+  fieldId: z.string().min(1),
+  definition: customFieldDefinitionUpdateSchema,
+})
+
+export const deleteOrgCustomFieldSchema = z.object({
+  organizationId: z.string().min(1),
+  fieldId: z.string().min(1),
 })

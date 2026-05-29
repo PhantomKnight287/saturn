@@ -23,7 +23,7 @@ import {
 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useAction } from 'next-safe-action/hooks'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Controller, useFieldArray, useForm } from 'react-hook-form'
@@ -41,6 +41,11 @@ import DatePicker from '@/components/ui/date-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { parseDateOnlyAsLocal } from '@/lib/custom-fields'
+import {
+  formatDurationInUnit,
+  timeEntryLineAmounts,
+} from '@/lib/invoice-time-units'
 import { uploadDataUrl } from '@/lib/upload'
 import type { RouteImpl } from '@/types'
 import ThreadsPanel from '../../../requirements/_components/threads-panel'
@@ -55,18 +60,44 @@ import {
   sendInvoiceAction,
   updateInvoiceAction,
 } from '../../actions'
-import { invoiceFormSchema } from '../../common'
-import type { CustomField, InvoiceEditorProps, MediaItem } from '../../types'
+import { invoiceFormSchema, memberRateKey } from '../../common'
+import type {
+  CustomField,
+  InvoiceEditorProps,
+  InvoiceFormValues,
+  MediaItem,
+  MemberRateMapEntry,
+} from '../../types'
 import DisputeInvoiceDialog from '../dispute-invoice-dialog'
 import { ImportTimeEntriesDialog } from '../import-time-entries-dialog'
 import InvoiceStatusBadge from '../status-badge'
+import { CapturedRatesDialog } from './captured-rates-dialog'
 import { CustomFieldsEditor } from './custom-fields-editor'
 import { InvoiceItemRow } from './invoice-item'
 import { ItemsTotal } from './items-total'
 import { PdfPreviewPane } from './pdf-preview-pane'
+import { RateBreakdownDialog } from './rates-breakdown-dialog'
 
-function formatDateForInput(date: Date): string {
-  return new Date(date).toISOString().split('T')[0]!
+function formatDateForInput(date: string | Date): string {
+  if (typeof date === 'string') {
+    return date.slice(0, 10)
+  }
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+// Date-only strings parse as UTC via `new Date(...)`, shifting the day for
+// viewers west of UTC; parse them as local instead.
+function toPickerDate(value: string | Date | undefined): Date | undefined {
+  if (!value) {
+    return
+  }
+  if (typeof value === 'string') {
+    return parseDateOnlyAsLocal(value) ?? undefined
+  }
+  return value
 }
 
 export default function InvoiceEditor({
@@ -87,17 +118,23 @@ export default function InvoiceEditor({
   canDelete = false,
   canMarkPaid = false,
   canResolveThread = false,
+  capturedRates = [],
   extendData,
   mediaItems = [],
   billableEntries = [],
   unbilledTimeEntries = [],
   memberRateMap = {},
   autoImportTime = false,
+  defaultTimeUnit = 'hours',
   timesheetWarning,
   threads = [],
   unpaidExpenses = [],
   role,
   defaultCurrency,
+  defaultSenderName,
+  defaultSenderAddress,
+  defaultClientName,
+  defaultClientAddress,
   suggestedInvoiceNumber,
   isClientInvolved = true,
   recipientType,
@@ -105,11 +142,14 @@ export default function InvoiceEditor({
 }: InvoiceEditorProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const pathname = usePathname()
   const backUrl = `/${orgSlug}/${projectSlug}/invoices` as RouteImpl
   const [importOpen, setImportOpen] = useState(false)
   const [sendOpen, setSendOpen] = useState(false)
   const [disputeOpen, setDisputeOpen] = useState(false)
   const [signatureDialogOpen, setSignatureDialogOpen] = useState(false)
+  const [rateBreakdownOpen, setRateBreakdownOpen] = useState(false)
+  const [capturedRatesOpen, setCapturedRatesOpen] = useState(false)
   const [isUploadingSignature, setIsUploadingSignature] = useState(false)
   const [importedEntryIds, setImportedEntryIds] = useState<string[]>([])
   const [uploadedMedia, setUploadedMedia] = useState<MediaItem[]>([])
@@ -135,7 +175,9 @@ export default function InvoiceEditor({
     },
     []
   )
-  const rateMap = new Map(Object.entries(memberRateMap))
+  const rateMap = new Map<string, MemberRateMapEntry>(
+    Object.entries(memberRateMap)
+  )
   const isEditable =
     mode === 'create' ||
     (canEdit && (invoice?.status === 'draft' || invoice?.status === 'disputed'))
@@ -145,7 +187,7 @@ export default function InvoiceEditor({
     defaultValues: {
       invoiceNumber: invoice?.invoiceNumber ?? suggestedInvoiceNumber ?? '',
       currency:
-        extendData?.currency ?? invoice?.currency ?? defaultCurrency ?? 'USD',
+        defaultCurrency ?? extendData?.currency ?? invoice?.currency ?? 'USD',
       issueDate: invoice
         ? formatDateForInput(invoice.issueDate)
         : formatDateForInput(new Date()),
@@ -153,13 +195,29 @@ export default function InvoiceEditor({
       senderLogo: extendData?.senderLogo ?? invoice?.senderLogo ?? null,
       senderSignature:
         extendData?.senderSignature ?? invoice?.senderSignature ?? null,
-      senderName: extendData?.senderName ?? invoice?.senderName ?? orgName,
-      senderAddress: extendData?.senderAddress ?? invoice?.senderAddress ?? '',
+      senderName:
+        extendData?.senderName ??
+        invoice?.senderName ??
+        defaultSenderName ??
+        orgName,
+      senderAddress:
+        extendData?.senderAddress ??
+        invoice?.senderAddress ??
+        defaultSenderAddress ??
+        '',
       senderCustomFields:
         extendData?.senderCustomFields ?? invoice?.senderCustomFields ?? [],
       clientName:
-        member?.name ?? extendData?.clientName ?? invoice?.clientName ?? '',
-      clientAddress: extendData?.clientAddress ?? invoice?.clientAddress ?? '',
+        member?.name ??
+        extendData?.clientName ??
+        invoice?.clientName ??
+        defaultClientName ??
+        '',
+      clientAddress:
+        extendData?.clientAddress ??
+        invoice?.clientAddress ??
+        defaultClientAddress ??
+        '',
       clientCustomFields:
         extendData?.clientCustomFields ?? invoice?.clientCustomFields ?? [],
       clientMemberIds: extendData?.recipientMemberIds ?? existingRecipientIds,
@@ -219,6 +277,18 @@ export default function InvoiceEditor({
     remove: removeItem,
   } = useFieldArray({ control, name: 'items' })
 
+  // Switching currency once a real line item exists would silently misprice
+  // it — unit prices are entered/converted against the currency at the time
+  // the item is added. The form seeds an empty placeholder row, so check for
+  // user-entered content rather than just row count.
+  const watchedItems = form.watch('items')
+  const currencyLocked = watchedItems.some(
+    (item) =>
+      item.description.trim() !== '' ||
+      (item.unitPrice !== '' && item.unitPrice !== '0') ||
+      (item.quantity !== '' && item.quantity !== '1')
+  )
+
   const { execute: executeLinkEntries } = useAction(
     linkTimeEntriesToInvoiceAction
   )
@@ -234,39 +304,65 @@ export default function InvoiceEditor({
     }
     autoImportDone.current = true
 
-    const grouped = new Map<string, typeof billableEntries>()
-    for (const entry of billableEntries) {
-      const key = entry.memberId
-      if (!grouped.has(key)) {
-        grouped.set(key, [])
+    const grouped = new Map<
+      string,
+      {
+        entries: typeof billableEntries
+        rate?: MemberRateMapEntry
       }
-      grouped.get(key)!.push(entry)
+    >()
+    for (const entry of billableEntries) {
+      const rate = rateMap.get(memberRateKey(entry.memberId, entry.date))
+      // Entries sharing a rate consolidate into one line; a rate change within a
+      // member splits into separate lines so each keeps a coherent unit price.
+      const key = rate
+        ? `${entry.memberId}:${rate.currency}:${rate.hourlyRate}`
+        : entry.memberId
+      if (!grouped.has(key)) {
+        grouped.set(key, { entries: [], rate })
+      }
+      grouped.get(key)!.entries.push(entry)
     }
 
-    const newItems: {
-      description: string
-      quantity: string
-      unitPrice: string
-      amount: string
-    }[] = []
+    const newItems: InvoiceFormValues['items'] = []
     const entryIds: string[] = []
 
-    for (const [memberId, memberEntries] of grouped) {
-      const rate = rateMap.get(memberId)
+    for (const { entries: memberEntries, rate } of grouped.values()) {
       const totalMinutes = memberEntries.reduce(
         (s, e) => s + e.durationMinutes,
         0
       )
-      const hours = totalMinutes / 60
-      const memberName = memberEntries.at(0)?.memberName ?? 'Team member'
-      const unitPrice = rate ? (rate.hourlyRate / 100).toFixed(2) : '0'
-      const amount = rate ? ((hours * rate.hourlyRate) / 100).toFixed(2) : '0'
+      const firstEntry = memberEntries.at(0)
+      const memberName = firstEntry?.memberName ?? 'Team member'
+      const { quantity, unitPrice, amount } = rate
+        ? timeEntryLineAmounts({
+            durationMinutes: totalMinutes,
+            hourlyRateCents: rate.hourlyRate,
+            unit: defaultTimeUnit,
+          })
+        : {
+            quantity:
+              defaultTimeUnit === 'minutes'
+                ? String(totalMinutes)
+                : (totalMinutes / 60).toFixed(2),
+            unitPrice: '0',
+            amount: '0',
+          }
 
       newItems.push({
-        description: `${memberName} — ${hours.toFixed(1)}h`,
-        quantity: hours.toFixed(2),
+        description: `${memberName} — ${formatDurationInUnit(totalMinutes, defaultTimeUnit)}`,
+        quantity,
         unitPrice,
         amount,
+        source: firstEntry
+          ? {
+              kind: 'time',
+              memberId: firstEntry.memberId,
+              workDate: firstEntry.date,
+            }
+          : { kind: 'manual' },
+        sourceCurrency: rate?.originalCurrency,
+        rateUsed: rate?.rateUsed,
       })
 
       for (const e of memberEntries) {
@@ -278,7 +374,7 @@ export default function InvoiceEditor({
       setValue('items', newItems)
       setImportedEntryIds(entryIds)
     }
-  }, [autoImportTime, billableEntries, rateMap, setValue])
+  }, [autoImportTime, billableEntries, rateMap, setValue, defaultTimeUnit])
 
   const { execute: executeCreate, isPending: isCreating } = useAction(
     createInvoiceAction,
@@ -543,6 +639,24 @@ export default function InvoiceEditor({
               Send to Client
             </Button>
           )}
+          {isEditable && Object.keys(memberRateMap).length > 0 && (
+            <Button
+              onClick={() => setRateBreakdownOpen(true)}
+              variant='outline'
+            >
+              <Receipt className='size-4' />
+              Rate breakdown
+            </Button>
+          )}
+          {mode === 'edit' && capturedRates.length > 0 && (
+            <Button
+              onClick={() => setCapturedRatesOpen(true)}
+              variant='outline'
+            >
+              <Receipt className='size-4' />
+              Captured rates
+            </Button>
+          )}
           {isEditable && (
             <Button loading={isPending} onClick={handleSave}>
               <Save className='size-4' />
@@ -551,6 +665,20 @@ export default function InvoiceEditor({
           )}
         </div>
       </div>
+
+      <RateBreakdownDialog
+        billableEntries={billableEntries}
+        memberRateMap={memberRateMap}
+        onOpenChange={setRateBreakdownOpen}
+        open={rateBreakdownOpen}
+        recipientType={recipientType}
+      />
+
+      <CapturedRatesDialog
+        onOpenChange={setCapturedRatesOpen}
+        open={capturedRatesOpen}
+        rates={capturedRates}
+      />
 
       {timesheetWarning && (
         <div className='mb-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm dark:border-amber-900 dark:bg-amber-950/50'>
@@ -631,9 +759,20 @@ export default function InvoiceEditor({
                   name='currency'
                   render={({ field }) => (
                     <CurrencySelect
-                      disabled={!isEditable}
+                      disabled={!isEditable || currencyLocked}
                       name='currency'
-                      onCurrencySelect={(c) => field.onChange(c.code)}
+                      onCurrencySelect={(c) => {
+                        field.onChange(c.code)
+                        const search = new URLSearchParams(
+                          window.location.search
+                        )
+                        search.set('currency', c.code)
+                        router.replace(
+                          `${pathname}?${search.toString()}` as Parameters<
+                            typeof router.replace
+                          >[0]
+                        )
+                      }}
                       value={field.value}
                     />
                   )}
@@ -648,7 +787,7 @@ export default function InvoiceEditor({
                     <DatePicker
                       disablePastDates={false}
                       onChange={field.onChange}
-                      value={field.value ? new Date(field.value) : undefined}
+                      value={toPickerDate(field.value)}
                     />
                   )}
                 />
@@ -662,7 +801,7 @@ export default function InvoiceEditor({
                     <DatePicker
                       disablePastDates={false}
                       onChange={field.onChange}
-                      value={field.value ? new Date(field.value) : undefined}
+                      value={toPickerDate(field.value)}
                     />
                   )}
                 />
@@ -754,7 +893,7 @@ export default function InvoiceEditor({
                   />
                 </div>
               </div>
-              <div className='grid gap-3 sm:grid-cols-2'>
+              <div className='space-y-4'>
                 <div className='space-y-2'>
                   <Label className='text-muted-foreground text-xs'>
                     Company Name
@@ -765,6 +904,7 @@ export default function InvoiceEditor({
                     render={({ field }) => (
                       <Input
                         {...field}
+                        maxLength={200}
                         placeholder={orgName}
                         readOnly={!isEditable}
                       />
@@ -779,10 +919,12 @@ export default function InvoiceEditor({
                     control={control}
                     name='senderAddress'
                     render={({ field }) => (
-                      <Input
+                      <Textarea
                         {...field}
+                        maxLength={1000}
                         placeholder='Company address'
                         readOnly={!isEditable}
+                        rows={3}
                       />
                     )}
                   />
@@ -815,7 +957,7 @@ export default function InvoiceEditor({
               </span>
             </header>
             <div className='space-y-4 p-4'>
-              <div className='grid gap-3 sm:grid-cols-2'>
+              <div className='space-y-4'>
                 <div className='space-y-2'>
                   <Label className='text-muted-foreground text-xs'>
                     Client Name
@@ -844,7 +986,7 @@ export default function InvoiceEditor({
                     control={control}
                     name='clientAddress'
                     render={({ field }) => (
-                      <Input
+                      <Textarea
                         {...field}
                         placeholder={
                           recipientType === 'client'
@@ -852,6 +994,7 @@ export default function InvoiceEditor({
                             : 'Member address'
                         }
                         readOnly={!isEditable}
+                        rows={3}
                       />
                     )}
                   />
@@ -890,6 +1033,7 @@ export default function InvoiceEditor({
                         quantity: '1',
                         unitPrice: '0',
                         amount: '0',
+                        source: { kind: 'manual' },
                       })
                     }
                     variant='outline'
@@ -917,20 +1061,12 @@ export default function InvoiceEditor({
                   key={field.id}
                   onRemove={() => {
                     const removedItem = getValues('items')[index]
-                    if (removedItem?.description.startsWith('Expense: ')) {
-                      const expTitle = removedItem.description.slice(
-                        'Expense: '.length
+                    if (removedItem?.source?.kind === 'expense') {
+                      const expenseId = removedItem.source.expenseId
+                      setValue(
+                        'expenseIds',
+                        getValues('expenseIds').filter((id) => id !== expenseId)
                       )
-                      const matchedExp = unpaidExpenses.find(
-                        (e) => e.title === expTitle
-                      )
-                      if (matchedExp) {
-                        const currentExpIds = getValues('expenseIds')
-                        setValue(
-                          'expenseIds',
-                          currentExpIds.filter((id) => id !== matchedExp.id)
-                        )
-                      }
                     }
                     removeItem(index)
                   }}
@@ -1039,13 +1175,20 @@ export default function InvoiceEditor({
                     {unpaidExpenses.map((exp) => {
                       const isSelected = field.value.includes(exp.id)
                       const formattedAmount = (exp.amountCents / 100).toFixed(2)
-                      const formattedDate = new Date(
-                        exp.date
-                      ).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })
+                      const convertedFormatted = (
+                        exp.convertedAmountCents / 100
+                      ).toFixed(2)
+                      const wasConverted =
+                        exp.currency.toUpperCase() !==
+                        getValues('currency').toUpperCase()
+                      const parsedExpenseDate = parseDateOnlyAsLocal(exp.date)
+                      const formattedDate = parsedExpenseDate
+                        ? parsedExpenseDate.toLocaleDateString(undefined, {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                          })
+                        : exp.date
                       return (
                         <button
                           className={`flex w-full cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors ${
@@ -1060,21 +1203,27 @@ export default function InvoiceEditor({
                               field.onChange(
                                 field.value.filter((id) => id !== exp.id)
                               )
-                              const items = getValues('items')
-                              const expDesc = `Expense: ${exp.title}`
-                              const itemIndex = items.findIndex(
-                                (item) => item.description === expDesc
+                              const itemIndex = getValues('items').findIndex(
+                                (item) =>
+                                  item.source?.kind === 'expense' &&
+                                  item.source.expenseId === exp.id
                               )
                               if (itemIndex !== -1) {
                                 removeItem(itemIndex)
                               }
                             } else {
                               field.onChange([...field.value, exp.id])
+                              const description = wasConverted
+                                ? `Expense: ${exp.title} (originally ${exp.currency} ${formattedAmount})`
+                                : `Expense: ${exp.title}`
                               appendItem({
-                                description: `Expense: ${exp.title}`,
+                                description,
                                 quantity: '1',
-                                unitPrice: formattedAmount,
-                                amount: formattedAmount,
+                                unitPrice: convertedFormatted,
+                                amount: convertedFormatted,
+                                source: { kind: 'expense', expenseId: exp.id },
+                                sourceCurrency: exp.currency,
+                                rateUsed: exp.rateUsed,
                               })
                             }
                           }}
@@ -1091,14 +1240,33 @@ export default function InvoiceEditor({
                               {exp.title}
                             </p>
                             <p className='text-muted-foreground text-xs'>
-                              {formattedDate}
+                              {formattedDate} {exp.recurring ? '• ' : null}
+                              {exp.recurring && (
+                                <Badge
+                                  className='mr-1.5 px-1.5 py-0 font-normal text-[10px]'
+                                  variant='outline'
+                                >
+                                  Recurring
+                                </Badge>
+                              )}
                             </p>
                           </div>
                           <Badge
                             className='shrink-0 font-mono'
                             variant='secondary'
                           >
-                            {exp.currency} {formattedAmount}
+                            {wasConverted ? (
+                              <>
+                                {getValues('currency')} {convertedFormatted}
+                                <span className='ml-1 text-muted-foreground'>
+                                  ({exp.currency} {formattedAmount})
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                {exp.currency} {formattedAmount}
+                              </>
+                            )}
                           </Badge>
                         </button>
                       )
@@ -1199,6 +1367,7 @@ export default function InvoiceEditor({
 
       <ImportTimeEntriesDialog
         billableEntries={unbilledTimeEntries}
+        defaultUnit={defaultTimeUnit}
         onImport={(items, entryIds) => {
           for (const item of items) {
             appendItem(item)

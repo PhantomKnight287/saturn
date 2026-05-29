@@ -1,6 +1,10 @@
+import { and, asc, eq, isNull } from 'drizzle-orm'
 import type { Metadata } from 'next'
 import { projectsService } from '@/app/api/projects/service'
+import type { CustomFieldDefinition } from '@/lib/custom-fields'
 import { createMetadata } from '@/lib/metadata'
+import { db } from '@/server/db'
+import { customFields } from '@/server/db/schema'
 import { requirePermission, resolveOrgContext } from '../cache'
 import { SettingsPageClient } from './page.client'
 
@@ -31,14 +35,33 @@ export default async function SettingsPage({
 
   const settings = await projectsService.getSettings(organization.id)
 
+  const orgCustomFields: CustomFieldDefinition[] = await db
+    .select()
+    .from(customFields)
+    .where(
+      and(
+        eq(customFields.organizationId, organization.id),
+        isNull(customFields.projectId)
+      )
+    )
+    .orderBy(asc(customFields.createdAt))
+
   return (
     <SettingsPageClient
       canDelete={canDelete}
       clientInvolvement={settings.clientInvolvement}
-      defaultCurrency={settings.currency}
-      defaultMemberRate={settings.memberRate}
+      customFields={orgCustomFields}
+      defaultBillingCurrency={settings.billingCurrency}
+      defaultBillingFrequency={settings.billingFrequency}
+      defaultBillingRate={settings.billingRate}
+      defaultPayCurrency={settings.payCurrency}
+      defaultPayFrequency={settings.payFrequency}
+      defaultPayRate={settings.payRate}
       defaultTimesheetDuration={settings.timesheetDuration}
+      invoiceFromAddress={settings.invoiceFromAddress}
+      invoiceFromName={settings.invoiceFromName}
       invoiceNumberTemplate={settings.invoiceNumberTemplate}
+      invoiceTimeUnit={settings.invoiceTimeUnit}
       organization={organization}
       orgSlug={org}
     />

@@ -14,7 +14,7 @@ import { formatCurrency, sumByCurrency } from './format-currency'
 
 interface Invoice {
   currency: string
-  dueDate: Date | null
+  dueDate: string | null
   status: string
   totalAmount: string
 }
@@ -45,7 +45,8 @@ export function FinancialOverviewCard({
 }: FinancialOverviewCardProps) {
   const paid = invoices.filter((i) => i.status === 'paid')
   const sent = invoices.filter((i) => i.status === 'sent')
-  const overdue = sent.filter((i) => i.dueDate && i.dueDate < new Date())
+  const today = new Date().toLocaleDateString('en-CA')
+  const overdue = sent.filter((i) => i.dueDate && i.dueDate < today)
   const draft = invoices.filter((i) => i.status === 'draft')
 
   const paidTotals = sumByCurrency(paid, (i) => Number(i.totalAmount))

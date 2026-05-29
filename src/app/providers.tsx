@@ -8,6 +8,7 @@ import { ThemeProvider } from 'next-themes'
 import type { ReactNode } from 'react'
 import { Toaster } from 'sonner'
 import { TailwindIndicator } from '@/components/tailwind-indicator'
+import { TimezoneSync } from '@/components/timezone-sync'
 import { SidebarProvider } from '@/components/ui/sidebar'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { authClient } from '@/lib/auth-client'
@@ -29,7 +30,7 @@ export function Providers({ children }: { children: ReactNode }) {
               prefix: 'saturn_',
             }}
             authClient={authClient}
-            //@ts-expect-error
+            //@ts-expect-error - This is required to pass CI. if you get error in development, ignore that
             Link={Link}
             localization={{
               EMAIL_NOT_VERIFIED:
@@ -62,6 +63,7 @@ export function Providers({ children }: { children: ReactNode }) {
               stopDelay={1000}
             >
               {children}
+              <TimezoneSync />
               <Toaster position='top-center' />
               <TailwindIndicator />
             </ProgressProvider>

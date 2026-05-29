@@ -9,11 +9,13 @@ import InvoicePaidEmail from '@/emails/templates/invoice-paid'
 import InvoiceSentEmail from '@/emails/templates/invoice-sent'
 import InvoiceUnpaidEmail from '@/emails/templates/invoice-unpaid'
 import ThreadNewMessageEmail from '@/emails/templates/thread-new-message'
+import { formatLocalDateOnly } from '@/lib/custom-fields'
 import { getAdminsAndOwners, sendEmailsToRecipients } from '@/lib/notifications'
 import { authedActionClient } from '@/lib/safe-action'
 import { db } from '@/server/db'
 import {
   expenses,
+  invoiceExpenses,
   invoiceItems,
   invoiceRecipients,
   invoiceRequirements,
@@ -23,6 +25,7 @@ import {
   threads,
   users,
 } from '@/server/db/schema'
+import { currencyConversionService } from '@/services/currency-conversion.service'
 import {
   changeInvoiceStatusSchema,
   createInvoiceSchema,
@@ -34,6 +37,30 @@ import {
   sendInvoiceSchema,
   updateInvoiceSchema,
 } from './common'
+
+// Items track the rate that was applied at conversion time. Collapse the
+// list down to one entry per source currency. A given source currency must
+// have a single consistent rate within an invoice — diverging rates would
+// silently break audit integrity, so fail fast. Items without a rate
+// (`manual` lines, or pre-metadata legacy items) contribute nothing.
+function collectRatesFromItems(
+  items: { sourceCurrency?: string; rateUsed?: number }[]
+): Map<string, number> {
+  const rates = new Map<string, number>()
+  for (const item of items) {
+    if (!(item.sourceCurrency && item.rateUsed)) {
+      continue
+    }
+    const existing = rates.get(item.sourceCurrency)
+    if (existing !== undefined && existing !== item.rateUsed) {
+      throw new Error(
+        `Inconsistent conversion rates for ${item.sourceCurrency}: ${existing} vs ${item.rateUsed}`
+      )
+    }
+    rates.set(item.sourceCurrency, item.rateUsed)
+  }
+  return rates
+}
 
 export const createInvoiceAction = authedActionClient
   .inputSchema(createInvoiceSchema)
@@ -104,6 +131,21 @@ export const createInvoiceAction = authedActionClient
         }
       }
 
+      if (expenseIds?.length) {
+        const validExpenses = await db
+          .select({ id: expenses.id })
+          .from(expenses)
+          .where(
+            and(
+              inArray(expenses.id, expenseIds),
+              eq(expenses.projectId, projectId)
+            )
+          )
+        if (validExpenses.length !== expenseIds.length) {
+          throw new Error('One or more expenses are invalid for this project')
+        }
+      }
+
       const totalAmount = items
         .reduce((sum, item) => sum + Number(item.amount), 0)
         .toFixed(4)
@@ -125,8 +167,8 @@ export const createInvoiceAction = authedActionClient
           .values({
             projectId,
             invoiceNumber,
-            issueDate: new Date(issueDate),
-            dueDate: dueDate ? new Date(dueDate) : null,
+            issueDate: formatLocalDateOnly(issueDate),
+            dueDate: dueDate ? formatLocalDateOnly(dueDate) : null,
             notes: notes || null,
             currency,
             totalAmount,
@@ -185,10 +227,28 @@ export const createInvoiceAction = authedActionClient
         // Link expenses
         if (expenseIds?.length) {
           await tx
-            .update(expenses)
-            .set({ invoiceId: insertedInvoice!.id })
-            .where(inArray(expenses.id, expenseIds))
+            .insert(invoiceExpenses)
+            .values(
+              expenseIds.map((expenseId) => ({
+                invoiceId: insertedInvoice!.id,
+                expenseId,
+              }))
+            )
+            .onConflictDoNothing()
         }
+
+        // Snapshot the rates actually used to price the line items so any
+        // future dispute can be settled against the same numbers — even if
+        // live rates move. Source currency + rate are carried on each item
+        // by the editor (see invoiceItemSchema), so we don't have to
+        // re-derive them and risk capturing a different rate.
+        const ratesUsed = collectRatesFromItems(items)
+        await currencyConversionService.snapshotRates(
+          tx,
+          insertedInvoice!.id,
+          ratesUsed,
+          currency
+        )
 
         return insertedInvoice
       })
@@ -208,12 +268,14 @@ export const createInvoiceAction = authedActionClient
           const { projectName, projectSlug, orgSlug } =
             await projectsService.getProjectDetails(projectId)
 
-          const formatDateLong = (d: Date) =>
-            d.toLocaleDateString('en-US', {
+          const formatDateLong = (value: string) => {
+            const [y, m, d] = value.split('-').map(Number)
+            return new Date(y!, m! - 1, d!).toLocaleDateString(undefined, {
               month: 'long',
               day: 'numeric',
               year: 'numeric',
             })
+          }
 
           await sendEmailsToRecipients(
             recipients.map((r) => ({ email: r.userEmail, name: r.userName })),
@@ -344,6 +406,21 @@ export const updateInvoiceAction = authedActionClient
         }
       }
 
+      if (expenseIds?.length) {
+        const validExpenses = await db
+          .select({ id: expenses.id })
+          .from(expenses)
+          .where(
+            and(
+              inArray(expenses.id, expenseIds),
+              eq(expenses.projectId, existing.projectId)
+            )
+          )
+        if (validExpenses.length !== expenseIds.length) {
+          throw new Error('One or more expenses are invalid for this invoice')
+        }
+      }
+
       const totalAmount = items
         .reduce((sum, item) => sum + Number(item.amount), 0)
         .toFixed(4)
@@ -353,8 +430,8 @@ export const updateInvoiceAction = authedActionClient
             .update(invoices)
             .set({
               invoiceNumber,
-              issueDate: new Date(issueDate),
-              dueDate: dueDate ? new Date(dueDate) : null,
+              issueDate: formatLocalDateOnly(issueDate),
+              dueDate: dueDate ? formatLocalDateOnly(dueDate) : null,
               notes: notes || null,
               currency,
               totalAmount,
@@ -423,18 +500,26 @@ export const updateInvoiceAction = authedActionClient
               )
             }
           }
-          if (expenseIds?.length) {
-            // Replace linked expenses — clear old, set new
-            await tx
-              .update(expenses)
-              .set({ invoiceId: null })
-              .where(eq(expenses.invoiceId, invoiceId))
+          // Replace linked expenses for this invoice — clear old, set new
+          await tx
+            .delete(invoiceExpenses)
+            .where(eq(invoiceExpenses.invoiceId, invoiceId))
 
-            await tx
-              .update(expenses)
-              .set({ invoiceId: insertedInvoice!.id })
-              .where(inArray(expenses.id, expenseIds))
+          if (expenseIds?.length) {
+            await tx.insert(invoiceExpenses).values(
+              expenseIds.map((expenseId) => ({
+                invoiceId: insertedInvoice!.id,
+                expenseId,
+              }))
+            )
           }
+
+          await currencyConversionService.snapshotRates(
+            tx,
+            invoiceId,
+            collectRatesFromItems(items),
+            currency
+          )
         })
 
         return invoice
@@ -541,12 +626,14 @@ export const sendInvoiceAction = authedActionClient
       const { projectName, projectSlug, orgSlug } =
         await projectsService.getProjectDetails(invoice.projectId)
 
-      const formatDateLong = (d: Date) =>
-        d.toLocaleDateString('en-US', {
+      const formatDateLong = (value: string) => {
+        const [y, m, d] = value.split('-').map(Number)
+        return new Date(y!, m! - 1, d!).toLocaleDateString(undefined, {
           month: 'long',
           day: 'numeric',
           year: 'numeric',
         })
+      }
 
       // Send email to all recipients
       await sendEmailsToRecipients(
@@ -664,7 +751,7 @@ export const markInvoicePaidAction = authedActionClient
         'en-US',
         { minimumFractionDigits: 2 }
       )
-      const paidAt = new Date().toLocaleDateString('en-US', {
+      const paidAt = new Date().toLocaleDateString(undefined, {
         month: 'long',
         day: 'numeric',
         year: 'numeric',

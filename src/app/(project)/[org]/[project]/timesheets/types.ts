@@ -1,5 +1,6 @@
 import type { z } from 'zod'
 import type { timesheetService } from '@/app/api/timesheets/service'
+import type { CustomFieldDefinition } from '@/lib/custom-fields'
 import type {
   statusEnum,
   timeEntries,
@@ -83,6 +84,7 @@ export interface TimeTrackingPageProps {
   clientReports: ClientReportWithEntries[]
   clients: ProjectClient[]
   currentMemberId: string
+  customFields: CustomFieldDefinition[]
   defaultCurrency?: string
   entries: TimeEntry[]
   initialLogMinutes?: number

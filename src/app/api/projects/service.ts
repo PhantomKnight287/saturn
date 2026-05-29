@@ -12,6 +12,31 @@ import {
 
 export const PROJECTS_CACHE_TAG = 'projects'
 
+const SETTINGS_DEFAULTS = {
+  currency: 'USD' as const,
+  billingRate: null as number | null,
+  billingCurrency: 'USD' as const,
+  billingFrequency: 'hourly' as const,
+  payRate: 0,
+  payCurrency: 'USD' as const,
+  payFrequency: 'hourly' as const,
+  timesheetDuration: 'weekly' as const,
+  invoiceTimeUnit: 'hours' as const,
+  invoiceNumberTemplate: 'INV-%year(short)%month(num)-%seq(4)',
+  clientInvolvement: {
+    proposals: 'on',
+    requirements: 'on',
+    milestones: 'on',
+    timesheets: 'on',
+    expenses: 'on',
+    invoices: 'on',
+  } as const,
+  invoiceFromName: null as string | null,
+  invoiceFromAddress: null as string | null,
+  invoiceToName: null as string | null,
+  invoiceToAddress: null as string | null,
+}
+
 const listByOrganization = async (organizationId: string) =>
   await db
     .select()
@@ -115,20 +140,6 @@ const getById = async (projectId: string) => {
 
   return project ?? null
 }
-const SETTINGS_DEFAULTS = {
-  memberRate: 0,
-  currency: 'USD' as const,
-  timesheetDuration: 'weekly' as const,
-  invoiceNumberTemplate: 'INV-%year(short)%month(num)-%seq(4)',
-  clientInvolvement: {
-    proposals: 'on',
-    requirements: 'on',
-    milestones: 'on',
-    timesheets: 'on',
-    expenses: 'on',
-    invoices: 'on',
-  } as const,
-}
 
 /**
  * Resolves settings with fallback chain:
@@ -137,6 +148,16 @@ const SETTINGS_DEFAULTS = {
  *   3. Hard-coded defaults
  */
 const getSettings = async (organizationId: string, projectId?: string) => {
+  const [orgSettings] = await db
+    .select()
+    .from(settingsTable)
+    .where(
+      and(
+        eq(settingsTable.organizationId, organizationId),
+        isNull(settingsTable.projectId)
+      )
+    )
+
   if (projectId) {
     const [projectSettings] = await db
       .select()
@@ -149,19 +170,41 @@ const getSettings = async (organizationId: string, projectId?: string) => {
       )
 
     if (projectSettings) {
-      return projectSettings
+      const fallback = orgSettings ?? SETTINGS_DEFAULTS
+      // A project settings row may exist purely for an invoice-contact override.
+      // Treat an unset pay rate (0) / billing rate (null) as "no rate override"
+      // and inherit the org-level rate triple so the project row can't silently
+      // zero out the organization's configured rates.
+      const hasPayOverride = !!projectSettings.payRate
+      const hasBillingOverride = projectSettings.billingRate != null
+      return {
+        ...projectSettings,
+        invoiceFromName:
+          projectSettings.invoiceFromName || fallback.invoiceFromName,
+        invoiceFromAddress:
+          projectSettings.invoiceFromAddress || fallback.invoiceFromAddress,
+        invoiceToName: projectSettings.invoiceToName || fallback.invoiceToName,
+        invoiceToAddress:
+          projectSettings.invoiceToAddress || fallback.invoiceToAddress,
+        payRate: hasPayOverride ? projectSettings.payRate : fallback.payRate,
+        payCurrency: hasPayOverride
+          ? projectSettings.payCurrency
+          : fallback.payCurrency,
+        payFrequency: hasPayOverride
+          ? projectSettings.payFrequency
+          : fallback.payFrequency,
+        billingRate: hasBillingOverride
+          ? projectSettings.billingRate
+          : fallback.billingRate,
+        billingCurrency: hasBillingOverride
+          ? projectSettings.billingCurrency
+          : fallback.billingCurrency,
+        billingFrequency: hasBillingOverride
+          ? projectSettings.billingFrequency
+          : fallback.billingFrequency,
+      }
     }
   }
-
-  const [orgSettings] = await db
-    .select()
-    .from(settingsTable)
-    .where(
-      and(
-        eq(settingsTable.organizationId, organizationId),
-        isNull(settingsTable.projectId)
-      )
-    )
 
   return orgSettings ?? SETTINGS_DEFAULTS
 }

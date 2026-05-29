@@ -1,5 +1,6 @@
 import { createId } from '@paralleldrive/cuid2'
 import {
+  date,
   index,
   integer,
   jsonb,
@@ -39,8 +40,8 @@ export const invoices = pgTable(
       .notNull(),
     invoiceNumber: text('invoice_number').notNull(),
     status: invoiceStatusEnum('status').default('draft').notNull(),
-    issueDate: timestamp('issue_date').defaultNow().notNull(),
-    dueDate: timestamp('due_date'),
+    issueDate: date('issue_date', { mode: 'string' }).notNull(),
+    dueDate: date('due_date', { mode: 'string' }),
     notes: text('notes'),
     totalAmount: numeric('total_amount', { precision: 16, scale: 4 })
       .default('0')
@@ -122,6 +123,26 @@ export const invoiceItems = pgTable('invoice_items', {
     .$onUpdate(() => new Date())
     .notNull(),
 })
+
+// Snapshot of every FX rate used at the moment an invoice was created, so a
+// later dispute can be settled against the same numbers — even if live rates
+// have moved or the conversion provider is unreachable.
+export const invoiceConversionRates = pgTable(
+  'invoice_conversion_rates',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => `icr_${createId()}`),
+    invoiceId: text('invoice_id')
+      .references(() => invoices.id, { onDelete: 'cascade' })
+      .notNull(),
+    fromCurrency: text('from_currency').notNull(),
+    toCurrency: text('to_currency').notNull(),
+    rate: numeric('rate', { precision: 24, scale: 12 }).notNull(),
+    capturedAt: timestamp('captured_at').defaultNow().notNull(),
+  },
+  (t) => [unique().on(t.invoiceId, t.fromCurrency, t.toCurrency)]
+)
 
 export const invoiceRequirements = pgTable('invoice_requirements', {
   id: text('id')

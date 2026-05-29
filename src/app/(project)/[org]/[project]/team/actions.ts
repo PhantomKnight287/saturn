@@ -9,6 +9,7 @@ import { projectsService } from '@/app/api/projects/service'
 import TeamAssignedToProjectEmail from '@/emails/templates/team-assigned-to-project'
 import { sendEmailsToRecipients } from '@/lib/notifications'
 import { authedActionClient } from '@/lib/safe-action'
+import { todayDateOnly } from '@/lib/utils'
 import { auth } from '@/server/auth'
 import { db } from '@/server/db'
 import { settings as settingsTable } from '@/server/db/schema'
@@ -279,8 +280,12 @@ export const addExistingMemberToProjectAction = authedActionClient
         projectId,
         organizationId,
         type,
-        hourlyRate,
-        currency,
+        payRate,
+        payCurrency,
+        payFrequency,
+        billingRate,
+        billingCurrency,
+        billingFrequency,
         setAsOrgDefault,
       },
       ctx: { role, user, orgMember },
@@ -336,35 +341,43 @@ export const addExistingMemberToProjectAction = authedActionClient
           .onConflictDoNothing()
       }
 
-      // Set member rate if provided
-      if (hourlyRate !== undefined && currency && type !== 'client') {
+      // Set member rate if provided. Billing columns fall back to pay values.
+      if (payRate !== undefined && payCurrency && type !== 'client') {
         await db
           .insert(memberRates)
           .values({
             memberId: member.id,
-            hourlyRate,
-            currency,
-            effectiveFrom: new Date(),
+            payRate,
+            payCurrency,
+            payFrequency: payFrequency ?? 'hourly',
+            billingRate: billingRate ?? payRate,
+            billingCurrency: billingCurrency ?? payCurrency,
+            billingFrequency: billingFrequency ?? payFrequency ?? 'hourly',
+            effectiveFrom: todayDateOnly(),
           })
           .onConflictDoNothing()
       }
 
       // Update workspace wide defaults if checkbox was checked
-      if (setAsOrgDefault && hourlyRate !== undefined && currency) {
+      if (setAsOrgDefault && payRate !== undefined && payCurrency) {
+        const defaults = {
+          payRate,
+          payCurrency,
+          payFrequency: payFrequency ?? 'hourly',
+          billingRate: billingRate ?? payRate,
+          billingCurrency: billingCurrency ?? payCurrency,
+          billingFrequency: billingFrequency ?? payFrequency ?? 'hourly',
+        }
         await db
           .insert(settingsTable)
           .values({
             organizationId,
-            memberRate: hourlyRate,
-            currency,
+            ...defaults,
           })
           .onConflictDoUpdate({
             target: [settingsTable.organizationId],
             targetWhere: sql`${settingsTable.projectId} IS NULL`,
-            set: {
-              memberRate: hourlyRate,
-              currency,
-            },
+            set: defaults,
           })
       }
 

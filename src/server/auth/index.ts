@@ -17,6 +17,7 @@ import InvitationEmail from '@/emails/templates/invitation'
 import VerifyEmail from '@/emails/templates/verify-email'
 import { env } from '@/env'
 import { polarClient } from '@/lib/polar'
+import { todayDateOnly } from '@/lib/utils'
 import { FREE_PLAN_LIMITS } from '@/limits'
 import { db } from '@/server/db'
 import * as schema from '@/server/db/schema'
@@ -41,6 +42,17 @@ export const auth = betterAuth({
     usePlural: true,
     schema,
   }),
+  user: {
+    additionalFields: {
+      timezone: {
+        type: 'string',
+        required: false,
+        // Written only through the IANA-validated updateTimezoneAction, never
+        // accepted as untrusted sign-up input.
+        input: false,
+      },
+    },
+  },
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,
@@ -67,7 +79,7 @@ export const auth = betterAuth({
     async sendVerificationEmail({ user, url }) {
       const verifyUrl = new URL(url)
       verifyUrl.searchParams.set(
-        'callbackURL',
+        'redirectTo',
         `${env.NEXT_PUBLIC_BASE_URL}/dashboard`
       )
       const html = await render(
@@ -150,15 +162,23 @@ export const auth = betterAuth({
             .where(eq(pendingMemberRates.invitationId, invitation.id))
 
           if (pendingRate) {
-            await db.insert(memberRates).values({
-              effectiveFrom: new Date(),
-              hourlyRate: pendingRate.hourlyRate,
-              memberId: member.id,
-              currency: pendingRate.currency,
+            // Insert + delete are one state transition — keep them atomic so a
+            // failure can't leave a stale pending row or duplicate the rate.
+            await db.transaction(async (tx) => {
+              await tx.insert(memberRates).values({
+                effectiveFrom: todayDateOnly(),
+                memberId: member.id,
+                payRate: pendingRate.payRate,
+                billingCurrency: pendingRate.billingCurrency,
+                billingFrequency: pendingRate.billingFrequency,
+                billingRate: pendingRate.billingRate,
+                payCurrency: pendingRate.payCurrency,
+                payFrequency: pendingRate.payFrequency,
+              })
+              await tx
+                .delete(pendingMemberRates)
+                .where(eq(pendingMemberRates.id, pendingRate.id))
             })
-            await db
-              .delete(pendingMemberRates)
-              .where(eq(pendingMemberRates.id, pendingRate.id))
             return
           }
 
@@ -172,14 +192,18 @@ export const auth = betterAuth({
                 isNull(settings.projectId)
               )
             )
-          if (!setting) {
+          if (!setting?.payRate) {
             return
           }
           await db.insert(memberRates).values({
-            effectiveFrom: new Date(),
-            hourlyRate: setting.memberRate,
+            effectiveFrom: todayDateOnly(),
             memberId: member.id,
-            currency: setting.currency,
+            payRate: setting.payRate,
+            billingCurrency: setting.billingCurrency,
+            billingFrequency: setting.billingFrequency,
+            billingRate: setting.billingRate,
+            payCurrency: setting.payCurrency,
+            payFrequency: setting.payFrequency,
           })
         },
         async afterCreateOrganization({ organization }) {

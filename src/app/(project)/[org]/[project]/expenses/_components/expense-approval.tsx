@@ -143,12 +143,13 @@ export function ExpenseApproval({ expenses }: ExpenseApprovalProps) {
           </Button>
           <Button
             disabled={selectedIds.size === 0 || approveAction.isPending}
+            loading={approveAction.isPending}
             onClick={() =>
               approveAction.execute({ expenseIds: Array.from(selectedIds) })
             }
           >
             <CheckCircle2 className='size-4' />
-            {approveAction.isPending ? 'Approving...' : 'Approve'}
+            Approve
           </Button>
         </div>
       </div>
@@ -224,7 +225,7 @@ export function ExpenseApproval({ expenses }: ExpenseApprovalProps) {
                       )}
                       <p className='text-muted-foreground text-xs'>
                         {expense.categoryName ?? 'Uncategorized'} ·{' '}
-                        {new Date(expense.date).toLocaleDateString('en-US', {
+                        {new Date(expense.date).toLocaleDateString(undefined, {
                           weekday: 'short',
                           month: 'short',
                           day: 'numeric',

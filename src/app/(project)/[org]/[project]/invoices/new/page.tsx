@@ -10,9 +10,11 @@ import { teamService } from '@/app/api/teams/service'
 import { timesheetService } from '@/app/api/timesheets/service'
 import { usersService } from '@/app/api/users/service'
 import { createMetadata } from '@/lib/metadata'
+import { currencyConversionService } from '@/services/currency-conversion.service'
 import { InvoiceNumberGeneratorEngine } from '@/services/invoice-number.service'
 import type { Role } from '@/types'
 import InvoiceEditor from '../_components/invoice-editor'
+import { buildMemberRateMap } from '../_lib/build-rate-map'
 import type { CustomField, ExtendInvoiceData } from '../types'
 
 export const metadata: Metadata = createMetadata({
@@ -34,10 +36,11 @@ export default async function NewInvoice({
     extend?: string
     fromTimesheet?: string
     memberId?: string
+    currency?: string
   }>
 }) {
   const { org, project: projectSlug } = await params
-  const { extend, fromTimesheet, memberId } = await searchParams
+  const { extend, fromTimesheet, memberId, currency } = await searchParams
   const {
     organization,
     project: currentProject,
@@ -121,26 +124,6 @@ export default async function NewInvoice({
     ? allBillableEntries.filter((e) => e.memberId === memberId)
     : allBillableEntries
 
-  const memberRateMap: Record<
-    string,
-    { hourlyRate: number; currency: string }
-  > = {}
-  for (const entry of [...billableEntries, ...filteredAllBillableEntries]) {
-    if (!memberRateMap[entry.memberId]) {
-      const rate = await timesheetService.getMemberRate(
-        entry.memberId,
-        currentProject.id,
-        new Date().toISOString()
-      )
-      if (rate) {
-        memberRateMap[entry.memberId] = {
-          hourlyRate: rate.hourlyRate,
-          currency: rate.currency,
-        }
-      }
-    }
-  }
-
   let extendData: ExtendInvoiceData | undefined
   if (extend && typeof extend === 'string') {
     const [sourceInvoice, sourceItems, sourceRecipients] = await Promise.all([
@@ -186,16 +169,58 @@ export default async function NewInvoice({
       }
     }
   }
+
+  const memberPayCurrency = memberId
+    ? (
+        await timesheetService.getMemberRate(
+          memberId,
+          currentProject.id,
+          new Date().toISOString()
+        )
+      )?.payCurrency
+    : undefined
+
+  const baseCurrency =
+    currency ??
+    memberPayCurrency ??
+    extendData?.currency ??
+    projectOrOrgSettings?.currency ??
+    'USD'
+
+  const memberRateMap = await buildMemberRateMap({
+    billableEntries: [...billableEntries, ...filteredAllBillableEntries],
+    projectId: currentProject.id,
+    isMemberInvoice: !!memberId,
+    baseCurrency,
+  })
+
+  const convertedUnpaidExpenses = await Promise.all(
+    unpaidExpenses.map(async (exp) => {
+      const { amount, rate } = await currencyConversionService.convertCents(
+        exp.amountCents,
+        exp.currency,
+        baseCurrency
+      )
+      return { ...exp, convertedAmountCents: amount, rateUsed: rate }
+    })
+  )
+
   return (
     <InvoiceEditor
       autoImportTime={!!fromTimesheet}
       billableEntries={billableEntries}
       clients={clients}
-      defaultCurrency={projectOrOrgSettings?.currency}
+      defaultClientAddress={projectOrOrgSettings?.invoiceToAddress}
+      defaultClientName={projectOrOrgSettings?.invoiceToName}
+      defaultCurrency={baseCurrency}
+      defaultSenderAddress={projectOrOrgSettings?.invoiceFromAddress}
+      defaultSenderName={projectOrOrgSettings?.invoiceFromName}
+      defaultTimeUnit={projectOrOrgSettings?.invoiceTimeUnit}
       extendData={extendData}
       isClientInvolved={
         projectOrOrgSettings.clientInvolvement.invoices === 'on'
       }
+      key={baseCurrency}
       mediaItems={usersMedia}
       member={
         member?.users && member?.members
@@ -219,7 +244,7 @@ export default async function NewInvoice({
       suggestedInvoiceNumber={suggestedInvoiceNumber}
       timesheetWarning={timesheetWarning}
       unbilledTimeEntries={filteredAllBillableEntries}
-      unpaidExpenses={unpaidExpenses}
+      unpaidExpenses={convertedUnpaidExpenses}
     />
   )
 }

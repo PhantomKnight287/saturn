@@ -61,7 +61,7 @@ export function ProjectsClient({
       <div className='mb-6 flex items-center justify-between'>
         <h1 className='font-semibold text-2xl'>Projects</h1>
         {canCreate && projects.length > 0 && (
-          <Button onClick={() => setDialogOpen(true)}>
+          <Button kbd='c' onClick={() => setDialogOpen(true)}>
             <Plus className='h-4 w-4' />
             New Project
           </Button>
@@ -80,7 +80,9 @@ export function ProjectsClient({
             </EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
-            <Button onClick={() => setDialogOpen(true)}>Create Project</Button>
+            <Button kbd='c' onClick={() => setDialogOpen(true)}>
+              Create Project
+            </Button>
           </EmptyContent>
         </Empty>
       ) : (

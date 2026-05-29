@@ -218,6 +218,146 @@
       "when": 1778568354660,
       "tag": "0030_material_gwen_stacy",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1779081674988,
+      "tag": "0031_swift_spyke",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1779083461180,
+      "tag": "0032_past_morg",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1779099946333,
+      "tag": "0033_curly_post",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1779202072318,
+      "tag": "0034_perfect_risque",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1779290358077,
+      "tag": "0035_clever_pet_avengers",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1779360076224,
+      "tag": "0036_warm_firedrake",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1779374566412,
+      "tag": "0037_lush_cannonball",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1779602100000,
+      "tag": "0038_even_domino",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1779602200000,
+      "tag": "0039_outstanding_robin_chapel",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1779602231416,
+      "tag": "0040_tidy_risque",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1779602397211,
+      "tag": "0041_naive_rockslide",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1779603578736,
+      "tag": "0042_unique_zemo",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1779603865121,
+      "tag": "0043_foamy_pet_avengers",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1779783155913,
+      "tag": "0044_outgoing_queen_noir",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1779861680250,
+      "tag": "0045_curvy_natasha_romanoff",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1779861988930,
+      "tag": "0046_greedy_changeling",
+      "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1779863270364,
+      "tag": "0047_unknown_jasper_sitwell",
+      "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1779863851611,
+      "tag": "0048_charming_puppet_master",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1779869675638,
+      "tag": "0049_abandoned_shadow_king",
+      "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1779960584001,
+      "tag": "0050_salty_scalphunter",
+      "breakpoints": true
     }
   ]
 }

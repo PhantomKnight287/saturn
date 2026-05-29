@@ -11,9 +11,11 @@ import { threadService } from '@/app/api/threads/service'
 import { timesheetService } from '@/app/api/timesheets/service'
 import { usersService } from '@/app/api/users/service'
 import { createMetadata } from '@/lib/metadata'
+import { currencyConversionService } from '@/services/currency-conversion.service'
 import type { Role } from '@/types'
 import { InvoiceClientView } from '../_components/invoice-client-view'
 import InvoiceEditor from '../_components/invoice-editor'
+import { buildMemberRateMap } from '../_lib/build-rate-map'
 
 export const metadata: Metadata = createMetadata({
   title: 'Invoice',
@@ -28,6 +30,7 @@ export const metadata: Metadata = createMetadata({
 
 export default async function InvoiceDetail({
   params,
+  searchParams,
 }: PageProps<'/[org]/[project]/invoices/[invoiceId]'>) {
   const { org, project: projectSlug, invoiceId } = await params
   const {
@@ -42,7 +45,8 @@ export default async function InvoiceDetail({
       `/error/403?message=${encodeURIComponent('You do not have permission to view invoices')}`
     )
   }
-
+  const { currency } = await searchParams
+  const currencyParam = Array.isArray(currency) ? currency[0] : currency
   const invoice = await invoicesService.getById({
     invoiceId,
     projectId: currentProject.id,
@@ -56,13 +60,15 @@ export default async function InvoiceDetail({
 
   const isClient = orgMember.role === 'client'
 
-  const [items, linkedReqs, recipients, threads, settings] = await Promise.all([
-    invoicesService.getItems(invoiceId),
-    invoicesService.getLinkedRequirements(invoiceId),
-    invoicesService.getRecipients(invoiceId),
-    threadService.getThreads(currentProject.id, invoiceId),
-    projectsService.getSettings(organization.id, currentProject.id),
-  ])
+  const [items, linkedReqs, recipients, threads, settings, capturedRates] =
+    await Promise.all([
+      invoicesService.getItems(invoiceId),
+      invoicesService.getLinkedRequirements(invoiceId),
+      invoicesService.getRecipients(invoiceId),
+      threadService.getThreads(currentProject.id, invoiceId),
+      projectsService.getSettings(organization.id, currentProject.id),
+      invoicesService.getConversionRates(invoiceId),
+    ])
 
   const isRecipient = recipients.some((r) => r.memberId === orgMember.id)
   const isMemberInvoice = invoice.recipient === 'member'
@@ -102,45 +108,62 @@ export default async function InvoiceDetail({
     )
   }
 
-  // Admin/owner/member gets the full editor
   const canEdit = role.authorize({ invoice: ['update'] }).success
   const canSend = role.authorize({ invoice: ['send'] }).success
   const canDelete = role.authorize({ invoice: ['delete'] }).success
 
   const h = await headers()
 
-  const [clients, requirementList, userMedia, billableEntries, unpaidExpenses] =
-    await Promise.all([
-      teamService.getProjectClients(currentProject.id),
-      requirementsService.listByProject(currentProject.id, h),
-      usersService.getMedias(orgMember.userId),
-      timesheetService.getBillableSummary(currentProject.id),
-      expensesServices.listUnpaidExpensesByProject(
-        organization.id,
-        currentProject.id,
-        orgMember.userId
-      ),
-    ])
+  const [
+    clients,
+    requirementList,
+    userMedia,
+    billableEntries,
+    unpaidExpenses,
+    linkedExpenses,
+  ] = await Promise.all([
+    teamService.getProjectClients(currentProject.id),
+    requirementsService.listByProject(currentProject.id, h),
+    usersService.getMedias(orgMember.userId),
+    timesheetService.getBillableSummary(currentProject.id),
+    expensesServices.listUnpaidExpensesByProject(
+      organization.id,
+      currentProject.id,
+      orgMember.userId
+    ),
+    expensesServices.listExpensesByInvoiceId(invoiceId),
+  ])
 
-  const memberRateMap: Record<
-    string,
-    { hourlyRate: number; currency: string }
-  > = {}
-  for (const entry of billableEntries) {
-    if (!memberRateMap[entry.memberId]) {
-      const rate = await timesheetService.getMemberRate(
-        entry.memberId,
-        currentProject.id,
-        new Date().toISOString()
+  // A saved invoice's currency is the source of truth — never let a query
+  // param override it, since line item unit prices are stored in that
+  // currency and switching would misprice them.
+  const hasSavedItems = items.length > 0
+  const baseCurrency = hasSavedItems
+    ? invoice.currency
+    : (currencyParam ?? invoice.currency)
+
+  const dedupedExpenses = [
+    ...new Map(
+      [...unpaidExpenses, ...linkedExpenses].map((e) => [e.id, e])
+    ).values(),
+  ]
+  const availableExpenses = await Promise.all(
+    dedupedExpenses.map(async (exp) => {
+      const { amount, rate } = await currencyConversionService.convertCents(
+        exp.amountCents,
+        exp.currency,
+        baseCurrency
       )
-      if (rate) {
-        memberRateMap[entry.memberId] = {
-          hourlyRate: rate.hourlyRate,
-          currency: rate.currency,
-        }
-      }
-    }
-  }
+      return { ...exp, convertedAmountCents: amount, rateUsed: rate }
+    })
+  )
+
+  const memberRateMap = await buildMemberRateMap({
+    billableEntries,
+    projectId: currentProject.id,
+    isMemberInvoice,
+    baseCurrency,
+  })
 
   return (
     <InvoiceEditor
@@ -151,7 +174,14 @@ export default async function InvoiceDetail({
       canMarkPaid={canMarkPaid}
       canResolveThread={canResolveThread}
       canSend={canSend}
+      capturedRates={capturedRates}
       clients={clients}
+      defaultClientAddress={settings.invoiceToAddress}
+      defaultClientName={settings.invoiceToName}
+      defaultCurrency={baseCurrency}
+      defaultSenderAddress={settings.invoiceFromAddress}
+      defaultSenderName={settings.invoiceFromName}
+      defaultTimeUnit={settings.invoiceTimeUnit}
       existingItems={items}
       existingRecipientIds={recipients.map((r) => r.memberId)}
       invoice={{
@@ -178,7 +208,7 @@ export default async function InvoiceDetail({
       role={orgMember.role as Role}
       threads={threads}
       unbilledTimeEntries={billableEntries}
-      unpaidExpenses={unpaidExpenses}
+      unpaidExpenses={availableExpenses}
     />
   )
 }

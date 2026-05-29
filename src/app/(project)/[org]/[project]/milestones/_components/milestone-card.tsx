@@ -1,4 +1,10 @@
-import { differenceInDays, format, formatDistanceToNow, isPast } from 'date-fns'
+import {
+  differenceInDays,
+  endOfDay,
+  format,
+  formatDistanceToNow,
+  isPast,
+} from 'date-fns'
 import {
   AlertOctagon,
   AlertTriangleIcon,
@@ -154,7 +160,9 @@ export function MilestoneCard({
 
         <div className='mt-3 flex items-center gap-3'>
           {milestone.dueDate && (
-            <DueDateBadge dueDate={new Date(milestone.dueDate)} />
+            <DueDateBadge
+              dueDate={endOfDay(new Date(`${milestone.dueDate}T00:00:00`))}
+            />
           )}
           {milestone.budgetAmountCents != null && (
             <span className='inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 font-medium text-muted-foreground text-xs'>

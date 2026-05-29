@@ -10,7 +10,7 @@ import ExpenseSentToClientEmail from '@/emails/templates/expense-sent-to-client'
 import ExpenseSubmittedEmail from '@/emails/templates/expense-submitted'
 import { getAdminsAndOwners, sendEmailsToRecipients } from '@/lib/notifications'
 import { authedActionClient } from '@/lib/safe-action'
-import { formatDate } from '@/lib/utils'
+import { formatDateOnly } from '@/lib/utils'
 import { db } from '@/server/db'
 import {
   expenseCategories,
@@ -82,6 +82,7 @@ export const createExpenseAction = authedActionClient
         categoryId,
         milestoneId,
         billable,
+        recurring,
         receiptMediaId,
         title,
       },
@@ -113,11 +114,12 @@ export const createExpenseAction = authedActionClient
           amountCents,
           categoryId,
           currency,
-          date: new Date(date),
+          date,
           memberId: orgMember.id,
           projectId,
           title,
           billable,
+          recurring,
           description,
           status: isAdmin
             ? clientOff
@@ -185,7 +187,7 @@ export const updateExpenseAction = authedActionClient
         setValues.currency = updates.currency
       }
       if (updates.date !== undefined) {
-        setValues.date = new Date(updates.date)
+        setValues.date = updates.date
       }
       if (updates.categoryId !== undefined) {
         setValues.categoryId = updates.categoryId
@@ -195,6 +197,9 @@ export const updateExpenseAction = authedActionClient
       }
       if (updates.billable !== undefined) {
         setValues.billable = updates.billable
+      }
+      if (updates.recurring !== undefined) {
+        setValues.recurring = updates.recurring
       }
       if (updates.description !== undefined) {
         setValues.description = updates.description
@@ -332,7 +337,7 @@ export const submitExpensesAction = authedActionClient
             title: desc,
             amount: formattedAmount,
             category,
-            expenseDate: formatDate(firstEntry!.date),
+            expenseDate: formatDateOnly(firstEntry!.date),
             billable: firstEntry!.billable,
             orgSlug: details.orgSlug ?? '',
             projectSlug: details.projectSlug,
@@ -434,7 +439,7 @@ export const approveExpensesAction = authedActionClient
                     : `${memberExpenses.length} expenses`,
                 amount: formattedAmount,
                 category,
-                expenseDate: formatDate(firstEntry!.date),
+                expenseDate: formatDateOnly(firstEntry!.date),
                 billable: firstEntry!.billable,
                 orgSlug: details.orgSlug ?? '',
                 projectSlug: details.projectSlug,
@@ -532,7 +537,7 @@ export const rejectExpensesAction = authedActionClient
                     : `${memberExpenses.length} expenses`,
                 amount: formattedAmount,
                 category,
-                expenseDate: formatDate(firstEntry!.date),
+                expenseDate: formatDateOnly(firstEntry!.date),
                 reason,
                 orgSlug: details.orgSlug ?? '',
                 projectSlug: details.projectSlug,
@@ -836,7 +841,7 @@ export const clientRespondExpensesAction = authedActionClient
               title: desc,
               amount: formattedAmount,
               category,
-              expenseDate: formatDate(firstEntry.date),
+              expenseDate: formatDateOnly(firstEntry.date),
               billable: firstEntry.billable,
               orgSlug: details.orgSlug ?? '',
               projectSlug: details.projectSlug,
@@ -858,7 +863,7 @@ export const clientRespondExpensesAction = authedActionClient
               title: desc,
               amount: formattedAmount,
               category,
-              expenseDate: formatDate(firstEntry.date),
+              expenseDate: formatDateOnly(firstEntry.date),
               reason: reason ?? '',
               orgSlug: details.orgSlug ?? '',
               projectSlug: details.projectSlug,

@@ -1,0 +1,1 @@
+ALTER TABLE "expenses" ADD COLUMN "recurring" boolean DEFAULT false NOT NULL;

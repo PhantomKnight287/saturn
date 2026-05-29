@@ -27,8 +27,12 @@ export const inviteOrgMemberAction = authedActionClient
         organizationId,
         email,
         role: inviteRole,
-        hourlyRate,
-        currency,
+        payRate,
+        payCurrency,
+        payFrequency,
+        billingRate,
+        billingCurrency,
+        billingFrequency,
         setAsOrgDefault,
       },
       ctx: { role, orgMember },
@@ -41,6 +45,9 @@ export const inviteOrgMemberAction = authedActionClient
         throw new Error('Organization mismatch')
       }
 
+      if ((payRate !== undefined) !== !!payCurrency) {
+        throw new Error('Pay rate and currency must be provided together')
+      }
       const result = await auth.api.createInvitation({
         headers: await headers(),
         body: {
@@ -49,33 +56,41 @@ export const inviteOrgMemberAction = authedActionClient
           organizationId,
         },
       })
+      if (payRate !== undefined && payCurrency) {
+        const usePayForBilling = billingRate === undefined
+        const rateValues = {
+          payRate,
+          payCurrency,
+          payFrequency: payFrequency ?? 'hourly',
+          billingRate: usePayForBilling ? payRate : billingRate,
+          billingCurrency: usePayForBilling
+            ? payCurrency
+            : (billingCurrency ?? payCurrency),
+          billingFrequency: usePayForBilling
+            ? (payFrequency ?? 'hourly')
+            : (billingFrequency ?? payFrequency ?? 'hourly'),
+        }
 
-      if (hourlyRate !== undefined && currency) {
         await db.insert(pendingMemberRates).values({
           invitationId: result.id,
           organizationId,
           email,
-          hourlyRate,
-          currency,
+          ...rateValues,
         })
-      }
 
-      if (setAsOrgDefault && hourlyRate !== undefined && currency) {
-        await db
-          .insert(settingsTable)
-          .values({
-            organizationId,
-            memberRate: hourlyRate,
-            currency,
-          })
-          .onConflictDoUpdate({
-            target: [settingsTable.organizationId],
-            targetWhere: sql`${settingsTable.projectId} IS NULL`,
-            set: {
-              memberRate: hourlyRate,
-              currency,
-            },
-          })
+        if (setAsOrgDefault) {
+          await db
+            .insert(settingsTable)
+            .values({
+              organizationId,
+              ...rateValues,
+            })
+            .onConflictDoUpdate({
+              target: [settingsTable.organizationId],
+              targetWhere: sql`${settingsTable.projectId} IS NULL`,
+              set: rateValues,
+            })
+        }
       }
 
       return { success: true }

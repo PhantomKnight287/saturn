@@ -1,5 +1,6 @@
 import { createId } from '@paralleldrive/cuid2'
 import {
+  date,
   pgEnum,
   pgTable,
   text,
@@ -30,14 +31,17 @@ export const projects = pgTable(
       .references(() => organizations.id, { onDelete: 'cascade' })
       .notNull(),
     status: projectStatus().default('planning').notNull(),
-    dueDate: timestamp('due_date'),
+    dueDate: date('due_date', { mode: 'string' }),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
   },
-  (t) => [unique().on(t.organizationId, t.slug)]
+  (t) => [
+    unique().on(t.organizationId, t.slug),
+    unique('projects_id_organization_id_unique').on(t.id, t.organizationId),
+  ]
 )
 
 export const projectTeamAssignments = pgTable(

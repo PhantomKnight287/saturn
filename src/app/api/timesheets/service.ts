@@ -1,8 +1,21 @@
-import { and, asc, desc, eq, gte, inArray, isNull, lte, sum } from 'drizzle-orm'
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  getTableColumns,
+  gte,
+  inArray,
+  isNull,
+  lte,
+  sum,
+} from 'drizzle-orm'
 import type { ReadonlyHeaders } from 'next/dist/server/web/spec-extension/adapters/headers'
 import { getCachedActiveOrgMember } from '@/app/(organization)/[org]/cache'
+import type { projectsService } from '@/app/api/projects/service'
 import { db } from '@/server/db'
 import {
+  customFields,
   memberRates,
   members,
   projectBudgets,
@@ -56,10 +69,10 @@ const listByProject = async (
     conditions.push(eq(timeEntries.billable, filters.billable))
   }
   if (filters?.dateFrom) {
-    conditions.push(gte(timeEntries.date, new Date(filters.dateFrom)))
+    conditions.push(gte(timeEntries.date, filters.dateFrom))
   }
   if (filters?.dateTo) {
-    conditions.push(lte(timeEntries.date, new Date(filters.dateTo)))
+    conditions.push(lte(timeEntries.date, filters.dateTo))
   }
 
   const entries = await db
@@ -75,6 +88,7 @@ const listByProject = async (
       status: timeEntries.status,
       rejectReason: timeEntries.rejectReason,
       invoiceId: timeEntries.invoiceId,
+      customValues: timeEntries.customValues,
       createdAt: timeEntries.createdAt,
       updatedAt: timeEntries.updatedAt,
       memberName: users.name,
@@ -130,9 +144,10 @@ const getWeeklyTimesheet = async (
   memberId: string,
   weekStart: string
 ) => {
-  const startDate = new Date(weekStart)
-  const endDate = new Date(startDate)
-  endDate.setDate(endDate.getDate() + 6)
+  const startDate = weekStart
+  const end = new Date(`${weekStart}T00:00:00Z`)
+  end.setUTCDate(end.getUTCDate() + 6)
+  const endDate = end.toISOString().slice(0, 10)
 
   const entries = await db
     .select({
@@ -199,8 +214,6 @@ const getMemberRate = async (
   projectId: string,
   date: string
 ) => {
-  const targetDate = new Date(date)
-
   const [projectRate] = await db
     .select()
     .from(memberRates)
@@ -208,7 +221,7 @@ const getMemberRate = async (
       and(
         eq(memberRates.memberId, memberId),
         eq(memberRates.projectId, projectId),
-        lte(memberRates.effectiveFrom, targetDate)
+        lte(memberRates.effectiveFrom, date)
       )
     )
     .orderBy(desc(memberRates.effectiveFrom))
@@ -225,7 +238,7 @@ const getMemberRate = async (
       and(
         eq(memberRates.memberId, memberId),
         isNull(memberRates.projectId),
-        lte(memberRates.effectiveFrom, targetDate)
+        lte(memberRates.effectiveFrom, date)
       )
     )
     .orderBy(desc(memberRates.effectiveFrom))
@@ -265,13 +278,25 @@ const getBillableSummary = async (projectId: string) => {
 }
 
 const getMemberRates = async (organizationId: string) => {
+  const {
+    payCurrency,
+    payFrequency,
+    payRate,
+    billingCurrency,
+    billingFrequency,
+    billingRate,
+  } = getTableColumns(memberRates)
   const rates = await db
     .select({
       id: memberRates.id,
       memberId: memberRates.memberId,
       projectId: memberRates.projectId,
-      hourlyRate: memberRates.hourlyRate,
-      currency: memberRates.currency,
+      payCurrency,
+      payFrequency,
+      payRate,
+      billingCurrency,
+      billingFrequency,
+      billingRate,
       effectiveFrom: memberRates.effectiveFrom,
       createdAt: memberRates.createdAt,
       memberName: users.name,
@@ -358,7 +383,8 @@ const getReportEntriesBatch = async (reportIds: string[]) => {
   interface Row {
     billable: boolean
     createdAt: Date
-    date: Date
+    customValues: Record<string, unknown>
+    date: string
     description: string
     durationMinutes: number
     id: string
@@ -390,6 +416,7 @@ const getReportEntriesBatch = async (reportIds: string[]) => {
       createdAt: timesheetReportEntries.createdAt,
       updatedAt: timesheetReportEntries.updatedAt,
       invoiceId: timeEntries.invoiceId,
+      customValues: timeEntries.customValues,
     })
     .from(timesheetReportEntries)
     .innerJoin(
@@ -555,13 +582,111 @@ const listByProjectIdsSince = async (
     .where(
       and(
         inArray(timeEntries.projectId, projectIds),
-        gte(timeEntries.date, since),
+        gte(timeEntries.date, since.toISOString().slice(0, 10)),
         memberId ? eq(timeEntries.memberId, memberId) : undefined
       )
     )
 }
 
+const getEntryForEdit = async (entryId: string, projectId: string) => {
+  const [entry] = await db
+    .select({
+      id: timeEntries.id,
+      projectId: timeEntries.projectId,
+      requirementId: timeEntries.requirementId,
+      memberId: timeEntries.memberId,
+      description: timeEntries.description,
+      date: timeEntries.date,
+      durationMinutes: timeEntries.durationMinutes,
+      billable: timeEntries.billable,
+      status: timeEntries.status,
+      rejectReason: timeEntries.rejectReason,
+      invoiceId: timeEntries.invoiceId,
+      customValues: timeEntries.customValues,
+      createdAt: timeEntries.createdAt,
+      updatedAt: timeEntries.updatedAt,
+      requirementSlug: requirements.slug,
+      requirementTitle: requirements.title,
+      memberEmail: users.email,
+      memberName: users.name,
+    })
+    .from(timeEntries)
+    .leftJoin(requirements, eq(requirements.id, timeEntries.requirementId))
+    .leftJoin(members, eq(members.id, timeEntries.memberId))
+    .leftJoin(users, eq(users.id, members.userId))
+    .where(
+      and(eq(timeEntries.id, entryId), eq(timeEntries.projectId, projectId))
+    )
+    .limit(1)
+
+  return entry ?? null
+}
+
+const getProjectCustomFields = async (
+  projectId: string,
+  role: 'owner' | 'admin' | 'member' | 'client'
+) => {
+  const conditions = [eq(customFields.projectId, projectId)]
+  if (role === 'client') {
+    conditions.push(eq(customFields.visibleToClient, true))
+  }
+  return await db
+    .select()
+    .from(customFields)
+    .where(and(...conditions))
+    .orderBy(asc(customFields.createdAt))
+}
+
+/**
+ * Ensures a member has a usable rate before their entries are approved.
+ * Returns if a member rate already exists. Otherwise seeds a project-level
+ * rate from the org/project default rates. The pay rate is the required
+ * value: a null or 0 default pay rate is treated as "not configured" and
+ * throws. When the default billing rate is unset (null/0), the pay rate's
+ * value is used for billing too.
+ */
+const ensureMemberRate = async (
+  memberId: string,
+  projectId: string,
+  asOf: string,
+  settings: Awaited<ReturnType<typeof projectsService.getSettings>>
+): Promise<void> => {
+  const existing = await getMemberRate(memberId, projectId, asOf)
+  if (existing) {
+    return
+  }
+  // Pay rate is required; treat 0 (and null) as "not configured".
+  if (!settings.payRate) {
+    throw new Error(
+      'No member rate or default pay rate is configured. Please set a member rate or a default pay rate before approving.'
+    )
+  }
+  // Fall back to the pay rate for billing when no billing rate is configured.
+  const billingConfigured = !!settings.billingRate
+  // The existence check above guards the common case. Concurrent approvals
+  // could still both insert a same-day rate; readers tolerate duplicates by
+  // taking the latest effectiveFrom, so a plain insert is fine.
+  await db.insert(memberRates).values({
+    memberId,
+    projectId,
+    billingRate: billingConfigured ? settings.billingRate : settings.payRate,
+    billingCurrency: billingConfigured
+      ? settings.billingCurrency
+      : settings.payCurrency,
+    billingFrequency: billingConfigured
+      ? settings.billingFrequency
+      : settings.payFrequency,
+    payRate: settings.payRate,
+    payCurrency: settings.payCurrency,
+    payFrequency: settings.payFrequency,
+    effectiveFrom: asOf,
+  })
+}
+
 export const timesheetService = {
+  getEntryForEdit,
+  ensureMemberRate,
+  getProjectCustomFields,
   listByProject,
   listByProjectIdsSince,
   getById,

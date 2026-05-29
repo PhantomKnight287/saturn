@@ -346,6 +346,14 @@ export function ExpensesTable({
                                 <TooltipContent>Billable</TooltipContent>
                               </Tooltip>
                             )}
+                            {expense.recurring && (
+                              <Badge
+                                className='px-1.5 py-0 font-normal text-[10px]'
+                                variant='outline'
+                              >
+                                Recurring
+                              </Badge>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell className='text-sm'>
@@ -369,10 +377,13 @@ export function ExpensesTable({
                           )}
                         </TableCell>
                         <TableCell className='whitespace-nowrap text-sm'>
-                          {new Date(expense.date).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                          })}
+                          {new Date(expense.date).toLocaleDateString(
+                            undefined,
+                            {
+                              month: 'short',
+                              day: 'numeric',
+                            }
+                          )}
                         </TableCell>
                         <TableCell className='text-right font-medium text-sm'>
                           {formatCurrency(
@@ -448,18 +459,24 @@ export function ExpensesTable({
                           })()}
                         </TableCell>
                         <TableCell>
-                          <div className='flex items-center gap-1'>
+                          <div className='flex items-center justify-end gap-1'>
                             {expense.receiptMediaId && (
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <a
-                                    className='inline-flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground'
-                                    href={`/api/files/${expense.receiptMediaId}`}
-                                    rel='noopener noreferrer'
-                                    target='_blank'
+                                  <Button
+                                    asChild
+                                    className='size-7'
+                                    size='icon'
+                                    variant='ghost'
                                   >
-                                    <Paperclip className='size-3.5' />
-                                  </a>
+                                    <a
+                                      href={`/api/files/${expense.receiptMediaId}`}
+                                      rel='noopener noreferrer'
+                                      target='_blank'
+                                    >
+                                      <Paperclip className='size-3.5' />
+                                    </a>
+                                  </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>View receipt</TooltipContent>
                               </Tooltip>

@@ -127,7 +127,7 @@ export function BillingCard() {
                   <p className='text-muted-foreground text-sm'>Renews On</p>
                   <p className='font-medium text-lg'>
                     {new Date(subscription.currentPeriodEnd).toLocaleDateString(
-                      'en-US',
+                      undefined,
                       {
                         month: 'long',
                         day: 'numeric',

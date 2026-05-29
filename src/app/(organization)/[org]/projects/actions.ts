@@ -1,20 +1,36 @@
 'use server'
 
-import { and, count, eq } from 'drizzle-orm'
+import { and, asc, count, eq, isNull } from 'drizzle-orm'
 // import { PROJECTS_CACHE_TAG } from '@/api/projects/service'
 import { getUserBillingStatus } from '@/cache/billing'
+import { formatLocalDateOnly } from '@/lib/custom-fields'
 import { authedActionClient } from '@/lib/safe-action'
 import { titleToSlug } from '@/lib/utils'
 import { FREE_PLAN_LIMITS } from '@/limits'
 import { db } from '@/server/db'
-import { members, projects, requirements } from '@/server/db/schema'
+import {
+  customFields,
+  members,
+  projects,
+  requirements,
+  settings as settingsTable,
+} from '@/server/db/schema'
 import { createProjectSchema } from './common'
 
 export const createProjectAction = authedActionClient
   .inputSchema(createProjectSchema)
   .action(
     async ({
-      parsedInput: { organizationId, name, description, dueDate },
+      parsedInput: {
+        organizationId,
+        name,
+        description,
+        dueDate,
+        invoiceFromName,
+        invoiceFromAddress,
+        invoiceToName,
+        invoiceToAddress,
+      },
       ctx: { orgMember, role },
     }) => {
       if (!role.authorize({ project: ['create'] }).success) {
@@ -85,7 +101,7 @@ export const createProjectAction = authedActionClient
             slug: projectWithSlug ? slugifiedWithSuffix : slugified,
             description: description || null,
             organizationId,
-            dueDate: dueDate ?? null,
+            dueDate: dueDate ? formatLocalDateOnly(dueDate) : null,
           })
           .returning()
 
@@ -102,6 +118,50 @@ export const createProjectAction = authedActionClient
           status: 'client_accepted',
           authorId: orgMember.id,
         })
+
+        const orgTemplates = await tx
+          .select({
+            label: customFields.label,
+            type: customFields.type,
+            required: customFields.required,
+            visibleToClient: customFields.visibleToClient,
+            defaultValue: customFields.defaultValue,
+            options: customFields.options,
+            config: customFields.config,
+          })
+          .from(customFields)
+          .where(
+            and(
+              eq(customFields.organizationId, organizationId),
+              isNull(customFields.projectId)
+            )
+          )
+          .orderBy(asc(customFields.createdAt))
+
+        if (orgTemplates.length > 0) {
+          await tx.insert(customFields).values(
+            orgTemplates.map((t) => ({
+              ...t,
+              organizationId,
+              projectId: createdProject.id,
+            }))
+          )
+        }
+
+        const fromName = invoiceFromName?.trim() || null
+        const fromAddress = invoiceFromAddress?.trim() || null
+        const toName = invoiceToName?.trim() || null
+        const toAddress = invoiceToAddress?.trim() || null
+        if (fromName || fromAddress || toName || toAddress) {
+          await tx.insert(settingsTable).values({
+            organizationId,
+            projectId: createdProject.id,
+            invoiceFromName: fromName,
+            invoiceFromAddress: fromAddress,
+            invoiceToName: toName,
+            invoiceToAddress: toAddress,
+          })
+        }
 
         return createdProject
       })

@@ -62,7 +62,7 @@ export default function InvoiceCard({
         {invoice.dueDate && (
           <p className='mt-0.5 text-muted-foreground text-xs'>
             Due{' '}
-            {new Date(invoice.dueDate).toLocaleDateString('en-US', {
+            {new Date(invoice.dueDate).toLocaleDateString(undefined, {
               month: 'short',
               day: 'numeric',
               year: 'numeric',

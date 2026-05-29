@@ -4,6 +4,7 @@ import { useRouter } from '@bprogress/next/app'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Save } from 'lucide-react'
 import { useAction } from 'next-safe-action/hooks'
+import { useId, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import type { z } from 'zod'
@@ -16,14 +17,14 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { CurrencySelect } from '@/components/ui/currency-selector'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Field,
   FieldDescription,
   FieldError,
   FieldLabel,
 } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
+import { RateInput } from '@/components/ui/rate-input'
 import {
   Select,
   SelectContent,
@@ -31,23 +32,35 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { billingFrequencyEnum } from '@/server/db/schema'
 import { updateTimesheetDefaultsAction } from '../actions'
 import {
+  type BillingFrequency,
   type TimesheetDuration,
   updateTimesheetDefaultsSchema,
 } from '../common'
 
-type FormValues = z.infer<typeof updateTimesheetDefaultsSchema>
+// Use the schema's input type — the schema has a `.transform`, so `z.infer`
+// would give the post-transform shape with billing fields already resolved.
+type FormValues = z.input<typeof updateTimesheetDefaultsSchema>
 
 export function TimesheetDefaultsCard({
   organizationId,
-  defaultMemberRate,
-  defaultCurrency,
+  defaultPayRate,
+  defaultPayCurrency,
+  defaultPayFrequency,
+  defaultBillingRate,
+  defaultBillingCurrency,
+  defaultBillingFrequency,
   defaultTimesheetDuration,
 }: {
   organizationId: string
-  defaultMemberRate: number
-  defaultCurrency: string
+  defaultPayRate: number
+  defaultPayCurrency: string
+  defaultPayFrequency: BillingFrequency | null
+  defaultBillingRate: number | null
+  defaultBillingCurrency: string
+  defaultBillingFrequency: BillingFrequency | null
   defaultTimesheetDuration: TimesheetDuration
 }) {
   const router = useRouter()
@@ -56,11 +69,44 @@ export function TimesheetDefaultsCard({
     resolver: zodResolver(updateTimesheetDefaultsSchema),
     defaultValues: {
       organizationId,
-      defaultMemberRate,
-      defaultCurrency,
+      defaultPayRate,
+      defaultPayCurrency,
+      defaultPayFrequency: defaultPayFrequency ?? 'hourly',
+      defaultBillingRate: defaultBillingRate ?? undefined,
+      defaultBillingCurrency,
+      defaultBillingFrequency: defaultBillingFrequency ?? 'hourly',
       defaultTimesheetDuration,
     },
   })
+
+  // Billing is optional: when unset, clients are billed at the pay rate.
+  const [billSameAsPay, setBillSameAsPay] = useState(defaultBillingRate == null)
+  const billSameAsPayId = useId()
+
+  function handleBillSameAsPayChange(checked: boolean) {
+    setBillSameAsPay(checked)
+    if (checked) {
+      // Clear billing so it resolves to the pay rate.
+      form.setValue('defaultBillingRate', undefined, { shouldDirty: true })
+      form.setValue('defaultBillingCurrency', undefined, { shouldDirty: true })
+      form.setValue('defaultBillingFrequency', undefined, { shouldDirty: true })
+    } else {
+      // Seed the billing fields from the current pay values.
+      form.setValue('defaultBillingRate', form.getValues('defaultPayRate'), {
+        shouldDirty: true,
+      })
+      form.setValue(
+        'defaultBillingCurrency',
+        form.getValues('defaultPayCurrency'),
+        { shouldDirty: true }
+      )
+      form.setValue(
+        'defaultBillingFrequency',
+        form.getValues('defaultPayFrequency') ?? 'hourly',
+        { shouldDirty: true }
+      )
+    }
+  }
 
   const { execute, isPending } = useAction(updateTimesheetDefaultsAction, {
     onSuccess() {
@@ -77,21 +123,37 @@ export function TimesheetDefaultsCard({
       <CardHeader>
         <CardTitle>Timesheet Defaults</CardTitle>
         <CardDescription>
-          Set the default hourly rate and currency for new members. These can be
-          overridden per project.
+          These are defaults applied to new members. You can override the rate
+          for an individual member from the rates dialog on the timesheets page.
         </CardDescription>
       </CardHeader>
       <form onSubmit={form.handleSubmit((values) => execute(values))}>
-        <CardContent>
-          <div className='grid grid-cols-2 gap-4'>
+        <CardContent className='space-y-6'>
+          <div className='space-y-3'>
+            <p className='font-medium text-sm'>Pay (what members are paid)</p>
             <Controller
               control={form.control}
-              name='defaultCurrency'
+              name='defaultPayRate'
               render={({ field, fieldState }) => (
                 <Field className='gap-1' data-invalid={fieldState.invalid}>
-                  <FieldLabel>Default Currency</FieldLabel>
-                  <CurrencySelect
-                    name='currency'
+                  <RateInput
+                    currency={form.watch('defaultPayCurrency')}
+                    frequencies={billingFrequencyEnum.enumValues}
+                    frequency={form.watch('defaultPayFrequency') ?? 'hourly'}
+                    invalid={fieldState.invalid}
+                    name='payCurrency'
+                    onCurrencyChange={(v) =>
+                      form.setValue('defaultPayCurrency', v, {
+                        shouldDirty: true,
+                      })
+                    }
+                    onFrequencyChange={(v) =>
+                      form.setValue(
+                        'defaultPayFrequency',
+                        v as BillingFrequency,
+                        { shouldDirty: true }
+                      )
+                    }
                     onValueChange={field.onChange}
                     value={field.value}
                   />
@@ -101,28 +163,65 @@ export function TimesheetDefaultsCard({
                 </Field>
               )}
             />
-            <Controller
-              control={form.control}
-              name='defaultMemberRate'
-              render={({ field, fieldState }) => (
-                <Field className='gap-1' data-invalid={fieldState.invalid}>
-                  <FieldLabel>Default Hourly Rate</FieldLabel>
-                  <Input
-                    min={0}
-                    onChange={(e) =>
-                      field.onChange(Math.round(Number(e.target.value) * 100))
-                    }
-                    placeholder='0.00'
-                    step={0.01}
-                    type='number'
-                    value={field.value ? field.value / 100 : ''}
-                  />
-                  {fieldState.invalid && (
-                    <FieldError errors={[fieldState.error]} />
+          </div>
+
+          <div className='space-y-3'>
+            <label
+              className='flex items-center gap-2 font-medium text-sm'
+              htmlFor={billSameAsPayId}
+            >
+              <Checkbox
+                checked={billSameAsPay}
+                id={billSameAsPayId}
+                onCheckedChange={(c) => handleBillSameAsPayChange(c === true)}
+              />
+              Bill clients at the same rate members are paid
+            </label>
+
+            {!billSameAsPay && (
+              <div className='space-y-3'>
+                <p className='font-medium text-sm'>
+                  Billing (what clients are charged)
+                </p>
+                <Controller
+                  control={form.control}
+                  name='defaultBillingRate'
+                  render={({ field, fieldState }) => (
+                    <Field className='gap-1' data-invalid={fieldState.invalid}>
+                      <div>
+                        <RateInput
+                          allowEmpty
+                          currency={form.watch('defaultBillingCurrency')}
+                          frequencies={billingFrequencyEnum.enumValues}
+                          frequency={
+                            form.watch('defaultBillingFrequency') ?? 'hourly'
+                          }
+                          invalid={fieldState.invalid}
+                          name='billingCurrency'
+                          onCurrencyChange={(v) =>
+                            form.setValue('defaultBillingCurrency', v, {
+                              shouldDirty: true,
+                            })
+                          }
+                          onFrequencyChange={(v) =>
+                            form.setValue(
+                              'defaultBillingFrequency',
+                              v as BillingFrequency,
+                              { shouldDirty: true }
+                            )
+                          }
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        />
+                      </div>
+                      {fieldState.invalid && (
+                        <FieldError errors={[fieldState.error]} />
+                      )}
+                    </Field>
                   )}
-                </Field>
-              )}
-            />
+                />
+              </div>
+            )}
           </div>
           <Controller
             control={form.control}

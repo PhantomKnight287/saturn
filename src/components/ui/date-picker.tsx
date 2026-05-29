@@ -10,11 +10,13 @@ export default function DatePicker({
   value,
   disablePastDates = true,
   disableFutureDates = false,
+  disabled = false,
 }: {
   value: Date | undefined;
   onChange: (date: Date | undefined) => void;
   disablePastDates?: boolean;
   disableFutureDates?: boolean;
+  disabled?: boolean;
 }) {
   return (
     <Popover>
@@ -24,6 +26,7 @@ export default function DatePicker({
             "w-full justify-start text-left font-normal",
             !value && "text-muted-foreground",
           )}
+          disabled={disabled}
           size="lg"
           type="button"
           variant="outline"

@@ -1,0 +1,1 @@
+ALTER TABLE "settings" ADD COLUMN "currency" text DEFAULT 'USD' NOT NULL;

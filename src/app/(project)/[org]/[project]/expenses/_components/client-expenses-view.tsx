@@ -199,6 +199,14 @@ export function ClientExpensesView({
                         />
                       </TableCell>
                       <TableCell className='text-sm'>
+                        {expense.recurring && (
+                          <Badge
+                            className='mr-1.5 px-1.5 py-0 font-normal text-[10px]'
+                            variant='outline'
+                          >
+                            Recurring
+                          </Badge>
+                        )}
                         {expense.description ? (
                           <HoverCard openDelay={0}>
                             <HoverCardTrigger asChild>
@@ -244,7 +252,7 @@ export function ClientExpensesView({
                         )}
                       </TableCell>
                       <TableCell className='text-sm'>
-                        {new Date(expense.date).toLocaleDateString('en-US', {
+                        {new Date(expense.date).toLocaleDateString(undefined, {
                           month: 'short',
                           day: 'numeric',
                         })}
@@ -343,10 +351,13 @@ export function ClientExpensesView({
                           )}
                         </TableCell>
                         <TableCell className='text-sm'>
-                          {new Date(expense.date).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                          })}
+                          {new Date(expense.date).toLocaleDateString(
+                            undefined,
+                            {
+                              month: 'short',
+                              day: 'numeric',
+                            }
+                          )}
                         </TableCell>
                         <TableCell className='text-right font-medium text-sm'>
                           {formatCurrency(

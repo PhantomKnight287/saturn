@@ -1,5 +1,10 @@
 import type z from 'zod'
-import type { expenses, invoiceRecipientEnum } from '@/server/db/schema'
+import type { InvoiceTimeUnit } from '@/lib/invoice-time-units'
+import type {
+  billingFrequencyEnum,
+  expenses,
+  invoiceRecipientEnum,
+} from '@/server/db/schema'
 import type { Role } from '@/types'
 import type { Thread } from '../requirements/types'
 import type { ProjectClient } from '../team/types'
@@ -10,7 +15,7 @@ export type InvoiceFormValues = z.infer<typeof invoiceFormSchema>
 
 export interface Invoice {
   currency: string
-  dueDate: Date | null
+  dueDate: string | null
   id: string
   invoiceNumber: string
   recipient: (typeof invoiceRecipientEnum.enumValues)[number] | null
@@ -36,7 +41,7 @@ export interface InvoiceCardProps {
     status: 'draft' | 'sent' | 'paid' | 'disputed' | 'cancelled'
     totalAmount: string
     currency: string
-    dueDate: Date | null
+    dueDate: string | null
     updatedAt: Date
     recipient: (typeof invoiceRecipientEnum.enumValues)[number] | null
     recipients: ProjectClient[]
@@ -89,10 +94,10 @@ export interface InvoiceData {
   currency: string
   discountAmount: string | null
   discountLabel: string | null
-  dueDate: Date | null
+  dueDate: string | null
   id: string
   invoiceNumber: string
-  issueDate: Date
+  issueDate: string
   notes: string | null
   paymentTerms: string | null
   recipient: (typeof invoiceRecipientEnum.enumValues)[number] | null
@@ -107,7 +112,7 @@ export interface InvoiceData {
 }
 
 export interface BillableTimeEntry {
-  date: Date
+  date: string
   description: string
   durationMinutes: number
   id: string
@@ -127,8 +132,14 @@ export interface InvoiceEditorProps {
   canMarkPaid?: boolean
   canResolveThread?: boolean
   canSend?: boolean
+  capturedRates?: CapturedConversionRate[]
   clients: ProjectClient[]
+  defaultClientAddress?: string | null
+  defaultClientName?: string | null
   defaultCurrency?: string
+  defaultSenderAddress?: string | null
+  defaultSenderName?: string | null
+  defaultTimeUnit?: InvoiceTimeUnit
   existingItems?: InvoiceItem[]
   existingRecipientIds?: string[]
   extendData?: ExtendInvoiceData
@@ -137,7 +148,9 @@ export interface InvoiceEditorProps {
   linkedRequirements?: LinkedRequirement[]
   mediaItems?: MediaItem[]
   member?: ProjectMember | null
-  memberRateMap?: Record<string, { hourlyRate: number; currency: string }>
+  // Keyed by `memberRateKey(memberId, date)` — rates are effective-dated, so an
+  // entry is priced with the rate in effect on its work date.
+  memberRateMap?: Record<string, MemberRateMapEntry>
   mode: 'create' | 'edit'
   orgName: string
   orgSlug: string
@@ -151,7 +164,41 @@ export interface InvoiceEditorProps {
   threads?: Thread[]
   timesheetWarning?: string | null
   unbilledTimeEntries?: BillableTimeEntry[]
-  unpaidExpenses?: (typeof expenses.$inferSelect)[]
+  unpaidExpenses?: InvoiceExpense[]
+}
+
+export interface CapturedConversionRate {
+  capturedAt: Date | string
+  fromCurrency: string
+  rate: string
+  toCurrency: string
+}
+
+export type InvoiceExpense = typeof expenses.$inferSelect & {
+  // Pre-converted amount (in cents) in the invoice's currency.
+  convertedAmountCents: number
+  // Multiplier used for the conversion (target = source * rateUsed). 1 when
+  // the source and invoice currencies match.
+  rateUsed: number
+}
+
+export interface MemberRateMapEntry {
+  currency: string
+  // Hourly rate in the invoice's currency (already converted when available).
+  hourlyRate: number
+  originalCurrency?: string
+  // The same hourly rate before currency conversion, so the UI can show the
+  // original alongside the converted amount.
+  originalHourlyRate?: number
+  // What the member is actually paid (independent of what's billed to the client).
+  pay?: {
+    rate: number
+    currency: string
+    frequency: (typeof billingFrequencyEnum.enumValues)[number]
+  }
+  // Multiplier used for the conversion (target = source * rateUsed). 1 when
+  // the source and invoice currencies match.
+  rateUsed?: number
 }
 
 export interface CustomField {
