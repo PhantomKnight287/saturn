@@ -351,6 +351,13 @@
       "when": 1779869675638,
       "tag": "0049_abandoned_shadow_king",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1779960584001,
+      "tag": "0050_salty_scalphunter",
+      "breakpoints": true
     }
   ]
 }

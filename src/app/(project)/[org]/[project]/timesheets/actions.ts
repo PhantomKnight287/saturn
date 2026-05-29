@@ -21,6 +21,7 @@ import { authedActionClient } from '@/lib/safe-action'
 import { db } from '@/server/db'
 import {
   customFields,
+  invoices,
   memberRates,
   members,
   projectBudgets,
@@ -31,6 +32,7 @@ import {
   timesheetReports,
   users,
 } from '@/server/db/schema'
+import { currencyConversionService } from '@/services/currency-conversion.service'
 import {
   approveTimeEntriesSchema,
   createTimeEntrySchema,
@@ -777,11 +779,24 @@ export const linkTimeEntriesToInvoiceAction = authedActionClient
         throw new Error('No time entries found')
       }
 
+      // Confirm the invoice belongs to the same project as the entries —
+      // otherwise a user could attach entries to an invoice in a project
+      // they don't own.
+      const [invoice] = await db
+        .select({ projectId: invoices.projectId })
+        .from(invoices)
+        .where(eq(invoices.id, invoiceId))
+      if (!invoice || invoice.projectId !== projectId) {
+        throw new Error('Invoice not found in this project')
+      }
+
       await db
         .update(timeEntries)
         .set({ invoiceId })
         .where(inArray(timeEntries.id, timeEntryIds))
 
+      // Conversion rates for these entries are snapshotted by the editor's
+      // create/update flow via item metadata, so nothing more is needed here.
       return { success: true }
     }
   )
@@ -790,13 +805,7 @@ export const sendTimesheetToClientAction = authedActionClient
   .inputSchema(sendTimesheetToClientSchema)
   .action(
     async ({
-      parsedInput: {
-        projectId,
-        clientMemberIds,
-        title,
-        timeEntryIds,
-        currency,
-      },
+      parsedInput: { projectId, clientMemberIds, title, timeEntryIds },
       ctx: { role, orgMember, user },
     }) => {
       if (!role.authorize({ timesheet_report: ['send'] }).success) {
@@ -866,16 +875,31 @@ export const sendTimesheetToClientAction = authedActionClient
         return rateCache.get(key)
       }
 
+      const reportCurrency = settings.currency
+
       let totalAmountCents = 0
       for (const entry of entries) {
         const rate = await resolveRate(entry.memberId, entry.date)
-        if (rate) {
-          totalAmountCents += computeEntryAmount(
-            entry.durationMinutes,
-            rate.billingRate ?? rate.payRate,
-            rate.billingFrequency ?? rate.payFrequency ?? 'hourly'
-          )
+        if (!rate) {
+          continue
         }
+        const entryAmount = computeEntryAmount(
+          entry.durationMinutes,
+          rate.billingRate ?? rate.payRate,
+          rate.billingFrequency ?? rate.payFrequency ?? 'hourly'
+        )
+        const entryCurrency =
+          rate.billingRate == null ? rate.payCurrency : rate.billingCurrency
+        if (!entryCurrency) {
+          continue
+        }
+        const { amount: converted } =
+          await currencyConversionService.convertCents(
+            entryAmount,
+            entryCurrency,
+            reportCurrency
+          )
+        totalAmountCents += converted
       }
 
       const report = await db.transaction(async (tx) => {
@@ -886,7 +910,7 @@ export const sendTimesheetToClientAction = authedActionClient
             title,
             totalMinutes,
             totalAmount: totalAmountCents,
-            currency,
+            currency: reportCurrency,
             sentByMemberId: orgMember.id,
             status: 'sent',
             sentAt: new Date(),
@@ -936,7 +960,7 @@ export const sendTimesheetToClientAction = authedActionClient
           'en-US',
           {
             style: 'currency',
-            currency,
+            currency: reportCurrency,
           }
         )
         await sendEmailsToRecipients(clients, async (recipient) => {
@@ -948,7 +972,7 @@ export const sendTimesheetToClientAction = authedActionClient
               reportTitle: title,
               totalHours,
               totalAmount: totalAmountFormatted,
-              currency,
+              currency: reportCurrency,
               orgSlug: details.orgSlug ?? '',
               projectSlug: details.projectSlug,
               reportId: report.id,
@@ -1227,16 +1251,31 @@ export const resendTimesheetReportAction = authedActionClient
         return rateCache.get(key)
       }
 
+      const reportCurrency = report.currency
+
       let totalAmountCents = 0
       for (const entry of linkedEntries) {
         const rate = await resolveRate(entry.memberId, entry.date)
-        if (rate) {
-          totalAmountCents += computeEntryAmount(
-            entry.durationMinutes,
-            rate.billingRate ?? rate.payRate,
-            rate.billingFrequency ?? rate.payFrequency ?? 'hourly'
-          )
+        if (!rate) {
+          continue
         }
+        const entryAmount = computeEntryAmount(
+          entry.durationMinutes,
+          rate.billingRate ?? rate.payRate,
+          rate.billingFrequency ?? rate.payFrequency ?? 'hourly'
+        )
+        const entryCurrency =
+          rate.billingRate == null ? rate.payCurrency : rate.billingCurrency
+        if (!entryCurrency) {
+          continue
+        }
+        const { amount: converted } =
+          await currencyConversionService.convertCents(
+            entryAmount,
+            entryCurrency,
+            reportCurrency
+          )
+        totalAmountCents += converted
       }
 
       await db

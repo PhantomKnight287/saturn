@@ -125,7 +125,6 @@ export const sendTimesheetToClientSchema = z.object({
   clientMemberIds: z.array(z.string().min(1)).min(1),
   title: z.string().min(1, 'Title is required'),
   timeEntryIds: z.array(z.string().min(1)).min(1),
-  currency: z.string().min(1).default('USD'),
 })
 
 export const respondTimesheetReportSchema = z.object({

@@ -19,14 +19,14 @@ const DEFAULT_FREQUENCIES = [
   'monthly',
 ] as const
 
-const FREQUENCY_LABELS: Record<string, string> = {
+export const FREQUENCY_LABELS: Record<string, string> = {
   hourly: 'Hourly',
   weekly: 'Weekly',
   biweekly: 'Bi-Weekly',
   monthly: 'Monthly',
 }
 
-const FREQUENCY_SHORTHAND: Record<string, string> = {
+export const FREQUENCY_SHORTHAND: Record<string, string> = {
   hourly: '/h',
   weekly: '/w',
   biweekly: '/bw',
