@@ -1,0 +1,4 @@
+{
+  "//": "Forces Playwright test files in this directory to load as CJS. The repo's root package.json sets \"type\": \"module\", which puts Playwright's CJS internals and the transpiled test files in separate module graphs — that breaks the loader's suite tracking and produces 'did not expect test() to be called here'. Do not remove without verifying Playwright fully supports ESM test files.",
+  "type": "commonjs"
+}

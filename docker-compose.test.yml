@@ -1,0 +1,60 @@
+# Self-contained test environment.
+#
+#   docker compose -f docker-compose.test.yml run --rm unit
+#   docker compose -f docker-compose.test.yml run --rm e2e
+#   docker compose -f docker-compose.test.yml down -v
+#
+# The `tests` profile keeps these out of `docker compose up` by default.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: saturn_test
+    tmpfs:
+      - /var/lib/postgresql/data  # ephemeral, fast — wiped on `down`
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d saturn_test']
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    profiles: ['tests']
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file: .env.test
+    command: bun db:migrate
+
+  unit:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    profiles: ['tests']
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    env_file: .env.test
+    volumes:
+      - ./coverage:/app/coverage
+    command: bun test
+
+  e2e:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    profiles: ['tests']
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    env_file: .env.test
+    volumes:
+      - ./playwright-report:/app/playwright-report
+      - ./test-results:/app/test-results
+    command: bun test:e2e
