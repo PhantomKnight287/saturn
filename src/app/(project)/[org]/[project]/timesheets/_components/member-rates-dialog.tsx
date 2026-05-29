@@ -108,7 +108,7 @@ export function MemberRatesDialog({
       billingRate: undefined,
       billingCurrency: defaultCurrency ?? 'USD',
       billingFrequency: 'hourly',
-      effectiveFrom: new Date().toString(),
+      effectiveFrom: toDateInputValue(new Date().toString()),
       isProjectSpecific: true,
     },
   })
@@ -132,7 +132,7 @@ export function MemberRatesDialog({
         billingRate: undefined,
         billingCurrency: defaultCurrency ?? 'USD',
         billingFrequency: 'hourly',
-        effectiveFrom: new Date().toString(),
+        effectiveFrom: toDateInputValue(new Date().toString()),
         isProjectSpecific: true,
       })
       router.refresh()
@@ -212,7 +212,8 @@ export function MemberRatesDialog({
       rateForm.setValue('isProjectSpecific', !!current.projectId)
       rateForm.setValue(
         'effectiveFrom',
-        current.effectiveFrom?.toString() ?? new Date().toString()
+        current.effectiveFrom?.toString() ??
+          toDateInputValue(new Date().toString())
       )
     } else {
       // No existing rate for this member — start from defaults so the previous
@@ -225,7 +226,7 @@ export function MemberRatesDialog({
         billingRate: undefined,
         billingCurrency: defaultCurrency ?? 'USD',
         billingFrequency: 'hourly',
-        effectiveFrom: new Date().toString(),
+        effectiveFrom: toDateInputValue(new Date().toString()),
         isProjectSpecific: true,
       })
     }
