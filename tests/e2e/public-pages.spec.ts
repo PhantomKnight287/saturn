@@ -1,5 +1,5 @@
-import { PUBLIC_ROUTES } from '@/routes'
 import { expect, test } from '@playwright/test'
+import { PUBLIC_ROUTES } from '@/routes'
 
 for (const path of PUBLIC_ROUTES) {
   test(`public route ${path} is reachable`, async ({ page }) => {

@@ -16,8 +16,8 @@ import type { Page } from '@playwright/test'
 
 export interface TestUser {
   email: string
-  password: string
   name: string
+  password: string
 }
 
 export function makeTestUser(prefix = 'user'): TestUser {
@@ -33,11 +33,17 @@ export async function signUp(page: Page, user: TestUser) {
   await page.goto('/auth/sign-up')
   await page.getByLabel(/name/i).fill(user.name)
   await page.getByLabel(/email/i).fill(user.email)
-  await page.getByLabel(/password/i).first().fill(user.password)
+  await page
+    .getByLabel(/password/i)
+    .first()
+    .fill(user.password)
   await page.getByRole('button', { name: /sign up|create account/i }).click()
 }
 
-export async function signIn(page: Page, user: Pick<TestUser, 'email' | 'password'>) {
+export async function signIn(
+  page: Page,
+  user: Pick<TestUser, 'email' | 'password'>
+) {
   await page.goto('/auth/sign-in')
   await page.getByLabel(/email/i).fill(user.email)
   await page.getByLabel(/password/i).fill(user.password)
@@ -45,7 +51,7 @@ export async function signIn(page: Page, user: Pick<TestUser, 'email' | 'passwor
 }
 
 // TODO(Layer 2): seed a verified user via direct DB insert so authenticated
-// E2E paths don't need a mail catcher.
 export async function seedVerifiedUser(_user: TestUser): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 3000))
   throw new Error('seedVerifiedUser is not implemented — see helpers/auth.ts')
 }

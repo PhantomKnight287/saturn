@@ -16,7 +16,6 @@
 // }
 
 // Fallbacks for anything still unset (e.g. CI without .env.test).
-process.env.NODE_ENV ??= 'test'
 process.env.DATABASE_URL ??=
   'postgresql://postgres:postgres@localhost:5432/saturn_test'
 process.env.BETTER_AUTH_SECRET ??= 'test-secret-not-for-production'

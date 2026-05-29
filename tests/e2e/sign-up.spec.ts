@@ -24,5 +24,8 @@ test('sign-up form submits without crashing', async ({ page }) => {
     /dashboard/,
   ]
   const matched = okSignals.some((re) => re.test(body) || re.test(url))
-  expect(matched, `unexpected post-signup state: url=${url}\n${body.slice(0, 400)}`).toBe(true)
+  expect(
+    matched,
+    `unexpected post-signup state: url=${url}\n${body.slice(0, 400)}`
+  ).toBe(true)
 })

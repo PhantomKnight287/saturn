@@ -6,10 +6,10 @@
  * we just verify the resulting schema has the tables every domain expects.
  */
 import { sql } from 'drizzle-orm'
+import type { PgTableWithColumns } from 'drizzle-orm/pg-core'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { db } from '@/server/db'
 import * as schema from '@/server/db/schema'
-import type { PgTableWithColumns } from 'drizzle-orm/pg-core'
 
 const EXPECTED_TABLES: string[] = Object.keys(schema)
   // biome-ignore lint/performance/noDynamicNamespaceImportAccess: Needed here
