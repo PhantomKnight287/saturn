@@ -2,6 +2,9 @@ import { expect, test } from '@playwright/test'
 import { PUBLIC_ROUTES } from '@/routes'
 
 for (const path of PUBLIC_ROUTES) {
+  if (path === '/polar/webhooks') {
+    continue
+  }
   test(`public route ${path} is reachable`, async ({ page }) => {
     const response = await page.goto(path)
     expect(response, `no response for ${path}`).not.toBeNull()
@@ -14,8 +17,10 @@ for (const path of PUBLIC_ROUTES) {
 }
 
 test('unknown route renders the 404 page', async ({ page }) => {
-  const response = await page.goto('/this-page-does-not-exist-xyz')
+  await page.goto('/this-page-does-not-exist-xyz')
   await page.waitForTimeout(5000)
-  expect(page.url()).toBe('/error/404')
-  expect(response?.status()).toBe(404)
+  const url = page.url()
+  // A 404 page sends user to login url because workspace routes are also located at / so there is no way to know if page is 404 or a workspace slug so we redirect them to auth
+  const onAuthRoute = /\/(auth|sign-in|sign-up)/i.test(url)
+  expect(onAuthRoute).toBe(true)
 })

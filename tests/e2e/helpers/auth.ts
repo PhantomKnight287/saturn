@@ -37,7 +37,7 @@ export async function signUp(page: Page, user: TestUser) {
     .getByLabel(/password/i)
     .first()
     .fill(user.password)
-  await page.getByRole('button', { name: /sign up|create account/i }).click()
+  await page.getByRole('button', { name: /sign up|create an account/i }).click()
 }
 
 export async function signIn(
