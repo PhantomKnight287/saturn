@@ -8,8 +8,6 @@ import {
   inArray,
   or,
 } from 'drizzle-orm'
-import type { ReadonlyHeaders } from 'next/dist/server/web/spec-extension/adapters/headers'
-import { getCachedActiveOrgMember } from '@/app/(organization)/[org]/cache'
 
 import { db } from '@/server/db'
 import {
@@ -25,16 +23,24 @@ import {
   requirements,
   users,
 } from '@/server/db/schema'
+import type { Role } from '@/types'
 
 export type InvoiceWithMedia = typeof invoices.$inferSelect & {
   senderLogoObject?: typeof media.$inferSelect | null
   senderSignatureObject?: typeof media.$inferSelect | null
 }
 
-const listByProject = async (projectId: string, headers: ReadonlyHeaders) => {
-  const activeMember = await getCachedActiveOrgMember(headers)
+const listByProject = async ({
+  memberId,
+  projectId,
+  role,
+}: {
+  projectId: string
+  memberId: string
+  role: Role
+}) => {
   let invoicesList: (typeof invoices.$inferSelect)[]
-  if (activeMember?.role === 'client') {
+  if (role === 'client') {
     invoicesList = await db
       .select(getTableColumns(invoices))
       .from(invoices)
@@ -48,17 +54,15 @@ const listByProject = async (projectId: string, headers: ReadonlyHeaders) => {
         invoiceRecipients,
         and(
           eq(invoiceRecipients.invoiceId, invoices.id),
-          eq(invoiceRecipients.memberId, activeMember.id)
+          eq(invoiceRecipients.memberId, memberId)
         )
       )
       .orderBy(desc(invoices.createdAt))
-  } else if (activeMember?.role === 'member') {
-    // Members see all client-recipient invoices in the project, plus
-    // member-recipient invoices addressed to them.
+  } else if (role === 'member') {
     const memberRecipientInvoiceIds = db
       .select({ id: invoiceRecipients.invoiceId })
       .from(invoiceRecipients)
-      .where(eq(invoiceRecipients.memberId, activeMember.id))
+      .where(eq(invoiceRecipients.memberId, memberId))
     invoicesList = await db
       .select()
       .from(invoices)
@@ -118,12 +122,14 @@ const getById = async ({
   invoiceId,
   organizationId,
   projectId,
-  headers,
+  role,
+  memberId,
 }: {
   invoiceId: string
   projectId: string
   organizationId: string
-  headers: ReadonlyHeaders
+  role: Role
+  memberId: string
 }) => {
   const [project] = await db
     .select()
@@ -138,9 +144,8 @@ const getById = async ({
     return null
   }
 
-  const activeMember = await getCachedActiveOrgMember(headers)
   let invoice: InvoiceWithMedia | null
-  if (activeMember?.role === 'client') {
+  if (role === 'client') {
     const [row] = await db
       .select(getTableColumns(invoices))
       .from(invoices)
@@ -151,14 +156,12 @@ const getById = async ({
         invoiceRecipients,
         and(
           eq(invoiceRecipients.invoiceId, invoices.id),
-          eq(invoiceRecipients.memberId, activeMember.id)
+          eq(invoiceRecipients.memberId, memberId)
         )
       )
       .limit(1)
     invoice = (row ?? null) as unknown as InvoiceWithMedia | null
-  } else if (activeMember?.role === 'member') {
-    // Members can view any client-recipient invoice in the project, but
-    // only member-recipient invoices that are addressed to them.
+  } else if (role === 'member') {
     const candidate = (await db.query.invoices.findFirst({
       where: and(
         eq(invoices.id, invoiceId),
@@ -172,7 +175,7 @@ const getById = async ({
         .where(
           and(
             eq(invoiceRecipients.invoiceId, candidate.id),
-            eq(invoiceRecipients.memberId, activeMember.id)
+            eq(invoiceRecipients.memberId, memberId)
           )
         )
         .limit(1)

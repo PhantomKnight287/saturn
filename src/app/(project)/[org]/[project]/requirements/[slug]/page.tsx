@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
 import { projectsService } from '@/app/api/projects/service'
@@ -38,11 +37,12 @@ export default async function RequirementDetail({
     )
   }
 
-  const requirement = await requirementsService.getBySlug(
-    currentProject.id,
+  const requirement = await requirementsService.getBySlug({
+    role: orgMember.role,
+    memberId: orgMember.id,
     slug,
-    await headers()
-  )
+    projectId: currentProject.id,
+  })
 
   if (!requirement) {
     redirect(
@@ -66,7 +66,10 @@ export default async function RequirementDetail({
     signatureMedia,
     settings,
   ] = await Promise.all([
-    requirementsService.getThreads(currentProject.id, requirement.id),
+    requirementsService.getThreads({
+      projectId: currentProject.id,
+      entityId: requirement.id,
+    }),
     canSendForSign ? teamService.getProjectClients(currentProject.id) : [],
     requirementsService.getRecipients(requirement.id),
     requirementsService.getSignatures(requirement.id),

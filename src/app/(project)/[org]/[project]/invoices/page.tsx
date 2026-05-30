@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
 import { invoicesService } from '@/app/api/invoices/service'
@@ -36,10 +35,11 @@ export default async function Invoices({
     )
   }
 
-  const invoiceList = await invoicesService.listByProject(
-    currentProject.id,
-    await headers()
-  )
+  const invoiceList = await invoicesService.listByProject({
+    memberId: orgMember.id,
+    projectId: currentProject.id,
+    role: orgMember.role,
+  })
   const canCreate = role.authorize({ invoice: ['create'] }).success
   const settings = await projectsService.getSettings(
     organization.id,

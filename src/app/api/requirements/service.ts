@@ -1,6 +1,4 @@
 import { and, asc, desc, eq, getTableColumns, inArray, not } from 'drizzle-orm'
-import type { ReadonlyHeaders } from 'next/dist/server/web/spec-extension/adapters/headers'
-import { getCachedActiveOrgMember } from '@/app/(organization)/[org]/cache'
 import { db } from '@/server/db'
 import {
   media as mediaTable,
@@ -14,13 +12,19 @@ import {
   threads as threadsTable,
   users,
 } from '@/server/db/schema'
+import type { Role } from '@/types'
 
-export const REQUIREMENTS_CACHE_TAG = 'requirements'
-
-const listByProject = async (projectId: string, headers: ReadonlyHeaders) => {
-  const activeMember = await getCachedActiveOrgMember(headers)
-  if (activeMember.role === 'client') {
-    return db
+const listByProject = async ({
+  memberId,
+  projectId,
+  role,
+}: {
+  projectId: string
+  role: Role
+  memberId: string
+}) => {
+  if (role === 'client') {
+    return await db
       .select(getTableColumns(requirements))
       .from(requirements)
       .where(
@@ -33,23 +37,27 @@ const listByProject = async (projectId: string, headers: ReadonlyHeaders) => {
         requirementRecipients,
         and(
           eq(requirementRecipients.requirementId, requirements.id),
-          eq(requirementRecipients.clientMemberId, activeMember.id)
+          eq(requirementRecipients.clientMemberId, memberId)
         )
       )
       .orderBy(desc(requirements.updatedAt))
   }
-  return db
+  return await db
     .select()
     .from(requirements)
     .where(eq(requirements.projectId, projectId))
     .orderBy(desc(requirements.updatedAt))
 }
 
-const getById = async (
-  requirementId: string,
-  projectId: string,
-  headers: ReadonlyHeaders
-) => {
+const getById = async ({
+  projectId,
+  requirementId,
+  role,
+}: {
+  requirementId: string
+  projectId: string
+  role: Role
+}) => {
   const [requirement] = await db
     .select()
     .from(requirements)
@@ -64,22 +72,26 @@ const getById = async (
     return null
   }
 
-  const member = await getCachedActiveOrgMember(headers)
-  if (member.role === 'client' && requirement.status === 'draft') {
+  if (role === 'client' && requirement.status === 'draft') {
     return null
   }
 
   return requirement
 }
 
-const getBySlug = async (
-  projectId: string,
-  slug: string,
-  headers: ReadonlyHeaders
-) => {
-  const activeMember = await getCachedActiveOrgMember(headers)
+const getBySlug = async ({
+  projectId,
+  role,
+  slug,
+  memberId,
+}: {
+  projectId: string
+  slug: string
+  role: Role
+  memberId: string
+}) => {
   let requirement: typeof requirements.$inferSelect | undefined
-  if (activeMember.role === 'client') {
+  if (role === 'client') {
     const requiredRequirements = await db
       .select(getTableColumns(requirements))
       .from(requirements)
@@ -90,7 +102,7 @@ const getBySlug = async (
         requirementRecipients,
         and(
           eq(requirementRecipients.requirementId, requirements.id),
-          eq(requirementRecipients.clientMemberId, activeMember.id)
+          eq(requirementRecipients.clientMemberId, memberId)
         )
       )
     requirement = requiredRequirements[0]
@@ -107,7 +119,13 @@ const getBySlug = async (
   return requirement ?? null
 }
 
-const getThreads = async (projectId: string, entityId: string) => {
+const getThreads = async ({
+  entityId,
+  projectId,
+}: {
+  projectId: string
+  entityId: string
+}) => {
   const rows = await db
     .select()
     .from(threadsTable)
@@ -150,7 +168,6 @@ const getThreads = async (projectId: string, entityId: string) => {
     messagesByThread.set(msg.threadId, list)
   }
 
-  // Get creator info
   const creatorIds = rows
     .map((t) => t.createdByMemberId)
     .filter((id): id is string => id != null)

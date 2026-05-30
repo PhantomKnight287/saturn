@@ -1,6 +1,4 @@
 import { and, asc, desc, eq, getTableColumns, inArray, not } from 'drizzle-orm'
-import type { ReadonlyHeaders } from 'next/dist/server/web/spec-extension/adapters/headers'
-import { getCachedActiveOrgMember } from '@/app/(organization)/[org]/cache'
 import { db } from '@/server/db'
 import {
   media as mediaTable,
@@ -13,13 +11,21 @@ import {
   threads,
   users,
 } from '@/server/db/schema'
+import type { Role } from '@/types'
 
 export const PROPOSALS_CACHE_TAG = 'proposals'
 
-const listByProject = async (projectId: string, headers: ReadonlyHeaders) => {
-  const activeMember = await getCachedActiveOrgMember(headers)
-  if (activeMember.role === 'client') {
-    return db
+const listByProject = async ({
+  memberId,
+  projectId,
+  role,
+}: {
+  projectId: string
+  memberId: string
+  role: Role
+}) => {
+  if (role === 'client') {
+    return await db
       .select(getTableColumns(proposals))
       .from(proposals)
       .where(
@@ -32,7 +38,7 @@ const listByProject = async (projectId: string, headers: ReadonlyHeaders) => {
         proposalRecipients,
         and(
           eq(proposalRecipients.proposalId, proposals.id),
-          eq(proposalRecipients.clientMemberId, activeMember.id)
+          eq(proposalRecipients.clientMemberId, memberId)
         )
       )
       .orderBy(desc(proposals.updatedAt))
@@ -44,14 +50,19 @@ const listByProject = async (projectId: string, headers: ReadonlyHeaders) => {
     .orderBy(desc(proposals.updatedAt))
 }
 
-const getBySlug = async (
-  projectId: string,
-  slug: string,
-  headers: ReadonlyHeaders
-) => {
-  const activeMember = await getCachedActiveOrgMember(headers)
+const getBySlug = async ({
+  projectId,
+  role,
+  slug,
+  memberId,
+}: {
+  projectId: string
+  slug: string
+  role: Role
+  memberId: string
+}) => {
   let proposal: typeof proposals.$inferSelect | undefined
-  if (activeMember.role === 'client') {
+  if (role === 'client') {
     const proposalArray = await db
       .select(getTableColumns(proposals))
       .from(proposals)
@@ -60,7 +71,7 @@ const getBySlug = async (
         proposalRecipients,
         and(
           eq(proposalRecipients.proposalId, proposals.id),
-          eq(proposalRecipients.clientMemberId, activeMember.id)
+          eq(proposalRecipients.clientMemberId, memberId)
         )
       )
     proposal = proposalArray[0]

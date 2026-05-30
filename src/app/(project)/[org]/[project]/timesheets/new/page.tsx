@@ -27,10 +27,8 @@ export default async function NewTimeEntryPage({
 }: PageProps<'/[org]/[project]/timesheets/new'>) {
   const { org, project: projectSlug } = await params
   const { date: dateParam, duration } = await searchParams
-  const { organization, project, role } = await resolveProjectContext(
-    org,
-    projectSlug
-  )
+  const { organization, project, role, orgMember } =
+    await resolveProjectContext(org, projectSlug)
 
   if (!role.authorize({ time_entry: ['create'] }).success) {
     redirect(
@@ -38,9 +36,12 @@ export default async function NewTimeEntryPage({
     )
   }
 
-  const h = await headers()
   const [requirementsList, defs] = await Promise.all([
-    requirementsService.listByProject(project.id, h),
+    requirementsService.listByProject({
+      memberId: orgMember.id,
+      role: orgMember.role,
+      projectId: project.id,
+    }),
     db
       .select()
       .from(customFields)

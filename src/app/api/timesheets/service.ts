@@ -10,8 +10,6 @@ import {
   lte,
   sum,
 } from 'drizzle-orm'
-import type { ReadonlyHeaders } from 'next/dist/server/web/spec-extension/adapters/headers'
-import { getCachedActiveOrgMember } from '@/app/(organization)/[org]/cache'
 import type { projectsService } from '@/app/api/projects/service'
 import { db } from '@/server/db'
 import {
@@ -26,6 +24,7 @@ import {
   timesheetReports,
   users,
 } from '@/server/db/schema'
+import type { Role } from '@/types'
 
 interface ListFilters {
   billable?: boolean
@@ -36,19 +35,23 @@ interface ListFilters {
   status?: string
 }
 
-const listByProject = async (
-  projectId: string,
-  headers: ReadonlyHeaders,
+const listByProject = async ({
+  projectId,
+  filters,
+  role,
+  memberId,
+}: {
+  projectId: string
   filters?: ListFilters
-) => {
-  const activeMember = await getCachedActiveOrgMember(headers)
-  const isAdmin =
-    activeMember?.role === 'owner' || activeMember?.role === 'admin'
+  role: Role
+  memberId: string
+}) => {
+  const isAdmin = role === 'owner' || role === 'admin'
 
   const conditions = [eq(timeEntries.projectId, projectId)]
 
-  if (!isAdmin && activeMember) {
-    conditions.push(eq(timeEntries.memberId, activeMember.id))
+  if (!isAdmin) {
+    conditions.push(eq(timeEntries.memberId, memberId))
   }
 
   if (filters?.memberId) {

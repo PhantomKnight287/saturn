@@ -1,6 +1,4 @@
 import { and, asc, desc, eq, inArray, isNull, or } from 'drizzle-orm'
-import type { ReadonlyHeaders } from 'next/dist/server/web/spec-extension/adapters/headers'
-import { getCachedActiveOrgMember } from '@/app/(organization)/[org]/cache'
 import { db } from '@/server/db'
 import {
   expenseCategories,
@@ -12,10 +10,17 @@ import {
   users,
 } from '@/server/db/schema'
 import { authService } from '../auth/service'
+import type { Role } from '@/types'
 
-const listByProject = async (projectId: string, headers: ReadonlyHeaders) => {
-  const activeMember = await getCachedActiveOrgMember(headers)
-
+const listByProject = async ({
+  memberId,
+  projectId,
+  role,
+}: {
+  role: Role
+  memberId: string
+  projectId: string
+}) => {
   const baseQuery = db
     .select({
       id: expenses.id,
@@ -47,13 +52,13 @@ const listByProject = async (projectId: string, headers: ReadonlyHeaders) => {
     .leftJoin(expenseCategories, eq(expenses.categoryId, expenseCategories.id))
     .leftJoin(media, eq(expenses.receiptMediaId, media.id))
 
-  if (activeMember?.role === 'client') {
-    return baseQuery
+  if (role === 'client') {
+    return await baseQuery
       .innerJoin(
         expenseRecipients,
         and(
           eq(expenses.id, expenseRecipients.expenseId),
-          eq(expenseRecipients.clientMemberId, activeMember.id)
+          eq(expenseRecipients.clientMemberId, memberId)
         )
       )
       .where(
@@ -68,17 +73,14 @@ const listByProject = async (projectId: string, headers: ReadonlyHeaders) => {
       )
       .orderBy(desc(expenses.date))
   }
-  if (activeMember?.role === 'member') {
-    return baseQuery
+  if (role === 'member') {
+    return await baseQuery
       .where(
-        and(
-          eq(expenses.projectId, projectId),
-          eq(expenses.memberId, activeMember.id)
-        )
+        and(eq(expenses.projectId, projectId), eq(expenses.memberId, memberId))
       )
       .orderBy(desc(expenses.date))
   }
-  return baseQuery
+  return await baseQuery
     .where(eq(expenses.projectId, projectId))
     .orderBy(desc(expenses.date))
 }

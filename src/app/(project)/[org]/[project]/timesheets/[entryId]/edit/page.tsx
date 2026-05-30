@@ -1,7 +1,6 @@
 import { and, asc, eq } from 'drizzle-orm'
 import { ArrowLeft } from 'lucide-react'
 import type { Metadata } from 'next'
-import { headers } from 'next/headers'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
@@ -47,9 +46,12 @@ export default async function EditTimeEntryPage({
     notFound()
   }
 
-  const h = await headers()
   const [requirementsList, defs] = await Promise.all([
-    requirementsService.listByProject(project.id, h),
+    requirementsService.listByProject({
+      memberId: orgMember.id,
+      role: orgMember.role,
+      projectId: project.id,
+    }),
     db
       .select()
       .from(customFields)

@@ -58,8 +58,6 @@ export default async function TimeTracking({
     )
   }
 
-  const h = await headers()
-
   const [
     entries,
     requirementsList,
@@ -72,9 +70,17 @@ export default async function TimeTracking({
     projectCustomFields,
   ] = await Promise.all([
     canReadTimeEntries
-      ? timesheetService.listByProject(currentProject.id, h)
+      ? timesheetService.listByProject({
+          memberId: orgMember.id,
+          role: orgMember.role,
+          projectId: currentProject.id,
+        })
       : Promise.resolve([]),
-    requirementsService.listByProject(currentProject.id, h),
+    requirementsService.listByProject({
+      memberId: orgMember.id,
+      role: orgMember.role,
+      projectId: currentProject.id,
+    }),
     teamService.getProjectMembers(currentProject.id),
     timesheetService.getProjectBudgetStatus(currentProject.id),
     isAdmin

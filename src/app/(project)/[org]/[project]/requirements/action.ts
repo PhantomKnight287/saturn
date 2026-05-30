@@ -116,11 +116,11 @@ export const updateRequirementAction = authedActionClient
     if (!role.authorize({ requirement: ['update'] }).success) {
       throw new Error('You do not have permission to update requirements')
     }
-    const requirement = await requirementsService.getById(
-      requirementId,
+    const requirement = await requirementsService.getById({
+      role: orgMember.role,
       projectId,
-      await headers()
-    )
+      requirementId,
+    })
     if (!requirement) {
       throw new Error('Requirement not found')
     }
@@ -177,11 +177,11 @@ export const sendForSignAction = authedActionClient
     if (!project) {
       throw new Error('Project not found')
     }
-    const requirement = await requirementsService.getById(
-      requirementId,
+    const requirement = await requirementsService.getById({
+      role: orgMember.role,
       projectId,
-      await headers()
-    )
+      requirementId,
+    })
     if (!requirement) {
       throw new Error('Requirement not found')
     }
@@ -270,11 +270,11 @@ export const signRequirementAction = authedActionClient
     if (!project) {
       throw new Error('Project not found')
     }
-    const requirement = await requirementsService.getById(
-      requirementId,
+    const requirement = await requirementsService.getById({
+      role: orgMember.role,
       projectId,
-      await headers()
-    )
+      requirementId,
+    })
     if (!requirement) {
       throw new Error('Requirement not found')
     }
@@ -375,11 +375,11 @@ export const createThreadAction = authedActionClient
     if (!project) {
       throw new Error('Project not found')
     }
-    const requirement = await requirementsService.getById(
-      requirementId,
+    const requirement = await requirementsService.getById({
+      role: orgMember.role,
       projectId,
-      await headers()
-    )
+      requirementId,
+    })
     if (!requirement) {
       throw new Error('Requirement not found')
     }
@@ -473,11 +473,11 @@ export const requestChangesAction = authedActionClient
     if (!project) {
       throw new Error('Project not found')
     }
-    const requirement = await requirementsService.getById(
-      requirementId,
+    const requirement = await requirementsService.getById({
+      role: orgMember.role,
       projectId,
-      await headers()
-    )
+      requirementId,
+    })
     if (!requirement) {
       throw new Error('Requirement not found')
     }
@@ -562,11 +562,11 @@ export const resolveChangeRequestAction = authedActionClient
     if (!project) {
       throw new Error('Project not found')
     }
-    const requirement = await requirementsService.getById(
-      requirementId,
+    const requirement = await requirementsService.getById({
+      role: orgMember.role,
       projectId,
-      await headers()
-    )
+      requirementId,
+    })
     if (!requirement) {
       throw new Error('Requirement not found')
     }
@@ -631,11 +631,11 @@ export const addThreadReplyAction = authedActionClient
     if (!project) {
       throw new Error('Project not found')
     }
-    const requirement = await requirementsService.getById(
-      requirementId,
+    const requirement = await requirementsService.getById({
+      role: orgMember.role,
       projectId,
-      await headers()
-    )
+      requirementId,
+    })
     if (!requirement) {
       throw new Error('Requirement not found')
     }
