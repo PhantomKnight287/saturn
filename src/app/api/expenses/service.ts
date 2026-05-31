@@ -9,8 +9,8 @@ import {
   members,
   users,
 } from '@/server/db/schema'
-import { authService } from '../auth/service'
 import type { Role } from '@/types'
+import { authService } from '../auth/service'
 
 const listByProject = async ({
   memberId,

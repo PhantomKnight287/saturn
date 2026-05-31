@@ -2,7 +2,6 @@
 
 import { render } from '@react-email/render'
 import { and, asc, eq, inArray, isNull } from 'drizzle-orm'
-import { authService } from '@/app/api/auth/service'
 import { projectsService } from '@/app/api/projects/service'
 import { timesheetService } from '@/app/api/timesheets/service'
 import BudgetThresholdReachedEmail from '@/emails/templates/budget-threshold-reached'
@@ -17,7 +16,11 @@ import {
   type CustomFieldDefinition,
 } from '@/lib/custom-fields'
 import { getAdminsAndOwners, sendEmailsToRecipients } from '@/lib/notifications'
-import { authedActionClient } from '@/lib/safe-action'
+import {
+  orgScopedActionClient,
+  projectScopedActionClient,
+} from '@/lib/safe-action'
+import { projectAccess } from '@/server/access/project-access'
 import { db } from '@/server/db'
 import {
   customFields,
@@ -25,7 +28,6 @@ import {
   memberRates,
   members,
   projectBudgets,
-  projects,
   timeEntries,
   timesheetReportEntries,
   timesheetReportRecipients,
@@ -33,6 +35,7 @@ import {
   users,
 } from '@/server/db/schema'
 import { currencyConversionService } from '@/services/currency-conversion.service'
+import type { Role } from '@/types'
 import {
   approveTimeEntriesSchema,
   createTimeEntrySchema,
@@ -113,7 +116,8 @@ function assertSingleProject(entries: Array<{ projectId: string }>): string {
   return [...projectIds][0]!
 }
 
-export const createTimeEntryAction = authedActionClient
+export const createTimeEntryAction = projectScopedActionClient
+  .metadata({ authorize: { time_entry: ['create'] } })
   .inputSchema(createTimeEntrySchema)
   .action(
     async ({
@@ -126,20 +130,8 @@ export const createTimeEntryAction = authedActionClient
         billable,
         customValues,
       },
-      ctx: { role, orgMember, user },
+      ctx: { orgMember },
     }) => {
-      if (!role.authorize({ time_entry: ['create'] }).success) {
-        throw new Error('You do not have permission to create time entries')
-      }
-      const hasProjectAccess = await authService.checkProjectAccess(
-        orgMember.organizationId,
-        projectId,
-        user.id
-      )
-      if (!hasProjectAccess.success) {
-        throw new Error('You do not have access to this project')
-      }
-
       const isAdmin = orgMember.role === 'owner' || orgMember.role === 'admin'
       const settings = await projectsService.getSettings(
         orgMember.organizationId,
@@ -188,7 +180,8 @@ export const createTimeEntryAction = authedActionClient
     }
   )
 
-export const updateTimeEntryAction = authedActionClient
+export const updateTimeEntryAction = orgScopedActionClient
+  .metadata({ authorize: { time_entry: ['update'] } })
   .inputSchema(updateTimeEntrySchema)
   .action(
     async ({
@@ -201,12 +194,8 @@ export const updateTimeEntryAction = authedActionClient
         billable,
         customValues,
       },
-      ctx: { role, orgMember, user },
+      ctx: { orgMember },
     }) => {
-      if (!role.authorize({ time_entry: ['update'] }).success) {
-        throw new Error('You do not have permission to update time entries')
-      }
-
       const existing = await db
         .select({
           id: timeEntries.id,
@@ -221,12 +210,16 @@ export const updateTimeEntryAction = authedActionClient
       if (!existing) {
         throw new Error('Time entry not found')
       }
-      const hasProjectAccess = await authService.checkProjectAccess(
-        orgMember.organizationId,
+      const granted = await projectAccess.check(
         existing.projectId,
-        user.id
+        orgMember.organizationId,
+        {
+          id: orgMember.id,
+          userId: orgMember.userId,
+          role: orgMember.role as Role,
+        }
       )
-      if (!hasProjectAccess.success) {
+      if (!granted) {
         throw new Error('Time entry not found')
       }
 
@@ -280,67 +273,57 @@ export const updateTimeEntryAction = authedActionClient
     }
   )
 
-export const deleteTimeEntryAction = authedActionClient
+export const deleteTimeEntryAction = orgScopedActionClient
+  .metadata({ authorize: { time_entry: ['delete'] } })
   .inputSchema(deleteTimeEntrySchema)
-  .action(
-    async ({
-      parsedInput: { timeEntryId },
-      ctx: { role, orgMember, user },
-    }) => {
-      if (!role.authorize({ time_entry: ['delete'] }).success) {
-        throw new Error('You do not have permission to delete time entries')
-      }
+  .action(async ({ parsedInput: { timeEntryId }, ctx: { orgMember } }) => {
+    const existing = await db
+      .select({
+        id: timeEntries.id,
+        projectId: timeEntries.projectId,
+        memberId: timeEntries.memberId,
+        status: timeEntries.status,
+      })
+      .from(timeEntries)
+      .where(eq(timeEntries.id, timeEntryId))
+      .then((r) => r.at(0))
 
-      const existing = await db
-        .select({
-          id: timeEntries.id,
-          projectId: timeEntries.projectId,
-          memberId: timeEntries.memberId,
-          status: timeEntries.status,
-        })
-        .from(timeEntries)
-        .where(eq(timeEntries.id, timeEntryId))
-        .then((r) => r.at(0))
-
-      if (!existing) {
-        throw new Error('Time entry not found')
-      }
-      const hasProjectAccess = await authService.checkProjectAccess(
-        orgMember.organizationId,
-        existing.projectId,
-        user.id
-      )
-      if (!hasProjectAccess.success) {
-        throw new Error('Time entry not found')
-      }
-
-      const isAdmin = orgMember.role === 'owner' || orgMember.role === 'admin'
-
-      if (!isAdmin && existing.memberId !== orgMember.id) {
-        throw new Error('You can only delete your own time entries')
-      }
-
-      if (!isAdmin && existing.status !== 'draft') {
-        throw new Error('Only draft entries can be deleted')
-      }
-
-      await db.delete(timeEntries).where(eq(timeEntries.id, timeEntryId))
-
-      return { success: true }
+    if (!existing) {
+      throw new Error('Time entry not found')
     }
-  )
+    const granted = await projectAccess.check(
+      existing.projectId,
+      orgMember.organizationId,
+      {
+        id: orgMember.id,
+        userId: orgMember.userId,
+        role: orgMember.role as Role,
+      }
+    )
+    if (!granted) {
+      throw new Error('Time entry not found')
+    }
 
-export const submitTimesheetAction = authedActionClient
+    const isAdmin = orgMember.role === 'owner' || orgMember.role === 'admin'
+
+    if (!isAdmin && existing.memberId !== orgMember.id) {
+      throw new Error('You can only delete your own time entries')
+    }
+
+    if (!isAdmin && existing.status !== 'draft') {
+      throw new Error('Only draft entries can be deleted')
+    }
+
+    await db.delete(timeEntries).where(eq(timeEntries.id, timeEntryId))
+
+    return { success: true }
+  })
+
+export const submitTimesheetAction = orgScopedActionClient
+  .metadata({ authorize: { time_entry: ['submit'] } })
   .inputSchema(submitTimesheetSchema)
   .action(
-    async ({
-      parsedInput: { timeEntryIds },
-      ctx: { role, orgMember, user },
-    }) => {
-      if (!role.authorize({ time_entry: ['submit'] }).success) {
-        throw new Error('You do not have permission to submit timesheets')
-      }
-
+    async ({ parsedInput: { timeEntryIds }, ctx: { orgMember, user } }) => {
       const entries = await db
         .select(timeEntryColumns)
         .from(timeEntries)
@@ -352,12 +335,16 @@ export const submitTimesheetAction = authedActionClient
 
       const projectId = assertSingleProject(entries)
 
-      const hasProjectAccess = await authService.checkProjectAccess(
-        orgMember.organizationId,
+      const granted = await projectAccess.check(
         projectId,
-        user.id
+        orgMember.organizationId,
+        {
+          id: orgMember.id,
+          userId: orgMember.userId,
+          role: orgMember.role as Role,
+        }
       )
-      if (!hasProjectAccess.success) {
+      if (!granted) {
         throw new Error('No time entries found')
       }
 
@@ -408,17 +395,11 @@ export const submitTimesheetAction = authedActionClient
     }
   )
 
-export const approveTimeEntriesAction = authedActionClient
+export const approveTimeEntriesAction = orgScopedActionClient
+  .metadata({ authorize: { time_entry: ['approve'] } })
   .inputSchema(approveTimeEntriesSchema)
   .action(
-    async ({
-      parsedInput: { timeEntryIds },
-      ctx: { role, orgMember, user },
-    }) => {
-      if (!role.authorize({ time_entry: ['approve'] }).success) {
-        throw new Error('You do not have permission to approve time entries')
-      }
-
+    async ({ parsedInput: { timeEntryIds }, ctx: { orgMember, user } }) => {
       const entries = await db
         .select(timeEntryColumns)
         .from(timeEntries)
@@ -430,12 +411,16 @@ export const approveTimeEntriesAction = authedActionClient
 
       const projectId = assertSingleProject(entries)
 
-      const hasProjectAccess = await authService.checkProjectAccess(
-        orgMember.organizationId,
+      const granted = await projectAccess.check(
         projectId,
-        user.id
+        orgMember.organizationId,
+        {
+          id: orgMember.id,
+          userId: orgMember.userId,
+          role: orgMember.role as Role,
+        }
       )
-      if (!hasProjectAccess.success) {
+      if (!granted) {
         throw new Error('No time entries found')
       }
 
@@ -522,17 +507,14 @@ export const approveTimeEntriesAction = authedActionClient
     }
   )
 
-export const rejectTimeEntriesAction = authedActionClient
+export const rejectTimeEntriesAction = orgScopedActionClient
+  .metadata({ authorize: { time_entry: ['reject'] } })
   .inputSchema(rejectTimeEntriesSchema)
   .action(
     async ({
       parsedInput: { timeEntryIds, reason },
-      ctx: { role, user, orgMember },
+      ctx: { user, orgMember },
     }) => {
-      if (!role.authorize({ time_entry: ['reject'] }).success) {
-        throw new Error('You do not have permission to reject time entries')
-      }
-
       const entries = await db
         .select(timeEntryColumns)
         .from(timeEntries)
@@ -544,12 +526,16 @@ export const rejectTimeEntriesAction = authedActionClient
 
       const projectId = assertSingleProject(entries)
 
-      const hasProjectAccess = await authService.checkProjectAccess(
-        orgMember.organizationId,
+      const granted = await projectAccess.check(
         projectId,
-        user.id
+        orgMember.organizationId,
+        {
+          id: orgMember.id,
+          userId: orgMember.userId,
+          role: orgMember.role as Role,
+        }
       )
-      if (!hasProjectAccess.success) {
+      if (!granted) {
         throw new Error('No time entries found')
       }
 
@@ -606,7 +592,8 @@ export const rejectTimeEntriesAction = authedActionClient
     }
   )
 
-export const setMemberRateAction = authedActionClient
+export const setMemberRateAction = orgScopedActionClient
+  .metadata({ authorize: { member_rate: ['manage'] } })
   .inputSchema(setMemberRateSchema)
   .action(
     async ({
@@ -621,12 +608,8 @@ export const setMemberRateAction = authedActionClient
         payFrequency,
         payRate,
       },
-      ctx: { role, user, orgMember },
+      ctx: { orgMember },
     }) => {
-      if (!role.authorize({ member_rate: ['manage'] }).success) {
-        throw new Error('You do not have permission to manage member rates')
-      }
-
       // Verify the target member belongs to this org before writing — with
       // projectId null this would otherwise be a cross-tenant write path.
       const [targetMember] = await db
@@ -643,12 +626,16 @@ export const setMemberRateAction = authedActionClient
       }
 
       if (projectId) {
-        const hasProjectAccess = await authService.checkProjectAccess(
-          orgMember.organizationId,
+        const granted = await projectAccess.check(
           projectId,
-          user.id
+          orgMember.organizationId,
+          {
+            id: orgMember.id,
+            userId: orgMember.userId,
+            role: orgMember.role as Role,
+          }
         )
-        if (!hasProjectAccess.success) {
+        if (!granted) {
           throw new Error('You do not have access to this project')
         }
       }
@@ -706,25 +693,11 @@ export const setMemberRateAction = authedActionClient
     }
   )
 
-export const setProjectBudgetAction = authedActionClient
+export const setProjectBudgetAction = projectScopedActionClient
+  .metadata({ authorize: { project_budget: ['manage'] } })
   .inputSchema(setProjectBudgetSchema)
   .action(
-    async ({
-      parsedInput: { projectId, budgetMinutes, alertThreshold },
-      ctx: { role, user, orgMember },
-    }) => {
-      if (!role.authorize({ project_budget: ['manage'] }).success) {
-        throw new Error('You do not have permission to manage project budgets')
-      }
-      const hasProjectAccess = await authService.checkProjectAccess(
-        orgMember.organizationId,
-        projectId,
-        user.id
-      )
-      if (!hasProjectAccess.success) {
-        throw new Error('You do not have access to this project')
-      }
-
+    async ({ parsedInput: { projectId, budgetMinutes, alertThreshold } }) => {
       const existing = await db
         .select({ id: projectBudgets.id })
         .from(projectBudgets)
@@ -749,17 +722,14 @@ export const setProjectBudgetAction = authedActionClient
     }
   )
 
-export const linkTimeEntriesToInvoiceAction = authedActionClient
+export const linkTimeEntriesToInvoiceAction = orgScopedActionClient
+  .metadata({ authorize: { invoice: ['create'] } })
   .inputSchema(linkTimeEntriesToInvoiceSchema)
   .action(
     async ({
       parsedInput: { timeEntryIds, invoiceId },
-      ctx: { role, user, orgMember },
+      ctx: { orgMember },
     }) => {
-      if (!role.authorize({ invoice: ['create'] }).success) {
-        throw new Error('You do not have permission to link time entries')
-      }
-
       const entries = await db
         .select({ id: timeEntries.id, projectId: timeEntries.projectId })
         .from(timeEntries)
@@ -770,12 +740,16 @@ export const linkTimeEntriesToInvoiceAction = authedActionClient
 
       const projectId = assertSingleProject(entries)
 
-      const hasProjectAccess = await authService.checkProjectAccess(
-        orgMember.organizationId,
+      const granted = await projectAccess.check(
         projectId,
-        user.id
+        orgMember.organizationId,
+        {
+          id: orgMember.id,
+          userId: orgMember.userId,
+          role: orgMember.role as Role,
+        }
       )
-      if (!hasProjectAccess.success) {
+      if (!granted) {
         throw new Error('No time entries found')
       }
 
@@ -801,26 +775,16 @@ export const linkTimeEntriesToInvoiceAction = authedActionClient
     }
   )
 
-export const sendTimesheetToClientAction = authedActionClient
+export const sendTimesheetToClientAction = projectScopedActionClient
+  .metadata({ authorize: { timesheet_report: ['send'] } })
   .inputSchema(sendTimesheetToClientSchema)
   .action(
     async ({
       parsedInput: { projectId, clientMemberIds, title, timeEntryIds },
-      ctx: { role, orgMember, user },
+      ctx: { orgMember, user },
     }) => {
-      if (!role.authorize({ timesheet_report: ['send'] }).success) {
-        throw new Error('You do not have permission to send timesheets')
-      }
       if (clientMemberIds.length === 0) {
         throw new Error('At least one client member is required')
-      }
-      const hasProjectAccess = await authService.checkProjectAccess(
-        orgMember.organizationId,
-        projectId,
-        user.id
-      )
-      if (!hasProjectAccess.success) {
-        throw new Error('You do not have access to this project')
       }
       const settings = await projectsService.getSettings(
         orgMember.organizationId,
@@ -990,7 +954,8 @@ export const sendTimesheetToClientAction = authedActionClient
     }
   )
 
-export const respondTimesheetReportAction = authedActionClient
+export const respondTimesheetReportAction = orgScopedActionClient
+  .metadata({})
   .inputSchema(respondTimesheetReportSchema)
   .action(
     async ({
@@ -1018,12 +983,16 @@ export const respondTimesheetReportAction = authedActionClient
       if (!report) {
         throw new Error('Report not found')
       }
-      const hasProjectAccess = await authService.checkProjectAccess(
-        orgMember.organizationId,
+      const granted = await projectAccess.check(
         report.projectId,
-        user.id
+        orgMember.organizationId,
+        {
+          id: orgMember.id,
+          userId: orgMember.userId,
+          role: orgMember.role as Role,
+        }
       )
-      if (!hasProjectAccess.success) {
+      if (!granted) {
         throw new Error('Report not found')
       }
       const settings = await projectsService.getSettings(
@@ -1165,189 +1134,185 @@ export const respondTimesheetReportAction = authedActionClient
     }
   )
 
-export const resendTimesheetReportAction = authedActionClient
+export const resendTimesheetReportAction = orgScopedActionClient
+  .metadata({ authorize: { timesheet_report: ['send'] } })
   .inputSchema(resendTimesheetReportSchema)
-  .action(
-    async ({ parsedInput: { reportId }, ctx: { role, orgMember, user } }) => {
-      if (!role.authorize({ timesheet_report: ['send'] }).success) {
-        throw new Error('You do not have permission to resend timesheets')
-      }
+  .action(async ({ parsedInput: { reportId }, ctx: { orgMember, user } }) => {
+    const [report] = await db
+      .select({
+        id: timesheetReports.id,
+        projectId: timesheetReports.projectId,
+        title: timesheetReports.title,
+        status: timesheetReports.status,
+        currency: timesheetReports.currency,
+      })
+      .from(timesheetReports)
+      .where(eq(timesheetReports.id, reportId))
 
-      const [report] = await db
-        .select({
-          id: timesheetReports.id,
-          projectId: timesheetReports.projectId,
-          title: timesheetReports.title,
-          status: timesheetReports.status,
-          currency: timesheetReports.currency,
-        })
-        .from(timesheetReports)
-        .where(eq(timesheetReports.id, reportId))
-
-      if (!report) {
-        throw new Error('Report not found')
-      }
-
-      const [project] = await db
-        .select({ organizationId: projects.organizationId })
-        .from(projects)
-        .where(eq(projects.id, report.projectId))
-      if (!project || project.organizationId !== orgMember.organizationId) {
-        throw new Error('Report not found')
-      }
-
-      const settings = await projectsService.getSettings(
-        orgMember.organizationId,
-        report.projectId
-      )
-      if (settings.clientInvolvement.timesheets === 'off') {
-        throw new Error(
-          'Client involvement is disabled for timesheets in this project'
-        )
-      }
-
-      if (report.status !== 'disputed') {
-        throw new Error('Only disputed reports can be resent')
-      }
-
-      const entryLinks = await db
-        .select({ timeEntryId: timesheetReportEntries.timeEntryId })
-        .from(timesheetReportEntries)
-        .where(eq(timesheetReportEntries.reportId, reportId))
-
-      const entryIds = entryLinks.map((e) => e.timeEntryId)
-      const linkedEntries =
-        entryIds.length > 0
-          ? await db
-              .select(timeEntryColumns)
-              .from(timeEntries)
-              .where(inArray(timeEntries.id, entryIds))
-          : []
-
-      const totalMinutes = linkedEntries.reduce(
-        (sum, e) => sum + e.durationMinutes,
-        0
-      )
-
-      // Resolve each member's rate as of the entry's own date, memoised per
-      // (member, date), so totals stay correct when the linked entries
-      // straddle a rate change.
-      const rateCache = new Map<
-        string,
-        Awaited<ReturnType<typeof timesheetService.getMemberRate>>
-      >()
-      const resolveRate = async (memberId: string, date: string) => {
-        const key = `${memberId}|${date}`
-        if (!rateCache.has(key)) {
-          rateCache.set(
-            key,
-            await timesheetService.getMemberRate(
-              memberId,
-              report.projectId,
-              date
-            )
-          )
-        }
-        return rateCache.get(key)
-      }
-
-      const reportCurrency = report.currency
-
-      let totalAmountCents = 0
-      for (const entry of linkedEntries) {
-        const rate = await resolveRate(entry.memberId, entry.date)
-        if (!rate) {
-          continue
-        }
-        const entryAmount = computeEntryAmount(
-          entry.durationMinutes,
-          rate.billingRate ?? rate.payRate,
-          rate.billingFrequency ?? rate.payFrequency ?? 'hourly'
-        )
-        const entryCurrency =
-          rate.billingRate == null ? rate.payCurrency : rate.billingCurrency
-        if (!entryCurrency) {
-          continue
-        }
-        const { amount: converted } =
-          await currencyConversionService.convertCents(
-            entryAmount,
-            entryCurrency,
-            reportCurrency
-          )
-        totalAmountCents += converted
-      }
-
-      await db
-        .update(timesheetReports)
-        .set({
-          status: 'sent',
-          disputeReason: null,
-          respondedAt: null,
-          sentAt: new Date(),
-          totalMinutes,
-          totalAmount: totalAmountCents,
-        })
-        .where(eq(timesheetReports.id, reportId))
-
-      await db
-        .update(timesheetReportRecipients)
-        .set({
-          status: 'pending',
-          disputeReason: null,
-          respondedAt: null,
-        })
-        .where(eq(timesheetReportRecipients.reportId, reportId))
-
-      const details = await projectsService.getProjectDetails(report.projectId)
-
-      const recipients = await db
-        .select({ clientMemberId: timesheetReportRecipients.clientMemberId })
-        .from(timesheetReportRecipients)
-        .where(eq(timesheetReportRecipients.reportId, reportId))
-
-      const clientMemberIds = recipients.map((r) => r.clientMemberId)
-
-      if (clientMemberIds.length > 0) {
-        const clients = await db
-          .select({ email: users.email, name: users.name })
-          .from(members)
-          .innerJoin(users, eq(members.userId, users.id))
-          .where(inArray(members.id, clientMemberIds))
-
-        if (clients.length > 0) {
-          const totalHours = (totalMinutes / 60).toFixed(1)
-          const totalAmountFormatted = (totalAmountCents / 100).toLocaleString(
-            'en-US',
-            { style: 'currency', currency: report.currency }
-          )
-          await sendEmailsToRecipients(clients, async (recipient) => {
-            const html = await render(
-              TimesheetSentToClientEmail({
-                recipientName: recipient.name ?? 'there',
-                senderName: user.name ?? 'there',
-                projectName: details.projectName,
-                reportTitle: report.title,
-                totalHours,
-                totalAmount: totalAmountFormatted,
-                currency: report.currency,
-                orgSlug: details.orgSlug ?? '',
-                projectSlug: details.projectSlug,
-                reportId: report.id,
-              })
-            )
-            return {
-              to: recipient.email,
-              subject: `Revised timesheet for review — ${report.title}`,
-              html,
-            }
-          })
-        }
-      }
-
-      return { success: true }
+    if (!report) {
+      throw new Error('Report not found')
     }
-  )
+
+    const granted = await projectAccess.check(
+      report.projectId,
+      orgMember.organizationId,
+      {
+        id: orgMember.id,
+        userId: orgMember.userId,
+        role: orgMember.role as Role,
+      }
+    )
+    if (!granted) {
+      throw new Error('Report not found')
+    }
+
+    const settings = await projectsService.getSettings(
+      orgMember.organizationId,
+      report.projectId
+    )
+    if (settings.clientInvolvement.timesheets === 'off') {
+      throw new Error(
+        'Client involvement is disabled for timesheets in this project'
+      )
+    }
+
+    if (report.status !== 'disputed') {
+      throw new Error('Only disputed reports can be resent')
+    }
+
+    const entryLinks = await db
+      .select({ timeEntryId: timesheetReportEntries.timeEntryId })
+      .from(timesheetReportEntries)
+      .where(eq(timesheetReportEntries.reportId, reportId))
+
+    const entryIds = entryLinks.map((e) => e.timeEntryId)
+    const linkedEntries =
+      entryIds.length > 0
+        ? await db
+            .select(timeEntryColumns)
+            .from(timeEntries)
+            .where(inArray(timeEntries.id, entryIds))
+        : []
+
+    const totalMinutes = linkedEntries.reduce(
+      (sum, e) => sum + e.durationMinutes,
+      0
+    )
+
+    // Resolve each member's rate as of the entry's own date, memoised per
+    // (member, date), so totals stay correct when the linked entries
+    // straddle a rate change.
+    const rateCache = new Map<
+      string,
+      Awaited<ReturnType<typeof timesheetService.getMemberRate>>
+    >()
+    const resolveRate = async (memberId: string, date: string) => {
+      const key = `${memberId}|${date}`
+      if (!rateCache.has(key)) {
+        rateCache.set(
+          key,
+          await timesheetService.getMemberRate(memberId, report.projectId, date)
+        )
+      }
+      return rateCache.get(key)
+    }
+
+    const reportCurrency = report.currency
+
+    let totalAmountCents = 0
+    for (const entry of linkedEntries) {
+      const rate = await resolveRate(entry.memberId, entry.date)
+      if (!rate) {
+        continue
+      }
+      const entryAmount = computeEntryAmount(
+        entry.durationMinutes,
+        rate.billingRate ?? rate.payRate,
+        rate.billingFrequency ?? rate.payFrequency ?? 'hourly'
+      )
+      const entryCurrency =
+        rate.billingRate == null ? rate.payCurrency : rate.billingCurrency
+      if (!entryCurrency) {
+        continue
+      }
+      const { amount: converted } =
+        await currencyConversionService.convertCents(
+          entryAmount,
+          entryCurrency,
+          reportCurrency
+        )
+      totalAmountCents += converted
+    }
+
+    await db
+      .update(timesheetReports)
+      .set({
+        status: 'sent',
+        disputeReason: null,
+        respondedAt: null,
+        sentAt: new Date(),
+        totalMinutes,
+        totalAmount: totalAmountCents,
+      })
+      .where(eq(timesheetReports.id, reportId))
+
+    await db
+      .update(timesheetReportRecipients)
+      .set({
+        status: 'pending',
+        disputeReason: null,
+        respondedAt: null,
+      })
+      .where(eq(timesheetReportRecipients.reportId, reportId))
+
+    const details = await projectsService.getProjectDetails(report.projectId)
+
+    const recipients = await db
+      .select({ clientMemberId: timesheetReportRecipients.clientMemberId })
+      .from(timesheetReportRecipients)
+      .where(eq(timesheetReportRecipients.reportId, reportId))
+
+    const clientMemberIds = recipients.map((r) => r.clientMemberId)
+
+    if (clientMemberIds.length > 0) {
+      const clients = await db
+        .select({ email: users.email, name: users.name })
+        .from(members)
+        .innerJoin(users, eq(members.userId, users.id))
+        .where(inArray(members.id, clientMemberIds))
+
+      if (clients.length > 0) {
+        const totalHours = (totalMinutes / 60).toFixed(1)
+        const totalAmountFormatted = (totalAmountCents / 100).toLocaleString(
+          'en-US',
+          { style: 'currency', currency: report.currency }
+        )
+        await sendEmailsToRecipients(clients, async (recipient) => {
+          const html = await render(
+            TimesheetSentToClientEmail({
+              recipientName: recipient.name ?? 'there',
+              senderName: user.name ?? 'there',
+              projectName: details.projectName,
+              reportTitle: report.title,
+              totalHours,
+              totalAmount: totalAmountFormatted,
+              currency: report.currency,
+              orgSlug: details.orgSlug ?? '',
+              projectSlug: details.projectSlug,
+              reportId: report.id,
+            })
+          )
+          return {
+            to: recipient.email,
+            subject: `Revised timesheet for review — ${report.title}`,
+            html,
+          }
+        })
+      }
+    }
+
+    return { success: true }
+  })
 
 function formatWeekLabel(dates: string[]): string {
   if (dates.length === 0) {

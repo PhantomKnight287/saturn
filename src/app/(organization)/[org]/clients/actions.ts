@@ -2,7 +2,7 @@
 
 import { and, eq } from 'drizzle-orm'
 import { headers } from 'next/headers'
-import { authedActionClient } from '@/lib/safe-action'
+import { orgScopedActionClient } from '@/lib/safe-action'
 import { auth } from '@/server/auth'
 import { db } from '@/server/db'
 import { members } from '@/server/db/schema/auth'
@@ -16,17 +16,11 @@ import {
   removeClientFromProjectSchema,
 } from './common'
 
-export const assignClientToProjectAction = authedActionClient
+export const assignClientToProjectAction = orgScopedActionClient
+  .metadata({ authorize: { member: ['create'] } })
   .inputSchema(assignClientToProjectSchema)
   .action(
-    async ({
-      parsedInput: { memberId, projectId },
-      ctx: { role, orgMember },
-    }) => {
-      if (!role.authorize({ member: ['create'] }).success) {
-        throw new Error('You do not have permission to assign clients')
-      }
-
+    async ({ parsedInput: { memberId, projectId }, ctx: { orgMember } }) => {
       const [member] = await db
         .select({
           id: members.id,
@@ -58,47 +52,39 @@ export const assignClientToProjectAction = authedActionClient
     }
   )
 
-export const removeClientFromProjectAction = authedActionClient
+export const removeClientFromProjectAction = orgScopedActionClient
+  .metadata({ authorize: { member: ['delete'] } })
   .inputSchema(removeClientFromProjectSchema)
-  .action(
-    async ({ parsedInput: { assignmentId }, ctx: { role, orgMember } }) => {
-      if (!role.authorize({ member: ['delete'] }).success) {
-        throw new Error('You do not have permission to remove clients')
-      }
-
-      const [assignment] = await db
-        .select({
-          id: projectClientAssignments.id,
-          memberId: projectClientAssignments.memberId,
-        })
-        .from(projectClientAssignments)
-        .innerJoin(members, eq(projectClientAssignments.memberId, members.id))
-        .where(
-          and(
-            eq(projectClientAssignments.id, assignmentId),
-            eq(members.organizationId, orgMember.organizationId)
-          )
+  .action(async ({ parsedInput: { assignmentId }, ctx: { orgMember } }) => {
+    const [assignment] = await db
+      .select({
+        id: projectClientAssignments.id,
+        memberId: projectClientAssignments.memberId,
+      })
+      .from(projectClientAssignments)
+      .innerJoin(members, eq(projectClientAssignments.memberId, members.id))
+      .where(
+        and(
+          eq(projectClientAssignments.id, assignmentId),
+          eq(members.organizationId, orgMember.organizationId)
         )
+      )
 
-      if (!assignment) {
-        throw new Error('Assignment not found')
-      }
-
-      await db
-        .delete(projectClientAssignments)
-        .where(eq(projectClientAssignments.id, assignmentId))
-
-      return { success: true }
+    if (!assignment) {
+      throw new Error('Assignment not found')
     }
-  )
 
-export const removeClientFromOrgAction = authedActionClient
+    await db
+      .delete(projectClientAssignments)
+      .where(eq(projectClientAssignments.id, assignmentId))
+
+    return { success: true }
+  })
+
+export const removeClientFromOrgAction = orgScopedActionClient
+  .metadata({ authorize: { member: ['delete'] } })
   .inputSchema(removeClientFromOrgSchema)
-  .action(async ({ parsedInput: { memberId }, ctx: { role, orgMember } }) => {
-    if (!role.authorize({ member: ['delete'] }).success) {
-      throw new Error('You do not have permission to remove clients')
-    }
-
+  .action(async ({ parsedInput: { memberId }, ctx: { orgMember } }) => {
     const [member] = await db
       .select({
         id: members.id,

@@ -1,7 +1,6 @@
 import { and, asc, eq } from 'drizzle-orm'
 import { ArrowLeft } from 'lucide-react'
 import type { Metadata } from 'next'
-import { headers } from 'next/headers'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { resolveProjectContext } from '@/app/(organization)/[org]/cache'

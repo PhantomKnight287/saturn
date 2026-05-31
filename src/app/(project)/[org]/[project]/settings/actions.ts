@@ -2,7 +2,7 @@
 
 import { and, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { formatLocalDateOnly } from '@/lib/custom-fields'
-import { authedActionClient } from '@/lib/safe-action'
+import { orgScopedActionClient } from '@/lib/safe-action'
 import { db } from '@/server/db'
 import {
   customFields,
@@ -23,17 +23,14 @@ import {
   updateProjectTimesheetDefaultsSchema,
 } from './common'
 
-export const renameProjectAction = authedActionClient
+export const renameProjectAction = orgScopedActionClient
+  .metadata({ authorize: { organization: ['update'] } })
   .inputSchema(renameProjectSchema)
   .action(
     async ({
       parsedInput: { projectId, organizationId, name, slug, dueDate },
-      ctx: { role, orgMember },
+      ctx: { orgMember },
     }) => {
-      if (!role.authorize({ organization: ['update'] }).success) {
-        throw new Error('You do not have permission to update project settings')
-      }
-
       if (orgMember.organizationId !== organizationId) {
         throw new Error('Organization mismatch')
       }
@@ -56,7 +53,8 @@ export const renameProjectAction = authedActionClient
     }
   )
 
-export const updateProjectTimesheetDefaultsAction = authedActionClient
+export const updateProjectTimesheetDefaultsAction = orgScopedActionClient
+  .metadata({ authorize: { organization: ['update'] } })
   .inputSchema(updateProjectTimesheetDefaultsSchema)
   .action(
     async ({
@@ -71,12 +69,8 @@ export const updateProjectTimesheetDefaultsAction = authedActionClient
         defaultBillingFrequency,
         defaultTimesheetDuration,
       },
-      ctx: { role, orgMember },
+      ctx: { orgMember },
     }) => {
-      if (!role.authorize({ organization: ['update'] }).success) {
-        throw new Error('You do not have permission to update project settings')
-      }
-
       if (orgMember.organizationId !== organizationId) {
         throw new Error('Organization mismatch')
       }
@@ -114,7 +108,8 @@ export const updateProjectTimesheetDefaultsAction = authedActionClient
     }
   )
 
-export const updateProjectBillingDetailsAction = authedActionClient
+export const updateProjectBillingDetailsAction = orgScopedActionClient
+  .metadata({ authorize: { organization: ['update'] } })
   .inputSchema(updateProjectBillingDetailsSchema)
   .action(
     async ({
@@ -126,12 +121,8 @@ export const updateProjectBillingDetailsAction = authedActionClient
         invoiceToName,
         invoiceToAddress,
       },
-      ctx: { role, orgMember },
+      ctx: { orgMember },
     }) => {
-      if (!role.authorize({ organization: ['update'] }).success) {
-        throw new Error('You do not have permission to update project settings')
-      }
-
       if (orgMember.organizationId !== organizationId) {
         throw new Error('Organization mismatch')
       }
@@ -167,7 +158,8 @@ export const updateProjectBillingDetailsAction = authedActionClient
     }
   )
 
-export const updateProjectStatusAction = authedActionClient
+export const updateProjectStatusAction = orgScopedActionClient
+  .metadata({ authorize: { organization: ['update'] } })
   .inputSchema(updateProjectStatusSchema)
   .action(
     async ({
@@ -196,17 +188,14 @@ export const updateProjectStatusAction = authedActionClient
     }
   )
 
-export const deleteProjectAction = authedActionClient
+export const deleteProjectAction = orgScopedActionClient
+  .metadata({ authorize: { organization: ['delete'] } })
   .inputSchema(deleteProjectSchema)
   .action(
     async ({
       parsedInput: { projectId, organizationId, confirmName },
-      ctx: { role, orgMember },
+      ctx: { orgMember },
     }) => {
-      if (!role.authorize({ organization: ['delete'] }).success) {
-        throw new Error('You do not have permission to delete this project')
-      }
-
       if (orgMember.organizationId !== organizationId) {
         throw new Error('Organization mismatch')
       }
@@ -258,16 +247,14 @@ async function assertProjectInOrg(projectId: string, organizationId: string) {
   }
 }
 
-export const createProjectCustomFieldAction = authedActionClient
+export const createProjectCustomFieldAction = orgScopedActionClient
+  .metadata({ authorize: { project: ['update'] } })
   .inputSchema(createProjectCustomFieldSchema)
   .action(
     async ({
       parsedInput: { organizationId, projectId, definition },
-      ctx: { role, orgMember },
+      ctx: { orgMember },
     }) => {
-      if (!role.authorize({ project: ['update'] }).success) {
-        throw new Error('You do not have permission to update project settings')
-      }
       if (orgMember.organizationId !== organizationId) {
         throw new Error(
           'This project belongs to a different workspace than the one you have selected'
@@ -293,16 +280,14 @@ export const createProjectCustomFieldAction = authedActionClient
     }
   )
 
-export const updateProjectCustomFieldAction = authedActionClient
+export const updateProjectCustomFieldAction = orgScopedActionClient
+  .metadata({ authorize: { project: ['update'] } })
   .inputSchema(updateProjectCustomFieldSchema)
   .action(
     async ({
       parsedInput: { organizationId, projectId, fieldId, definition },
-      ctx: { role, orgMember },
+      ctx: { orgMember },
     }) => {
-      if (!role.authorize({ project: ['update'] }).success) {
-        throw new Error('You do not have permission to update project settings')
-      }
       if (orgMember.organizationId !== organizationId) {
         throw new Error(
           'This project belongs to a different workspace than the one you have selected'
@@ -358,16 +343,14 @@ export const updateProjectCustomFieldAction = authedActionClient
     }
   )
 
-export const deleteProjectCustomFieldAction = authedActionClient
+export const deleteProjectCustomFieldAction = orgScopedActionClient
+  .metadata({ authorize: { project: ['update'] } })
   .inputSchema(deleteProjectCustomFieldSchema)
   .action(
     async ({
       parsedInput: { organizationId, projectId, fieldId },
-      ctx: { role, orgMember },
+      ctx: { orgMember },
     }) => {
-      if (!role.authorize({ project: ['update'] }).success) {
-        throw new Error('You do not have permission to update project settings')
-      }
       if (orgMember.organizationId !== organizationId) {
         throw new Error(
           'This project belongs to a different workspace than the one you have selected'
@@ -403,16 +386,14 @@ export const deleteProjectCustomFieldAction = authedActionClient
     }
   )
 
-export const importOrgCustomFieldsAction = authedActionClient
+export const importOrgCustomFieldsAction = orgScopedActionClient
+  .metadata({ authorize: { project: ['update'] } })
   .inputSchema(importOrgCustomFieldsSchema)
   .action(
     async ({
       parsedInput: { organizationId, projectId, fieldIds },
-      ctx: { role, orgMember },
+      ctx: { orgMember },
     }) => {
-      if (!role.authorize({ project: ['update'] }).success) {
-        throw new Error('You do not have permission to update project settings')
-      }
       if (orgMember.organizationId !== organizationId) {
         throw new Error(
           'This project belongs to a different workspace than the one you have selected'
@@ -455,17 +436,14 @@ export const importOrgCustomFieldsAction = authedActionClient
     }
   )
 
-export const updateClientInvolvementLevelAction = authedActionClient
+export const updateClientInvolvementLevelAction = orgScopedActionClient
+  .metadata({ authorize: { organization: ['update'] } })
   .inputSchema(clientInvolvementProjectSchema)
   .action(
     async ({
       parsedInput: { clientInvolvement, organizationId, projectId },
-      ctx: { role, orgMember },
+      ctx: { orgMember },
     }) => {
-      if (!role.authorize({ organization: ['update'] }).success) {
-        throw new Error('You do not have permission to update project settings')
-      }
-
       if (orgMember.organizationId !== organizationId) {
         throw new Error('Organization mismatch')
       }

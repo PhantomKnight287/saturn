@@ -2,7 +2,6 @@
 
 import { render } from '@react-email/render'
 import { and, eq, inArray } from 'drizzle-orm'
-import { authService } from '@/app/api/auth/service'
 import { projectsService } from '@/app/api/projects/service'
 import InvoiceDisputedEmail from '@/emails/templates/invoice-disputed'
 import InvoicePaidEmail from '@/emails/templates/invoice-paid'
@@ -11,7 +10,11 @@ import InvoiceUnpaidEmail from '@/emails/templates/invoice-unpaid'
 import ThreadNewMessageEmail from '@/emails/templates/thread-new-message'
 import { formatLocalDateOnly } from '@/lib/custom-fields'
 import { getAdminsAndOwners, sendEmailsToRecipients } from '@/lib/notifications'
-import { authedActionClient } from '@/lib/safe-action'
+import {
+  orgScopedActionClient,
+  projectScopedActionClient,
+} from '@/lib/safe-action'
+import { projectAccess } from '@/server/access/project-access'
 import { db } from '@/server/db'
 import {
   expenses,
@@ -26,6 +29,7 @@ import {
   users,
 } from '@/server/db/schema'
 import { currencyConversionService } from '@/services/currency-conversion.service'
+import type { Role } from '@/types'
 import {
   changeInvoiceStatusSchema,
   createInvoiceSchema,
@@ -62,7 +66,8 @@ function collectRatesFromItems(
   return rates
 }
 
-export const createInvoiceAction = authedActionClient
+export const createInvoiceAction = projectScopedActionClient
+  .metadata({ authorize: { invoice: ['create'] } })
   .inputSchema(createInvoiceSchema)
   .action(
     async ({
@@ -91,20 +96,8 @@ export const createInvoiceAction = authedActionClient
         discountAmount,
         recipientType,
       },
-      ctx: { role, user, orgMember },
+      ctx: { user, orgMember },
     }) => {
-      if (!role.authorize({ invoice: ['create'] }).success) {
-        throw new Error('You do not have permission to create invoices')
-      }
-      const hasProjectAccess = await authService.checkProjectAccess(
-        orgMember.organizationId,
-        projectId,
-        user.id
-      )
-      if (!hasProjectAccess.success) {
-        throw new Error('You do not have access to this project')
-      }
-
       if (recipientType === 'member' && clientMemberIds.length !== 1) {
         throw new Error(
           'Member invoices must have exactly one recipient member'
@@ -316,7 +309,8 @@ export const createInvoiceAction = authedActionClient
     }
   )
 
-export const updateInvoiceAction = authedActionClient
+export const updateInvoiceAction = orgScopedActionClient
+  .metadata({ authorize: { invoice: ['update'] } })
   .inputSchema(updateInvoiceSchema)
   .action(
     async ({
@@ -344,12 +338,8 @@ export const updateInvoiceAction = authedActionClient
         discountLabel,
         discountAmount,
       },
-      ctx: { role, user, orgMember },
+      ctx: { orgMember },
     }) => {
-      if (!role.authorize({ invoice: ['update'] }).success) {
-        throw new Error('You do not have permission to update invoices')
-      }
-
       const existing = await db
         .select({
           status: invoices.status,
@@ -363,12 +353,16 @@ export const updateInvoiceAction = authedActionClient
       if (!existing) {
         throw new Error('Invoice not found')
       }
-      const hasProjectAccess = await authService.checkProjectAccess(
-        orgMember.organizationId,
+      const granted = await projectAccess.check(
         existing.projectId,
-        user.id
+        orgMember.organizationId,
+        {
+          id: orgMember.id,
+          userId: orgMember.userId,
+          role: orgMember.role as Role,
+        }
       )
-      if (!hasProjectAccess.success) {
+      if (!granted) {
         throw new Error('Invoice not found')
       }
       const isMemberInvoice = existing.recipient === 'member'
@@ -530,17 +524,14 @@ export const updateInvoiceAction = authedActionClient
     }
   )
 
-export const sendInvoiceAction = authedActionClient
+export const sendInvoiceAction = orgScopedActionClient
+  .metadata({ authorize: { invoice: ['send'] } })
   .inputSchema(sendInvoiceSchema)
   .action(
     async ({
       parsedInput: { invoiceId, clientMemberIds },
-      ctx: { role, user, orgMember },
+      ctx: { user, orgMember },
     }) => {
-      if (!role.authorize({ invoice: ['send'] }).success) {
-        throw new Error('You do not have permission to send invoices')
-      }
-
       const invoice = await db
         .select({
           id: invoices.id,
@@ -559,12 +550,16 @@ export const sendInvoiceAction = authedActionClient
       if (!invoice) {
         throw new Error('Invoice not found')
       }
-      const hasProjectAccess = await authService.checkProjectAccess(
-        orgMember.organizationId,
+      const granted = await projectAccess.check(
         invoice.projectId,
-        user.id
+        orgMember.organizationId,
+        {
+          id: orgMember.id,
+          userId: orgMember.userId,
+          role: orgMember.role as Role,
+        }
       )
-      if (!hasProjectAccess.success) {
+      if (!granted) {
         throw new Error('Invoice not found')
       }
       const settings = await projectsService.getSettings(
@@ -670,177 +665,164 @@ export const sendInvoiceAction = authedActionClient
     }
   )
 
-export const markInvoicePaidAction = authedActionClient
+export const markInvoicePaidAction = orgScopedActionClient
+  .metadata({ authorize: { invoice: ['sign'] } })
   .inputSchema(markInvoicePaidSchema)
-  .action(
-    async ({ parsedInput: { invoiceId }, ctx: { orgMember, role, user } }) => {
-      if (!role.authorize({ invoice: ['sign'] }).success) {
-        throw new Error('You do not have permission to sign invoices')
-      }
-
-      const invoice = await db
-        .select({
-          id: invoices.id,
-          projectId: invoices.projectId,
-          invoiceNumber: invoices.invoiceNumber,
-          status: invoices.status,
-          totalAmount: invoices.totalAmount,
-          currency: invoices.currency,
-          recipient: invoices.recipient,
-        })
-        .from(invoices)
-        .where(eq(invoices.id, invoiceId))
-        .then((r) => r[0])
-
-      if (!invoice) {
-        throw new Error('Invoice not found')
-      }
-      const hasProjectAccess = await authService.checkProjectAccess(
-        orgMember.organizationId,
-        invoice.projectId,
-        user.id
-      )
-      if (!hasProjectAccess.success) {
-        throw new Error('Invoice not found')
-      }
-
-      const settings = await projectsService.getSettings(
-        orgMember.organizationId,
-        invoice.projectId
-      )
-      const clientOff = settings.clientInvolvement.invoices === 'off'
-      const isAdmin = orgMember.role === 'owner' || orgMember.role === 'admin'
-      const isMemberInvoice = invoice.recipient === 'member'
-
-      // Member invoices are internal: admins/owners can mark them paid
-      // regardless of the project's clientInvolvement setting.
-      if (clientOff || isMemberInvoice) {
-        if (!isAdmin) {
-          throw new Error('Only admins can mark invoices as paid')
-        }
-        if (invoice.status !== 'sent' && invoice.status !== 'draft') {
-          throw new Error('Only draft or sent invoices can be marked as paid')
-        }
-      } else {
-        if (invoice.status !== 'sent') {
-          throw new Error('Only sent invoices can be marked as paid')
-        }
-        const allRecipients = await db
-          .select({ memberId: invoiceRecipients.memberId })
-          .from(invoiceRecipients)
-          .where(eq(invoiceRecipients.invoiceId, invoiceId))
-        const isRecipient = allRecipients.some(
-          (r) => r.memberId === orgMember.id
-        )
-        if (!isRecipient) {
-          throw new Error('Only an invoice recipient can mark it as paid')
-        }
-      }
-
-      await db
-        .update(invoices)
-        .set({ status: 'paid' })
-        .where(eq(invoices.id, invoiceId))
-
-      const { projectName, projectSlug, orgSlug } =
-        await projectsService.getProjectDetails(invoice.projectId)
-
-      const admins = await getAdminsAndOwners(orgMember.organizationId)
-
-      const totalFormatted = Number(invoice.totalAmount).toLocaleString(
-        'en-US',
-        { minimumFractionDigits: 2 }
-      )
-      const paidAt = new Date().toLocaleDateString(undefined, {
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
+  .action(async ({ parsedInput: { invoiceId }, ctx: { orgMember, user } }) => {
+    const invoice = await db
+      .select({
+        id: invoices.id,
+        projectId: invoices.projectId,
+        invoiceNumber: invoices.invoiceNumber,
+        status: invoices.status,
+        totalAmount: invoices.totalAmount,
+        currency: invoices.currency,
+        recipient: invoices.recipient,
       })
+      .from(invoices)
+      .where(eq(invoices.id, invoiceId))
+      .then((r) => r[0])
 
-      await sendEmailsToRecipients(admins, async (admin) => {
-        const html = await render(
-          InvoicePaidEmail({
-            recipientName: admin.name ?? 'there',
-            invoiceNumber: invoice.invoiceNumber,
-            projectName,
-            paidByName: user.name ?? 'there',
-            totalAmount: totalFormatted,
-            currency: invoice.currency,
-            paidAt,
-            orgSlug: orgSlug ?? '',
-            projectSlug,
-            invoiceId: invoice.id,
-          })
-        )
-        return {
-          to: admin.email,
-          subject: `Invoice ${invoice.invoiceNumber} marked as paid`,
-          html,
-        }
-      })
-
-      return { success: true }
+    if (!invoice) {
+      throw new Error('Invoice not found')
     }
-  )
+    const granted = await projectAccess.check(
+      invoice.projectId,
+      orgMember.organizationId,
+      {
+        id: orgMember.id,
+        userId: orgMember.userId,
+        role: orgMember.role as Role,
+      }
+    )
+    if (!granted) {
+      throw new Error('Invoice not found')
+    }
 
-export const deleteInvoiceAction = authedActionClient
+    const settings = await projectsService.getSettings(
+      orgMember.organizationId,
+      invoice.projectId
+    )
+    const clientOff = settings.clientInvolvement.invoices === 'off'
+    const isAdmin = orgMember.role === 'owner' || orgMember.role === 'admin'
+    const isMemberInvoice = invoice.recipient === 'member'
+
+    // Member invoices are internal: admins/owners can mark them paid
+    // regardless of the project's clientInvolvement setting.
+    if (clientOff || isMemberInvoice) {
+      if (!isAdmin) {
+        throw new Error('Only admins can mark invoices as paid')
+      }
+      if (invoice.status !== 'sent' && invoice.status !== 'draft') {
+        throw new Error('Only draft or sent invoices can be marked as paid')
+      }
+    } else {
+      if (invoice.status !== 'sent') {
+        throw new Error('Only sent invoices can be marked as paid')
+      }
+      const allRecipients = await db
+        .select({ memberId: invoiceRecipients.memberId })
+        .from(invoiceRecipients)
+        .where(eq(invoiceRecipients.invoiceId, invoiceId))
+      const isRecipient = allRecipients.some((r) => r.memberId === orgMember.id)
+      if (!isRecipient) {
+        throw new Error('Only an invoice recipient can mark it as paid')
+      }
+    }
+
+    await db
+      .update(invoices)
+      .set({ status: 'paid' })
+      .where(eq(invoices.id, invoiceId))
+
+    const { projectName, projectSlug, orgSlug } =
+      await projectsService.getProjectDetails(invoice.projectId)
+
+    const admins = await getAdminsAndOwners(orgMember.organizationId)
+
+    const totalFormatted = Number(invoice.totalAmount).toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+    })
+    const paidAt = new Date().toLocaleDateString(undefined, {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    })
+
+    await sendEmailsToRecipients(admins, async (admin) => {
+      const html = await render(
+        InvoicePaidEmail({
+          recipientName: admin.name ?? 'there',
+          invoiceNumber: invoice.invoiceNumber,
+          projectName,
+          paidByName: user.name ?? 'there',
+          totalAmount: totalFormatted,
+          currency: invoice.currency,
+          paidAt,
+          orgSlug: orgSlug ?? '',
+          projectSlug,
+          invoiceId: invoice.id,
+        })
+      )
+      return {
+        to: admin.email,
+        subject: `Invoice ${invoice.invoiceNumber} marked as paid`,
+        html,
+      }
+    })
+
+    return { success: true }
+  })
+
+export const deleteInvoiceAction = orgScopedActionClient
+  .metadata({ authorize: { invoice: ['delete'] } })
   .inputSchema(deleteInvoiceSchema)
-  .action(
-    async ({ parsedInput: { invoiceId }, ctx: { role, user, orgMember } }) => {
-      if (!role.authorize({ invoice: ['delete'] }).success) {
-        throw new Error('You do not have permission to delete invoices')
-      }
+  .action(async ({ parsedInput: { invoiceId }, ctx: { orgMember } }) => {
+    const invoice = await db
+      .select({
+        status: invoices.status,
+        projectId: invoices.projectId,
+        recipient: invoices.recipient,
+      })
+      .from(invoices)
+      .where(eq(invoices.id, invoiceId))
+      .then((r) => r[0])
 
-      const invoice = await db
-        .select({
-          status: invoices.status,
-          projectId: invoices.projectId,
-          recipient: invoices.recipient,
-        })
-        .from(invoices)
-        .where(eq(invoices.id, invoiceId))
-        .then((r) => r[0])
-
-      if (!invoice) {
-        throw new Error('Invoice not found')
-      }
-      const hasProjectAccess = await authService.checkProjectAccess(
-        orgMember.organizationId,
-        invoice.projectId,
-        user.id
-      )
-      if (!hasProjectAccess.success) {
-        throw new Error('Invoice not found')
-      }
-      const deletableStatuses: (typeof invoice.status)[] =
-        invoice.recipient === 'member'
-          ? ['draft', 'sent', 'disputed']
-          : ['draft']
-      if (!deletableStatuses.includes(invoice.status)) {
-        throw new Error('This invoice can no longer be deleted')
-      }
-
-      await db.delete(invoices).where(eq(invoices.id, invoiceId))
-
-      return { success: true }
+    if (!invoice) {
+      throw new Error('Invoice not found')
     }
-  )
+    const granted = await projectAccess.check(
+      invoice.projectId,
+      orgMember.organizationId,
+      {
+        id: orgMember.id,
+        userId: orgMember.userId,
+        role: orgMember.role as Role,
+      }
+    )
+    if (!granted) {
+      throw new Error('Invoice not found')
+    }
+    const deletableStatuses: (typeof invoice.status)[] =
+      invoice.recipient === 'member' ? ['draft', 'sent', 'disputed'] : ['draft']
+    if (!deletableStatuses.includes(invoice.status)) {
+      throw new Error('This invoice can no longer be deleted')
+    }
+
+    await db.delete(invoices).where(eq(invoices.id, invoiceId))
+
+    return { success: true }
+  })
 
 // ── Invoice Threads ──
 
-export const createInvoiceThreadAction = authedActionClient
+export const createInvoiceThreadAction = orgScopedActionClient
+  .metadata({ authorize: { thread: ['create'] } })
   .inputSchema(createInvoiceThreadSchema)
   .action(
-    async ({
-      parsedInput: { invoiceId, body },
-      ctx: { role, orgMember, user },
-    }) => {
-      if (!role.authorize({ thread: ['create'] }).success) {
-        throw new Error('You do not have permission to create threads')
-      }
-
+    async ({ parsedInput: { invoiceId, body }, ctx: { orgMember, user } }) => {
       const invoice = await db
         .select({
           id: invoices.id,
@@ -857,12 +839,16 @@ export const createInvoiceThreadAction = authedActionClient
       if (!invoice) {
         throw new Error('Invoice not found')
       }
-      const hasProjectAccess = await authService.checkProjectAccess(
-        orgMember.organizationId,
+      const granted = await projectAccess.check(
         invoice.projectId,
-        user.id
+        orgMember.organizationId,
+        {
+          id: orgMember.id,
+          userId: orgMember.userId,
+          role: orgMember.role as Role,
+        }
       )
-      if (!hasProjectAccess.success) {
+      if (!granted) {
         throw new Error('Invoice not found')
       }
       const settings = await projectsService.getSettings(
@@ -958,17 +944,11 @@ export const createInvoiceThreadAction = authedActionClient
     }
   )
 
-export const replyToThreadAction = authedActionClient
+export const replyToThreadAction = orgScopedActionClient
+  .metadata({ authorize: { thread: ['read'] } })
   .inputSchema(replyToThreadSchema)
   .action(
-    async ({
-      parsedInput: { threadId, body },
-      ctx: { role, orgMember, user },
-    }) => {
-      if (!role.authorize({ thread: ['read'] }).success) {
-        throw new Error('You do not have permission to reply to threads')
-      }
-
+    async ({ parsedInput: { threadId, body }, ctx: { orgMember, user } }) => {
       const thread = await db
         .select()
         .from(threads)
@@ -986,12 +966,16 @@ export const replyToThreadAction = authedActionClient
       if (!inv) {
         throw new Error('Thread not found')
       }
-      const hasProjectAccess = await authService.checkProjectAccess(
-        orgMember.organizationId,
+      const granted = await projectAccess.check(
         inv.projectId,
-        user.id
+        orgMember.organizationId,
+        {
+          id: orgMember.id,
+          userId: orgMember.userId,
+          role: orgMember.role as Role,
+        }
       )
-      if (!hasProjectAccess.success) {
+      if (!granted) {
         throw new Error('Thread not found')
       }
 
@@ -1078,83 +1062,79 @@ export const replyToThreadAction = authedActionClient
     }
   )
 
-export const resolveThreadAction = authedActionClient
+export const resolveThreadAction = orgScopedActionClient
+  .metadata({ authorize: { thread: ['resolve'] } })
   .inputSchema(resolveThreadSchema)
-  .action(
-    async ({ parsedInput: { threadId }, ctx: { role, user, orgMember } }) => {
-      if (!role.authorize({ thread: ['resolve'] }).success) {
-        throw new Error('You do not have permission to resolve threads')
-      }
+  .action(async ({ parsedInput: { threadId }, ctx: { orgMember } }) => {
+    const thread = await db
+      .select({
+        id: threads.id,
+        entityId: threads.entityId,
+        status: threads.status,
+      })
+      .from(threads)
+      .where(eq(threads.id, threadId))
+      .then((r) => r[0])
 
-      const thread = await db
-        .select({
-          id: threads.id,
-          entityId: threads.entityId,
-          status: threads.status,
-        })
-        .from(threads)
-        .where(eq(threads.id, threadId))
-        .then((r) => r[0])
-
-      if (!thread) {
-        throw new Error('Thread not found')
-      }
-
-      const [inv] = await db
-        .select({ projectId: invoices.projectId })
-        .from(invoices)
-        .where(eq(invoices.id, thread.entityId))
-      if (!inv) {
-        throw new Error('Thread not found')
-      }
-      const hasProjectAccess = await authService.checkProjectAccess(
-        orgMember.organizationId,
-        inv.projectId,
-        user.id
-      )
-      if (!hasProjectAccess.success) {
-        throw new Error('Thread not found')
-      }
-
-      await db
-        .update(threads)
-        .set({ status: 'resolved' })
-        .where(eq(threads.id, threadId))
-
-      // If no more open threads remain, revert invoice to sent
-      const remaining = await db
-        .select({ id: threads.id, status: threads.status })
-        .from(threads)
-        .where(eq(threads.entityId, thread.entityId))
-
-      const stillOpen = remaining.some(
-        (t) => t.status === 'open' && t.id !== threadId
-      )
-
-      if (!stillOpen) {
-        await db
-          .update(invoices)
-          .set({ status: 'sent' })
-          .where(eq(invoices.id, thread.entityId))
-      }
-
-      return { success: true }
+    if (!thread) {
+      throw new Error('Thread not found')
     }
-  )
+
+    const [inv] = await db
+      .select({ projectId: invoices.projectId })
+      .from(invoices)
+      .where(eq(invoices.id, thread.entityId))
+    if (!inv) {
+      throw new Error('Thread not found')
+    }
+    const granted = await projectAccess.check(
+      inv.projectId,
+      orgMember.organizationId,
+      {
+        id: orgMember.id,
+        userId: orgMember.userId,
+        role: orgMember.role as Role,
+      }
+    )
+    if (!granted) {
+      throw new Error('Thread not found')
+    }
+
+    await db
+      .update(threads)
+      .set({ status: 'resolved' })
+      .where(eq(threads.id, threadId))
+
+    // If no more open threads remain, revert invoice to sent
+    const remaining = await db
+      .select({ id: threads.id, status: threads.status })
+      .from(threads)
+      .where(eq(threads.entityId, thread.entityId))
+
+    const stillOpen = remaining.some(
+      (t) => t.status === 'open' && t.id !== threadId
+    )
+
+    if (!stillOpen) {
+      await db
+        .update(invoices)
+        .set({ status: 'sent' })
+        .where(eq(invoices.id, thread.entityId))
+    }
+
+    return { success: true }
+  })
 
 // ── Change Invoice Status (admin/owner) ──
 
-export const changeInvoiceStatusAction = authedActionClient
+export const changeInvoiceStatusAction = orgScopedActionClient
+  .metadata({ authorize: { invoice: ['update'] } })
   .inputSchema(changeInvoiceStatusSchema)
   .action(
     async ({
       parsedInput: { invoiceId, status },
-      ctx: { role, user, orgMember },
+      ctx: { user, orgMember },
     }) => {
-      if (!role.authorize({ invoice: ['update'] }).success) {
-        throw new Error('You do not have permission to change invoice status')
-      }
-
       const invoice = await db
         .select({
           id: invoices.id,
@@ -1172,12 +1152,16 @@ export const changeInvoiceStatusAction = authedActionClient
         throw new Error('Invoice not found')
       }
 
-      const hasProjectAccess = await authService.checkProjectAccess(
-        orgMember.organizationId,
+      const granted = await projectAccess.check(
         invoice.projectId,
-        user.id
+        orgMember.organizationId,
+        {
+          id: orgMember.id,
+          userId: orgMember.userId,
+          role: orgMember.role as Role,
+        }
       )
-      if (!hasProjectAccess.success) {
+      if (!granted) {
         throw new Error('Invoice not found')
       }
 

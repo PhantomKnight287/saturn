@@ -69,6 +69,14 @@ Fields render in `createdAt` ascending order, both in settings UIs and on the ti
 - **Members**: see and fill the form; cannot manage definitions.
 - **Clients**: never see field definitions; only see rendered values for fields with `visibleToClient = true` on artifacts shared with them.
 
+### Project Access
+The single rule for whether an organization member may act on a given project. Access is granted if the member is an **owner** or **admin** of the organization, OR is individually assigned to the project as a **member** or as a **client**, OR belongs to a **team** assigned to the project. This rule is the source of truth for both surfaces:
+
+- **Pages** resolve it through `resolveProjectContext` (`(organization)/[org]/cache.ts`), which redirects to 403/404 on failure.
+- **Server Actions** resolve it through the `projectScopedActionClient` middleware (`src/lib/safe-action.ts`), which throws on failure and injects the verified `project` row into the action `ctx`.
+
+Both call the same `projectAccess` module (`src/server/access/project-access.ts`) — `resolveById` / `resolveBySlug` to fetch the project scoped to the org, then `hasAccess` for the grant decision. Keeping one module is deliberate: a prior split (a page-side check that included team assignments and an action-side check that did not) let team-assigned members open a page but be denied every mutation. The rule must not diverge again.
+
 ### Client visibility
 Each field definition carries a `visibleToClient` boolean, default `false`. On shared timesheet reports, only values for fields with `visibleToClient = true` are exposed to clients — the field list is filtered at query time (`getProjectCustomFields` adds `visibleToClient = true` for the `client` role) before rendering. Invoices do not render custom values in v1.
 

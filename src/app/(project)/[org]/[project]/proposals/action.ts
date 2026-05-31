@@ -2,7 +2,6 @@
 
 import { render } from '@react-email/components'
 import { and, eq } from 'drizzle-orm'
-import { authService } from '@/app/api/auth/service'
 import { organizationsService } from '@/app/api/organizations/service'
 import { projectsService } from '@/app/api/projects/service'
 import { proposalsService } from '@/app/api/proposals/service'
@@ -12,7 +11,7 @@ import ProposalSentEmail from '@/emails/templates/proposal-sent'
 import ThreadNewMessageEmail from '@/emails/templates/thread-new-message'
 import { baseUrl } from '@/lib/metadata'
 import { sendEmailsToRecipients } from '@/lib/notifications'
-import { authedActionClient } from '@/lib/safe-action'
+import { projectScopedActionClient } from '@/lib/safe-action'
 import { titleToSlug } from '@/lib/utils'
 import { db } from '@/server/db'
 import {
@@ -34,11 +33,11 @@ import {
   updateProposalSchema,
 } from './common'
 
-export const createProposalAction = authedActionClient
+export const createProposalAction = projectScopedActionClient
+  .metadata({ authorize: { proposal: ['create'] } })
   .inputSchema(createProposalSchema)
   .action(async ({ parsedInput, ctx }) => {
     const {
-      orgSlug,
       projectId,
       title,
       body,
@@ -47,26 +46,9 @@ export const createProposalAction = authedActionClient
       currency,
       deliverables,
     } = parsedInput
-    const { orgMember, role } = ctx
-    const organization = await organizationsService.getBySlug(orgSlug)
-    if (!organization) {
-      throw new Error('Organization not found')
-    }
-    const hasProjectAccess = await authService.checkProjectAccess(
-      organization.id,
-      projectId,
-      orgMember.userId
-    )
-    if (hasProjectAccess.success === false) {
-      throw new Error(
-        hasProjectAccess.error ?? 'You do not have access to this project'
-      )
-    }
-    if (!role.authorize({ proposal: ['create'] }).success) {
-      throw new Error('You do not have permission to create proposals')
-    }
+    const { orgMember, project } = ctx
     const settings = await projectsService.getSettings(
-      organization.id,
+      project.organizationId,
       projectId
     )
     const { slugified, slugifiedWithSuffix } = titleToSlug(title)
@@ -116,11 +98,11 @@ export const createProposalAction = authedActionClient
     return proposal
   })
 
-export const updateProposalAction = authedActionClient
+export const updateProposalAction = projectScopedActionClient
+  .metadata({ authorize: { proposal: ['update'] } })
   .inputSchema(updateProposalSchema)
   .action(async ({ parsedInput, ctx }) => {
     const {
-      orgSlug,
       proposalId,
       projectId,
       title,
@@ -130,26 +112,9 @@ export const updateProposalAction = authedActionClient
       currency,
       deliverables,
     } = parsedInput
-    const { orgMember, role } = ctx
-    const organization = await organizationsService.getBySlug(orgSlug)
-    if (!organization) {
-      throw new Error('Organization not found')
-    }
-    const hasProjectAccess = await authService.checkProjectAccess(
-      organization.id,
-      projectId,
-      orgMember.userId
-    )
-    if (hasProjectAccess.success === false) {
-      throw new Error(
-        hasProjectAccess.error ?? 'You do not have access to this project'
-      )
-    }
-    if (!role.authorize({ proposal: ['update'] }).success) {
-      throw new Error('You do not have permission to update proposals')
-    }
+    const { project } = ctx
     const settings = await projectsService.getSettings(
-      organization.id,
+      project.organizationId,
       projectId
     )
     const proposal = await getProposalById(proposalId, projectId)
@@ -203,40 +168,24 @@ export const updateProposalAction = authedActionClient
     return updatedProposal
   })
 
-export const sendProposalAction = authedActionClient
+export const sendProposalAction = projectScopedActionClient
+  .metadata({ authorize: { proposal: ['send'] } })
   .inputSchema(sendProposalSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { orgSlug, proposalId, projectId, recipients } = parsedInput
-    const { orgMember, role } = ctx
+    const { orgMember, project } = ctx
     const organization = await organizationsService.getBySlug(orgSlug)
     if (!organization) {
       throw new Error('Organization not found')
     }
-    const hasProjectAccess = await authService.checkProjectAccess(
-      organization.id,
-      projectId,
-      orgMember.userId
-    )
-    if (hasProjectAccess.success === false) {
-      throw new Error(
-        hasProjectAccess.error ?? 'You do not have access to this project'
-      )
-    }
-    if (!role.authorize({ proposal: ['send'] }).success) {
-      throw new Error('You do not have permission to send proposals')
-    }
     const settings = await projectsService.getSettings(
-      organization.id,
+      project.organizationId,
       projectId
     )
     if (settings.clientInvolvement.proposals === 'off') {
       throw new Error(
         'Client involvement is disabled for proposals in this project'
       )
-    }
-    const project = await projectsService.getById(projectId)
-    if (!project) {
-      throw new Error('Project not found')
     }
     const proposal = await getProposalById(proposalId, projectId)
     if (!proposal) {
@@ -256,7 +205,7 @@ export const sendProposalAction = authedActionClient
       }[] = []
       for (const recipient of recipients) {
         const clientMember = await teamService.getClientMemberById(
-          organization.id,
+          project.organizationId,
           recipient
         )
         if (!clientMember) {
@@ -314,37 +263,20 @@ export const sendProposalAction = authedActionClient
     return proposal
   })
 
-export const signProposalAction = authedActionClient
+export const signProposalAction = projectScopedActionClient
+  .metadata({})
   .inputSchema(signProposalSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { orgSlug, proposalId, projectId, mediaId } = parsedInput
-    const { orgMember } = ctx
-    const organization = await organizationsService.getBySlug(orgSlug)
-    if (!organization) {
-      throw new Error('Organization not found')
-    }
-    const hasProjectAccess = await authService.checkProjectAccess(
-      organization.id,
-      projectId,
-      orgMember.userId
-    )
-    if (hasProjectAccess.success === false) {
-      throw new Error(
-        hasProjectAccess.error ?? 'You do not have access to this project'
-      )
-    }
+    const { orgMember, project } = ctx
     const settings = await projectsService.getSettings(
-      organization.id,
+      project.organizationId,
       projectId
     )
     if (settings.clientInvolvement.proposals === 'off') {
       throw new Error(
         'Client involvement is disabled for proposals in this project'
       )
-    }
-    const project = await projectsService.getById(projectId)
-    if (!project) {
-      throw new Error('Project not found')
     }
     const proposal = await getProposalById(proposalId, projectId)
     if (!proposal) {
@@ -381,7 +313,7 @@ export const signProposalAction = authedActionClient
           .where(eq(proposals.id, proposalId))
       }
 
-      const admins = await teamService.getAdminAndOwners(organization.id)
+      const admins = await teamService.getAdminAndOwners(project.organizationId)
       const emailsToSend: { email: string; name: string }[] = []
       for (const admin of admins) {
         emailsToSend.push({
@@ -412,33 +344,13 @@ export const signProposalAction = authedActionClient
     return { success: true }
   })
 
-export const createThreadAction = authedActionClient
+export const createThreadAction = projectScopedActionClient
+  .metadata({ authorize: { thread: ['create'] } })
   .inputSchema(addThreadSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { orgSlug, proposalId, projectId, selectedText, threadBody } =
       parsedInput
-    const { orgMember, role } = ctx
-    const organization = await organizationsService.getBySlug(orgSlug)
-    if (!organization) {
-      throw new Error('Organization not found')
-    }
-    const hasProjectAccess = await authService.checkProjectAccess(
-      organization.id,
-      projectId,
-      orgMember.userId
-    )
-    if (hasProjectAccess.success === false) {
-      throw new Error(
-        hasProjectAccess.error ?? 'You do not have access to this project'
-      )
-    }
-    if (!role.authorize({ thread: ['create'] }).success) {
-      throw new Error('You do not have permission to create threads')
-    }
-    const project = await projectsService.getById(projectId)
-    if (!project) {
-      throw new Error('Project not found')
-    }
+    const { orgMember, project } = ctx
     const proposal = await getProposalById(proposalId, projectId)
     if (!proposal) {
       throw new Error('Proposal not found')
@@ -453,7 +365,9 @@ export const createThreadAction = authedActionClient
           createdByMemberId: orgMember.id,
         })
         .returning()
-      const receipients = await teamService.getAdminAndOwners(organization.id)
+      const receipients = await teamService.getAdminAndOwners(
+        project.organizationId
+      )
       const emailsToSend: { email: string; name: string }[] = []
       for (const recipient of receipients) {
         emailsToSend.push({
@@ -492,32 +406,12 @@ export const createThreadAction = authedActionClient
     return thread ?? null
   })
 
-export const addThreadReplyAction = authedActionClient
+export const addThreadReplyAction = projectScopedActionClient
+  .metadata({ authorize: { thread: ['reply'] } })
   .inputSchema(addReplySchema)
   .action(async ({ parsedInput, ctx }) => {
     const { orgSlug, proposalId, projectId, threadId, replyBody } = parsedInput
-    const { orgMember, role } = ctx
-    const organization = await organizationsService.getBySlug(orgSlug)
-    if (!organization) {
-      throw new Error('Organization not found')
-    }
-    const hasProjectAccess = await authService.checkProjectAccess(
-      organization.id,
-      projectId,
-      orgMember.userId
-    )
-    if (hasProjectAccess.success === false) {
-      throw new Error(
-        hasProjectAccess.error ?? 'You do not have access to this project'
-      )
-    }
-    if (!role.authorize({ thread: ['reply'] }).success) {
-      throw new Error('You do not have permission to reply to threads')
-    }
-    const project = await projectsService.getById(projectId)
-    if (!project) {
-      throw new Error('Project not found')
-    }
+    const { orgMember, project } = ctx
     const proposal = await getProposalById(proposalId, projectId)
     if (!proposal) {
       throw new Error('Proposal not found')
@@ -538,7 +432,9 @@ export const addThreadReplyAction = authedActionClient
           authorMemberId: orgMember.id,
         })
         .returning()
-      const receipients = await teamService.getAdminAndOwners(organization.id)
+      const receipients = await teamService.getAdminAndOwners(
+        project.organizationId
+      )
       const emailsToSend: { email: string; name: string }[] = []
       for (const recipient of receipients) {
         emailsToSend.push({
@@ -572,27 +468,14 @@ export const addThreadReplyAction = authedActionClient
     return threadMessage
   })
 
-export const declineProposalAction = authedActionClient
+export const declineProposalAction = projectScopedActionClient
+  .metadata({})
   .inputSchema(declineProposalSchema)
   .action(async ({ parsedInput, ctx }) => {
-    const { orgSlug, proposalId, projectId } = parsedInput
-    const { orgMember } = ctx
-    const organization = await organizationsService.getBySlug(orgSlug)
-    if (!organization) {
-      throw new Error('Organization not found')
-    }
-    const hasProjectAccess = await authService.checkProjectAccess(
-      organization.id,
-      projectId,
-      orgMember.userId
-    )
-    if (hasProjectAccess.success === false) {
-      throw new Error(
-        hasProjectAccess.error ?? 'You do not have access to this project'
-      )
-    }
+    const { proposalId, projectId } = parsedInput
+    const { orgMember, project } = ctx
     const settings = await projectsService.getSettings(
-      organization.id,
+      project.organizationId,
       projectId
     )
     if (settings.clientInvolvement.proposals === 'off') {
@@ -623,28 +506,11 @@ export const declineProposalAction = authedActionClient
     return { success: true }
   })
 
-export const deleteProposalAction = authedActionClient
+export const deleteProposalAction = projectScopedActionClient
+  .metadata({ authorize: { proposal: ['delete'] } })
   .inputSchema(deleteProposalSchema)
-  .action(async ({ parsedInput, ctx }) => {
-    const { orgSlug, proposalId, projectId } = parsedInput
-    const { orgMember, role } = ctx
-    const organization = await organizationsService.getBySlug(orgSlug)
-    if (!organization) {
-      throw new Error('Organization not found')
-    }
-    const hasProjectAccess = await authService.checkProjectAccess(
-      organization.id,
-      projectId,
-      orgMember.userId
-    )
-    if (hasProjectAccess.success === false) {
-      throw new Error(
-        hasProjectAccess.error ?? 'You do not have access to this project'
-      )
-    }
-    if (!role.authorize({ proposal: ['delete'] }).success) {
-      throw new Error('You do not have permission to delete proposals')
-    }
+  .action(async ({ parsedInput }) => {
+    const { proposalId, projectId } = parsedInput
     const proposal = await getProposalById(proposalId, projectId)
     if (!proposal) {
       throw new Error('Proposal not found')

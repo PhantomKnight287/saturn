@@ -3,13 +3,16 @@
 import { render } from '@react-email/render'
 import { and, eq, sql } from 'drizzle-orm'
 import { headers } from 'next/headers'
-import { authService } from '@/app/api/auth/service'
 import { projectsService } from '@/app/api/projects/service'
 // import { PROJECT_TEAM_CACHE_TAG } from '@/api/team/service'
 import TeamAssignedToProjectEmail from '@/emails/templates/team-assigned-to-project'
 import { sendEmailsToRecipients } from '@/lib/notifications'
-import { authedActionClient } from '@/lib/safe-action'
+import {
+  orgScopedActionClient,
+  projectScopedActionClient,
+} from '@/lib/safe-action'
 import { todayDateOnly } from '@/lib/utils'
+import { projectAccess } from '@/server/access/project-access'
 import { auth } from '@/server/auth'
 import { db } from '@/server/db'
 import { settings as settingsTable } from '@/server/db/schema'
@@ -21,6 +24,7 @@ import {
   projectTeamAssignments,
 } from '@/server/db/schema/project'
 import { memberRates } from '@/server/db/schema/timesheet'
+import type { Role } from '@/types'
 import {
   addExistingMemberToProjectSchema,
   assignTeamSchema,
@@ -30,34 +34,18 @@ import {
   unassignTeamSchema,
 } from './common'
 
-export const linkInvitationToProjectAction = authedActionClient
+export const linkInvitationToProjectAction = projectScopedActionClient
+  .metadata({ authorize: { member: ['create'] } })
   .inputSchema(linkInvitationSchema)
-  .action(
-    async ({
-      parsedInput: { invitationId, projectId, type },
-      ctx: { role, user, orgMember },
-    }) => {
-      if (!role.authorize({ member: ['create'] }).success) {
-        throw new Error('You do not have permission to invite')
-      }
-      const hasProjectAccess = await authService.checkProjectAccess(
-        orgMember.organizationId,
-        projectId,
-        user.id
-      )
-      if (!hasProjectAccess.success) {
-        throw new Error('You do not have access to this project')
-      }
+  .action(async ({ parsedInput: { invitationId, projectId, type } }) => {
+    const [record] = await db
+      .insert(projectInvitations)
+      .values({ invitationId, projectId, type })
+      .onConflictDoNothing()
+      .returning()
 
-      const [record] = await db
-        .insert(projectInvitations)
-        .values({ invitationId, projectId, type })
-        .onConflictDoNothing()
-        .returning()
-
-      return record
-    }
-  )
+    return record
+  })
 
 async function removeFromOrgIfNoAssignments(memberId: string) {
   const [memberAssignment] = await db
@@ -80,198 +68,171 @@ async function removeFromOrgIfNoAssignments(memberId: string) {
   }
 }
 
-export const removeMemberAction = authedActionClient
+export const removeMemberAction = orgScopedActionClient
+  .metadata({ authorize: { member: ['delete'] } })
   .inputSchema(removeMemberSchema)
-  .action(
-    async ({
-      parsedInput: { assignmentId },
-      ctx: { role, user, orgMember },
-    }) => {
-      if (!role.authorize({ member: ['delete'] }).success) {
-        throw new Error('You do not have permission to remove members')
-      }
+  .action(async ({ parsedInput: { assignmentId }, ctx: { orgMember } }) => {
+    const [assignment] = await db
+      .select({
+        memberId: projectMemberAssignments.memberId,
+        projectId: projectMemberAssignments.projectId,
+      })
+      .from(projectMemberAssignments)
+      .where(eq(projectMemberAssignments.id, assignmentId))
 
-      const [assignment] = await db
-        .select({
-          memberId: projectMemberAssignments.memberId,
-          projectId: projectMemberAssignments.projectId,
-        })
-        .from(projectMemberAssignments)
-        .where(eq(projectMemberAssignments.id, assignmentId))
-
-      if (!assignment) {
-        throw new Error('Assignment not found')
-      }
-      const hasProjectAccess = await authService.checkProjectAccess(
-        orgMember.organizationId,
-        assignment.projectId,
-        user.id
-      )
-      if (!hasProjectAccess.success) {
-        throw new Error('Assignment not found')
-      }
-
-      await db
-        .delete(projectMemberAssignments)
-        .where(eq(projectMemberAssignments.id, assignmentId))
-
-      // If member has no remaining project assignments, remove from org
-      if (assignment) {
-        await removeFromOrgIfNoAssignments(assignment.memberId)
-      }
-
-      return { success: true }
+    if (!assignment) {
+      throw new Error('Assignment not found')
     }
-  )
+    const granted = await projectAccess.check(
+      assignment.projectId,
+      orgMember.organizationId,
+      {
+        id: orgMember.id,
+        userId: orgMember.userId,
+        role: orgMember.role as Role,
+      }
+    )
+    if (!granted) {
+      throw new Error('Assignment not found')
+    }
 
-export const removeClientAction = authedActionClient
+    await db
+      .delete(projectMemberAssignments)
+      .where(eq(projectMemberAssignments.id, assignmentId))
+
+    // If member has no remaining project assignments, remove from org
+    if (assignment) {
+      await removeFromOrgIfNoAssignments(assignment.memberId)
+    }
+
+    return { success: true }
+  })
+
+export const removeClientAction = orgScopedActionClient
+  .metadata({ authorize: { member: ['delete'] } })
   .inputSchema(removeClientSchema)
-  .action(
-    async ({
-      parsedInput: { assignmentId },
-      ctx: { role, user, orgMember },
-    }) => {
-      if (!role.authorize({ member: ['delete'] }).success) {
-        throw new Error('You do not have permission to remove clients')
-      }
+  .action(async ({ parsedInput: { assignmentId }, ctx: { orgMember } }) => {
+    const [assignment] = await db
+      .select({
+        memberId: projectClientAssignments.memberId,
+        projectId: projectClientAssignments.projectId,
+      })
+      .from(projectClientAssignments)
+      .where(eq(projectClientAssignments.id, assignmentId))
 
-      const [assignment] = await db
-        .select({
-          memberId: projectClientAssignments.memberId,
-          projectId: projectClientAssignments.projectId,
-        })
-        .from(projectClientAssignments)
-        .where(eq(projectClientAssignments.id, assignmentId))
-
-      if (!assignment) {
-        throw new Error('Assignment not found')
-      }
-      const hasProjectAccess = await authService.checkProjectAccess(
-        orgMember.organizationId,
-        assignment.projectId,
-        user.id
-      )
-      if (!hasProjectAccess.success) {
-        throw new Error('Assignment not found')
-      }
-
-      await db
-        .delete(projectClientAssignments)
-        .where(eq(projectClientAssignments.id, assignmentId))
-
-      // If member has no remaining project assignments, remove from org
-      if (assignment) {
-        await removeFromOrgIfNoAssignments(assignment.memberId)
-      }
-
-      return { success: true }
+    if (!assignment) {
+      throw new Error('Assignment not found')
     }
-  )
+    const granted = await projectAccess.check(
+      assignment.projectId,
+      orgMember.organizationId,
+      {
+        id: orgMember.id,
+        userId: orgMember.userId,
+        role: orgMember.role as Role,
+      }
+    )
+    if (!granted) {
+      throw new Error('Assignment not found')
+    }
 
-export const assignTeamAction = authedActionClient
+    await db
+      .delete(projectClientAssignments)
+      .where(eq(projectClientAssignments.id, assignmentId))
+
+    // If member has no remaining project assignments, remove from org
+    if (assignment) {
+      await removeFromOrgIfNoAssignments(assignment.memberId)
+    }
+
+    return { success: true }
+  })
+
+export const assignTeamAction = projectScopedActionClient
+  .metadata({ authorize: { team: ['update'] } })
   .inputSchema(assignTeamSchema)
-  .action(
-    async ({
-      parsedInput: { projectId, teamId },
-      ctx: { user, role, orgMember },
-    }) => {
-      if (!role.authorize({ team: ['update'] }).success) {
-        throw new Error('You do not have permission to assign teams')
-      }
-      const hasProjectAccess = await authService.checkProjectAccess(
-        orgMember.organizationId,
-        projectId,
-        user.id
-      )
-      if (!hasProjectAccess.success) {
-        throw new Error('You do not have access to this project')
-      }
+  .action(async ({ parsedInput: { projectId, teamId }, ctx: { user } }) => {
+    const [assignment] = await db
+      .insert(projectTeamAssignments)
+      .values({ projectId, teamId })
+      .onConflictDoNothing()
+      .returning()
 
-      const [assignment] = await db
-        .insert(projectTeamAssignments)
-        .values({ projectId, teamId })
-        .onConflictDoNothing()
-        .returning()
-
-      if (!assignment) {
-        throw new Error('Team is already assigned to this project')
-      }
-
-      // Send emails to all team members
-      const [team] = await db
-        .select({ id: teams.id, name: teams.name })
-        .from(teams)
-        .where(eq(teams.id, teamId))
-
-      const projectDetails = await projectsService.getProjectDetails(projectId)
-
-      if (team && projectDetails.projectName) {
-        const tMembers = await db
-          .select({ name: users.name, email: users.email })
-          .from(teamMembers)
-          .innerJoin(users, eq(teamMembers.userId, users.id))
-          .where(eq(teamMembers.teamId, teamId))
-
-        await sendEmailsToRecipients(tMembers, async (recipient) => {
-          const html = await render(
-            TeamAssignedToProjectEmail({
-              recipientName: recipient.name ?? 'Team Member',
-              teamName: team.name,
-              projectName: projectDetails.projectName,
-              organizationName: projectDetails.orgName,
-              assignedByName: user.name ?? 'there',
-              orgSlug: projectDetails.orgSlug ?? '',
-              projectSlug: projectDetails.projectSlug ?? '',
-            })
-          )
-          return {
-            to: recipient.email,
-            subject: `Your team "${team.name}" has been assigned to ${projectDetails.projectName}`,
-            html,
-          }
-        })
-      }
-
-      return assignment
+    if (!assignment) {
+      throw new Error('Team is already assigned to this project')
     }
-  )
 
-export const unassignTeamAction = authedActionClient
+    // Send emails to all team members
+    const [team] = await db
+      .select({ id: teams.id, name: teams.name })
+      .from(teams)
+      .where(eq(teams.id, teamId))
+
+    const projectDetails = await projectsService.getProjectDetails(projectId)
+
+    if (team && projectDetails.projectName) {
+      const tMembers = await db
+        .select({ name: users.name, email: users.email })
+        .from(teamMembers)
+        .innerJoin(users, eq(teamMembers.userId, users.id))
+        .where(eq(teamMembers.teamId, teamId))
+
+      await sendEmailsToRecipients(tMembers, async (recipient) => {
+        const html = await render(
+          TeamAssignedToProjectEmail({
+            recipientName: recipient.name ?? 'Team Member',
+            teamName: team.name,
+            projectName: projectDetails.projectName,
+            organizationName: projectDetails.orgName,
+            assignedByName: user.name ?? 'there',
+            orgSlug: projectDetails.orgSlug ?? '',
+            projectSlug: projectDetails.projectSlug ?? '',
+          })
+        )
+        return {
+          to: recipient.email,
+          subject: `Your team "${team.name}" has been assigned to ${projectDetails.projectName}`,
+          html,
+        }
+      })
+    }
+
+    return assignment
+  })
+
+export const unassignTeamAction = orgScopedActionClient
+  .metadata({ authorize: { team: ['delete'] } })
   .inputSchema(unassignTeamSchema)
-  .action(
-    async ({
-      parsedInput: { assignmentId },
-      ctx: { role, user, orgMember },
-    }) => {
-      if (!role.authorize({ team: ['delete'] }).success) {
-        throw new Error('You do not have permission to unassign teams')
-      }
-
-      const [teamAssignment] = await db
-        .select({ projectId: projectTeamAssignments.projectId })
-        .from(projectTeamAssignments)
-        .where(eq(projectTeamAssignments.id, assignmentId))
-      if (!teamAssignment) {
-        throw new Error('Assignment not found')
-      }
-      const hasProjectAccess = await authService.checkProjectAccess(
-        orgMember.organizationId,
-        teamAssignment.projectId,
-        user.id
-      )
-      if (!hasProjectAccess.success) {
-        throw new Error('Assignment not found')
-      }
-
-      await db
-        .delete(projectTeamAssignments)
-        .where(eq(projectTeamAssignments.id, assignmentId))
-
-      return { success: true }
+  .action(async ({ parsedInput: { assignmentId }, ctx: { orgMember } }) => {
+    const [teamAssignment] = await db
+      .select({ projectId: projectTeamAssignments.projectId })
+      .from(projectTeamAssignments)
+      .where(eq(projectTeamAssignments.id, assignmentId))
+    if (!teamAssignment) {
+      throw new Error('Assignment not found')
     }
-  )
+    const granted = await projectAccess.check(
+      teamAssignment.projectId,
+      orgMember.organizationId,
+      {
+        id: orgMember.id,
+        userId: orgMember.userId,
+        role: orgMember.role as Role,
+      }
+    )
+    if (!granted) {
+      throw new Error('Assignment not found')
+    }
 
-export const addExistingMemberToProjectAction = authedActionClient
+    await db
+      .delete(projectTeamAssignments)
+      .where(eq(projectTeamAssignments.id, assignmentId))
+
+    return { success: true }
+  })
+
+export const addExistingMemberToProjectAction = projectScopedActionClient
+  .metadata({ authorize: { member: ['create'] } })
   .inputSchema(addExistingMemberToProjectSchema)
   .action(
     async ({
@@ -288,21 +249,10 @@ export const addExistingMemberToProjectAction = authedActionClient
         billingFrequency,
         setAsOrgDefault,
       },
-      ctx: { role, user, orgMember },
+      ctx: { orgMember },
     }) => {
-      if (!role.authorize({ member: ['create'] }).success) {
-        throw new Error('You do not have permission to add members')
-      }
       if (orgMember.organizationId !== organizationId) {
         throw new Error('Organization mismatch')
-      }
-      const hasProjectAccess = await authService.checkProjectAccess(
-        orgMember.organizationId,
-        projectId,
-        user.id
-      )
-      if (!hasProjectAccess.success) {
-        throw new Error('You do not have access to this project')
       }
 
       const [targetUser] = await db

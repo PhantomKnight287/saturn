@@ -2,7 +2,7 @@
 
 import { and, count, eq, sql } from 'drizzle-orm'
 import { headers } from 'next/headers'
-import { authedActionClient } from '@/lib/safe-action'
+import { orgScopedActionClient } from '@/lib/safe-action'
 import { auth } from '@/server/auth'
 import { db } from '@/server/db'
 import { settings as settingsTable } from '@/server/db/schema'
@@ -19,7 +19,8 @@ import {
   renameTeamSchema,
 } from './common'
 
-export const inviteOrgMemberAction = authedActionClient
+export const inviteOrgMemberAction = orgScopedActionClient
+  .metadata({ authorize: { member: ['create'] } })
   .inputSchema(inviteOrgMemberSchema)
   .action(
     async ({
@@ -35,12 +36,8 @@ export const inviteOrgMemberAction = authedActionClient
         billingFrequency,
         setAsOrgDefault,
       },
-      ctx: { role, orgMember },
+      ctx: { orgMember },
     }) => {
-      if (!role.authorize({ member: ['create'] }).success) {
-        throw new Error('You do not have permission to invite members')
-      }
-
       if (orgMember.organizationId !== organizationId) {
         throw new Error('Organization mismatch')
       }
@@ -97,13 +94,10 @@ export const inviteOrgMemberAction = authedActionClient
     }
   )
 
-export const removeOrgMemberAction = authedActionClient
+export const removeOrgMemberAction = orgScopedActionClient
+  .metadata({ authorize: { member: ['delete'] } })
   .inputSchema(removeOrgMemberSchema)
-  .action(async ({ parsedInput: { memberId }, ctx: { role, orgMember } }) => {
-    if (!role.authorize({ member: ['delete'] }).success) {
-      throw new Error('You do not have permission to remove members')
-    }
-
+  .action(async ({ parsedInput: { memberId }, ctx: { orgMember } }) => {
     const [target] = await db
       .select({ id: members.id, organizationId: members.organizationId })
       .from(members)
@@ -121,17 +115,14 @@ export const removeOrgMemberAction = authedActionClient
     return { success: true }
   })
 
-export const changeOrgMemberRoleAction = authedActionClient
+export const changeOrgMemberRoleAction = orgScopedActionClient
+  .metadata({ authorize: { member: ['update'] } })
   .inputSchema(changeOrgMemberRoleSchema)
   .action(
     async ({
       parsedInput: { memberId, role: newRole },
-      ctx: { role, orgMember },
+      ctx: { orgMember },
     }) => {
-      if (!role.authorize({ member: ['update'] }).success) {
-        throw new Error('You do not have permission to change roles')
-      }
-
       const [target] = await db
         .select({
           id: members.id,
@@ -158,16 +149,11 @@ export const changeOrgMemberRoleAction = authedActionClient
     }
   )
 
-export const createTeamAction = authedActionClient
+export const createTeamAction = orgScopedActionClient
+  .metadata({ authorize: { team: ['create'] } })
   .inputSchema(createTeamSchema)
   .action(
-    async ({
-      parsedInput: { organizationId, name },
-      ctx: { role, orgMember },
-    }) => {
-      if (!role.authorize({ team: ['create'] }).success) {
-        throw new Error('You do not have permission to create teams')
-      }
+    async ({ parsedInput: { organizationId, name }, ctx: { orgMember } }) => {
       if (orgMember.organizationId !== organizationId) {
         throw new Error('Organization mismatch')
       }
@@ -181,36 +167,28 @@ export const createTeamAction = authedActionClient
     }
   )
 
-export const renameTeamAction = authedActionClient
+export const renameTeamAction = orgScopedActionClient
+  .metadata({ authorize: { team: ['update'] } })
   .inputSchema(renameTeamSchema)
-  .action(
-    async ({ parsedInput: { teamId, name }, ctx: { role, orgMember } }) => {
-      if (!role.authorize({ team: ['update'] }).success) {
-        throw new Error('You do not have permission to rename teams')
-      }
+  .action(async ({ parsedInput: { teamId, name }, ctx: { orgMember } }) => {
+    const [team] = await db
+      .select({ id: teams.id, organizationId: teams.organizationId })
+      .from(teams)
+      .where(eq(teams.id, teamId))
 
-      const [team] = await db
-        .select({ id: teams.id, organizationId: teams.organizationId })
-        .from(teams)
-        .where(eq(teams.id, teamId))
-
-      if (!team || team.organizationId !== orgMember.organizationId) {
-        throw new Error('Team not found')
-      }
-
-      await db.update(teams).set({ name }).where(eq(teams.id, teamId))
-
-      return { success: true }
+    if (!team || team.organizationId !== orgMember.organizationId) {
+      throw new Error('Team not found')
     }
-  )
 
-export const deleteTeamAction = authedActionClient
+    await db.update(teams).set({ name }).where(eq(teams.id, teamId))
+
+    return { success: true }
+  })
+
+export const deleteTeamAction = orgScopedActionClient
+  .metadata({ authorize: { team: ['delete'] } })
   .inputSchema(deleteTeamSchema)
-  .action(async ({ parsedInput: { teamId }, ctx: { role, orgMember } }) => {
-    if (!role.authorize({ team: ['delete'] }).success) {
-      throw new Error('You do not have permission to delete teams')
-    }
-
+  .action(async ({ parsedInput: { teamId }, ctx: { orgMember } }) => {
     const [team] = await db
       .select({ id: teams.id, organizationId: teams.organizationId })
       .from(teams)
@@ -234,78 +212,68 @@ export const deleteTeamAction = authedActionClient
     return { success: true }
   })
 
-export const addTeamMemberAction = authedActionClient
+export const addTeamMemberAction = orgScopedActionClient
+  .metadata({ authorize: { team: ['update'] } })
   .inputSchema(addTeamMemberSchema)
-  .action(
-    async ({ parsedInput: { teamId, userId }, ctx: { role, orgMember } }) => {
-      if (!role.authorize({ team: ['update'] }).success) {
-        throw new Error('You do not have permission to manage team members')
-      }
+  .action(async ({ parsedInput: { teamId, userId }, ctx: { orgMember } }) => {
+    const [team] = await db
+      .select({ id: teams.id, organizationId: teams.organizationId })
+      .from(teams)
+      .where(eq(teams.id, teamId))
 
-      const [team] = await db
-        .select({ id: teams.id, organizationId: teams.organizationId })
-        .from(teams)
-        .where(eq(teams.id, teamId))
+    if (!team || team.organizationId !== orgMember.organizationId) {
+      throw new Error('Team not found')
+    }
 
-      if (!team || team.organizationId !== orgMember.organizationId) {
-        throw new Error('Team not found')
-      }
-
-      // Verify user is an org member
-      const [member] = await db
-        .select({ id: members.id })
-        .from(members)
-        .where(
-          and(
-            eq(members.userId, userId),
-            eq(members.organizationId, orgMember.organizationId)
-          )
+    // Verify user is an org member
+    const [member] = await db
+      .select({ id: members.id })
+      .from(members)
+      .where(
+        and(
+          eq(members.userId, userId),
+          eq(members.organizationId, orgMember.organizationId)
         )
+      )
 
-      if (!member) {
-        throw new Error('User is not a member of this organization')
-      }
-
-      await auth.api.addTeamMember({
-        headers: await headers(),
-        body: { teamId, userId },
-      })
-
-      return { success: true }
+    if (!member) {
+      throw new Error('User is not a member of this organization')
     }
-  )
 
-export const removeTeamMemberAction = authedActionClient
+    await auth.api.addTeamMember({
+      headers: await headers(),
+      body: { teamId, userId },
+    })
+
+    return { success: true }
+  })
+
+export const removeTeamMemberAction = orgScopedActionClient
+  .metadata({ authorize: { team: ['update'] } })
   .inputSchema(removeTeamMemberSchema)
-  .action(
-    async ({ parsedInput: { teamMemberId }, ctx: { role, orgMember } }) => {
-      if (!role.authorize({ team: ['update'] }).success) {
-        throw new Error('You do not have permission to manage team members')
-      }
+  .action(async ({ parsedInput: { teamMemberId }, ctx: { orgMember } }) => {
+    const [tm] = await db
+      .select({
+        id: teamMembers.id,
+        teamId: teamMembers.teamId,
+      })
+      .from(teamMembers)
+      .where(eq(teamMembers.id, teamMemberId))
 
-      const [tm] = await db
-        .select({
-          id: teamMembers.id,
-          teamId: teamMembers.teamId,
-        })
-        .from(teamMembers)
-        .where(eq(teamMembers.id, teamMemberId))
-
-      if (!tm) {
-        throw new Error('Team member not found')
-      }
-
-      const [team] = await db
-        .select({ organizationId: teams.organizationId })
-        .from(teams)
-        .where(eq(teams.id, tm.teamId))
-
-      if (!team || team.organizationId !== orgMember.organizationId) {
-        throw new Error('Team member not found')
-      }
-
-      await db.delete(teamMembers).where(eq(teamMembers.id, teamMemberId))
-
-      return { success: true }
+    if (!tm) {
+      throw new Error('Team member not found')
     }
-  )
+
+    const [team] = await db
+      .select({ organizationId: teams.organizationId })
+      .from(teams)
+      .where(eq(teams.id, tm.teamId))
+
+    if (!team || team.organizationId !== orgMember.organizationId) {
+      throw new Error('Team member not found')
+    }
+
+    await db.delete(teamMembers).where(eq(teamMembers.id, teamMemberId))
+
+    return { success: true }
+  })

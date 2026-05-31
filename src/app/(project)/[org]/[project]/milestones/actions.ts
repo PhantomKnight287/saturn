@@ -1,15 +1,19 @@
 'use server'
 
 import { and, eq } from 'drizzle-orm'
-import { authService } from '@/app/api/auth/service'
 import { formatLocalDateOnly } from '@/lib/custom-fields'
-import { authedActionClient } from '@/lib/safe-action'
+import {
+  orgScopedActionClient,
+  projectScopedActionClient,
+} from '@/lib/safe-action'
+import { projectAccess } from '@/server/access/project-access'
 import { db } from '@/server/db'
 import {
   milestoneRequirements,
   milestones,
   requirements,
 } from '@/server/db/schema'
+import type { Role } from '@/types'
 import {
   completeMilestoneSchema,
   createMilestoneSchema,
@@ -20,7 +24,8 @@ import {
   updateMilestoneSchema,
 } from './common'
 
-export const createMilestoneAction = authedActionClient
+export const createMilestoneAction = projectScopedActionClient
+  .metadata({ authorize: { milestone: ['create'] } })
   .inputSchema(createMilestoneSchema)
   .action(
     async ({
@@ -33,20 +38,7 @@ export const createMilestoneAction = authedActionClient
         budgetAmountCents,
         currency,
       },
-      ctx: { role, user, orgMember },
     }) => {
-      if (!role.authorize({ milestone: ['create'] }).success) {
-        throw new Error('You do not have permission to create milestones')
-      }
-      const hasProjectAccess = await authService.checkProjectAccess(
-        orgMember.organizationId,
-        projectId,
-        user.id
-      )
-      if (!hasProjectAccess.success) {
-        throw new Error('You do not have access to this project')
-      }
-
       // Get the next sort order
       const existing = await db
         .select({ sortOrder: milestones.sortOrder })
@@ -77,7 +69,8 @@ export const createMilestoneAction = authedActionClient
     }
   )
 
-export const updateMilestoneAction = authedActionClient
+export const updateMilestoneAction = orgScopedActionClient
+  .metadata({ authorize: { milestone: ['update'] } })
   .inputSchema(updateMilestoneSchema)
   .action(
     async ({
@@ -91,12 +84,8 @@ export const updateMilestoneAction = authedActionClient
         budgetMinutes,
         budgetAmountCents,
       },
-      ctx: { role, user, orgMember },
+      ctx: { orgMember },
     }) => {
-      if (!role.authorize({ milestone: ['update'] }).success) {
-        throw new Error('You do not have permission to update milestones')
-      }
-
       const existing = await db
         .select({
           id: milestones.id,
@@ -110,12 +99,16 @@ export const updateMilestoneAction = authedActionClient
       if (!existing) {
         throw new Error('Milestone not found')
       }
-      const hasProjectAccess = await authService.checkProjectAccess(
-        orgMember.organizationId,
+      const granted = await projectAccess.check(
         existing.projectId,
-        user.id
+        orgMember.organizationId,
+        {
+          id: orgMember.id,
+          userId: orgMember.userId,
+          role: orgMember.role as Role,
+        }
       )
-      if (!hasProjectAccess.success) {
+      if (!granted) {
         throw new Error('Milestone not found')
       }
 
@@ -164,141 +157,112 @@ export const updateMilestoneAction = authedActionClient
     }
   )
 
-export const deleteMilestoneAction = authedActionClient
+export const deleteMilestoneAction = orgScopedActionClient
+  .metadata({ authorize: { milestone: ['delete'] } })
   .inputSchema(deleteMilestoneSchema)
-  .action(
-    async ({
-      parsedInput: { milestoneId },
-      ctx: { role, user, orgMember },
-    }) => {
-      if (!role.authorize({ milestone: ['delete'] }).success) {
-        throw new Error('You do not have permission to delete milestones')
-      }
+  .action(async ({ parsedInput: { milestoneId }, ctx: { orgMember } }) => {
+    const existing = await db
+      .select({ id: milestones.id, projectId: milestones.projectId })
+      .from(milestones)
+      .where(eq(milestones.id, milestoneId))
+      .then((r) => r[0])
 
-      const existing = await db
-        .select({ id: milestones.id, projectId: milestones.projectId })
-        .from(milestones)
-        .where(eq(milestones.id, milestoneId))
-        .then((r) => r[0])
-
-      if (!existing) {
-        throw new Error('Milestone not found')
-      }
-      const hasProjectAccess = await authService.checkProjectAccess(
-        orgMember.organizationId,
-        existing.projectId,
-        user.id
-      )
-      if (!hasProjectAccess.success) {
-        throw new Error('Milestone not found')
-      }
-
-      await db.delete(milestones).where(eq(milestones.id, milestoneId))
-
-      return { success: true }
+    if (!existing) {
+      throw new Error('Milestone not found')
     }
-  )
+    const granted = await projectAccess.check(
+      existing.projectId,
+      orgMember.organizationId,
+      {
+        id: orgMember.id,
+        userId: orgMember.userId,
+        role: orgMember.role as Role,
+      }
+    )
+    if (!granted) {
+      throw new Error('Milestone not found')
+    }
 
-export const completeMilestoneAction = authedActionClient
+    await db.delete(milestones).where(eq(milestones.id, milestoneId))
+
+    return { success: true }
+  })
+
+export const completeMilestoneAction = orgScopedActionClient
+  .metadata({ authorize: { milestone: ['complete'] } })
   .inputSchema(completeMilestoneSchema)
-  .action(
-    async ({
-      parsedInput: { milestoneId },
-      ctx: { role, user, orgMember },
-    }) => {
-      if (!role.authorize({ milestone: ['complete'] }).success) {
-        throw new Error('You do not have permission to complete milestones')
-      }
-
-      const existing = await db
-        .select({
-          id: milestones.id,
-          projectId: milestones.projectId,
-          status: milestones.status,
-        })
-        .from(milestones)
-        .where(eq(milestones.id, milestoneId))
-        .then((r) => r[0])
-
-      if (!existing) {
-        throw new Error('Milestone not found')
-      }
-      const hasProjectAccess = await authService.checkProjectAccess(
-        orgMember.organizationId,
-        existing.projectId,
-        user.id
-      )
-      if (!hasProjectAccess.success) {
-        throw new Error('Milestone not found')
-      }
-      if (existing.status === 'completed') {
-        throw new Error('Milestone is already completed')
-      }
-
-      const [milestone] = await db
-        .update(milestones)
-        .set({
-          status: 'completed',
-          completedAt: new Date(),
-          blockReason: null,
-        })
-        .where(eq(milestones.id, milestoneId))
-        .returning()
-
-      return milestone
-    }
-  )
-
-export const reorderMilestonesAction = authedActionClient
-  .inputSchema(reorderMilestonesSchema)
-  .action(
-    async ({
-      parsedInput: { projectId, orderedIds },
-      ctx: { role, user, orgMember },
-    }) => {
-      if (!role.authorize({ milestone: ['update'] }).success) {
-        throw new Error('You do not have permission to reorder milestones')
-      }
-      const hasProjectAccess = await authService.checkProjectAccess(
-        orgMember.organizationId,
-        projectId,
-        user.id
-      )
-      if (!hasProjectAccess.success) {
-        throw new Error('You do not have access to this project')
-      }
-
-      await db.transaction(async (tx) => {
-        for (let i = 0; i < orderedIds.length; i++) {
-          await tx
-            .update(milestones)
-            .set({ sortOrder: i })
-            .where(
-              and(
-                eq(milestones.id, orderedIds[i]!),
-                eq(milestones.projectId, projectId)
-              )
-            )
-        }
+  .action(async ({ parsedInput: { milestoneId }, ctx: { orgMember } }) => {
+    const existing = await db
+      .select({
+        id: milestones.id,
+        projectId: milestones.projectId,
+        status: milestones.status,
       })
+      .from(milestones)
+      .where(eq(milestones.id, milestoneId))
+      .then((r) => r[0])
 
-      return { success: true }
+    if (!existing) {
+      throw new Error('Milestone not found')
     }
-  )
+    const granted = await projectAccess.check(
+      existing.projectId,
+      orgMember.organizationId,
+      {
+        id: orgMember.id,
+        userId: orgMember.userId,
+        role: orgMember.role as Role,
+      }
+    )
+    if (!granted) {
+      throw new Error('Milestone not found')
+    }
+    if (existing.status === 'completed') {
+      throw new Error('Milestone is already completed')
+    }
 
-export const linkRequirementAction = authedActionClient
+    const [milestone] = await db
+      .update(milestones)
+      .set({
+        status: 'completed',
+        completedAt: new Date(),
+        blockReason: null,
+      })
+      .where(eq(milestones.id, milestoneId))
+      .returning()
+
+    return milestone
+  })
+
+export const reorderMilestonesAction = projectScopedActionClient
+  .metadata({ authorize: { milestone: ['update'] } })
+  .inputSchema(reorderMilestonesSchema)
+  .action(async ({ parsedInput: { projectId, orderedIds } }) => {
+    await db.transaction(async (tx) => {
+      for (let i = 0; i < orderedIds.length; i++) {
+        await tx
+          .update(milestones)
+          .set({ sortOrder: i })
+          .where(
+            and(
+              eq(milestones.id, orderedIds[i]!),
+              eq(milestones.projectId, projectId)
+            )
+          )
+      }
+    })
+
+    return { success: true }
+  })
+
+export const linkRequirementAction = orgScopedActionClient
+  .metadata({ authorize: { milestone: ['update'] } })
   .inputSchema(linkRequirementSchema)
   .action(
     async ({
       parsedInput: { milestoneId, requirementId },
-      ctx: { role, user, orgMember },
+      ctx: { orgMember },
     }) => {
-      if (!role.authorize({ milestone: ['update'] }).success) {
-        throw new Error(
-          'You do not have permission to link requirements to milestones'
-        )
-      }
-
       const milestone = await db
         .select({ id: milestones.id, projectId: milestones.projectId })
         .from(milestones)
@@ -308,12 +272,16 @@ export const linkRequirementAction = authedActionClient
       if (!milestone) {
         throw new Error('Milestone not found')
       }
-      const hasProjectAccess = await authService.checkProjectAccess(
-        orgMember.organizationId,
+      const granted = await projectAccess.check(
         milestone.projectId,
-        user.id
+        orgMember.organizationId,
+        {
+          id: orgMember.id,
+          userId: orgMember.userId,
+          role: orgMember.role as Role,
+        }
       )
-      if (!hasProjectAccess.success) {
+      if (!granted) {
         throw new Error('Milestone not found')
       }
 
@@ -355,19 +323,14 @@ export const linkRequirementAction = authedActionClient
     }
   )
 
-export const unlinkRequirementAction = authedActionClient
+export const unlinkRequirementAction = orgScopedActionClient
+  .metadata({ authorize: { milestone: ['update'] } })
   .inputSchema(unlinkRequirementSchema)
   .action(
     async ({
       parsedInput: { milestoneId, requirementId },
-      ctx: { role, user, orgMember },
+      ctx: { orgMember },
     }) => {
-      if (!role.authorize({ milestone: ['update'] }).success) {
-        throw new Error(
-          'You do not have permission to unlink requirements from milestones'
-        )
-      }
-
       const [milestone] = await db
         .select({ projectId: milestones.projectId })
         .from(milestones)
@@ -375,12 +338,16 @@ export const unlinkRequirementAction = authedActionClient
       if (!milestone) {
         throw new Error('Milestone not found')
       }
-      const hasProjectAccess = await authService.checkProjectAccess(
-        orgMember.organizationId,
+      const granted = await projectAccess.check(
         milestone.projectId,
-        user.id
+        orgMember.organizationId,
+        {
+          id: orgMember.id,
+          userId: orgMember.userId,
+          role: orgMember.role as Role,
+        }
       )
-      if (!hasProjectAccess.success) {
+      if (!granted) {
         throw new Error('Milestone not found')
       }
 

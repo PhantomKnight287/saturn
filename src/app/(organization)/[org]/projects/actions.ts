@@ -4,7 +4,7 @@ import { and, asc, count, eq, isNull } from 'drizzle-orm'
 // import { PROJECTS_CACHE_TAG } from '@/api/projects/service'
 import { getUserBillingStatus } from '@/cache/billing'
 import { formatLocalDateOnly } from '@/lib/custom-fields'
-import { authedActionClient } from '@/lib/safe-action'
+import { orgScopedActionClient } from '@/lib/safe-action'
 import { titleToSlug } from '@/lib/utils'
 import { FREE_PLAN_LIMITS } from '@/limits'
 import { db } from '@/server/db'
@@ -17,7 +17,8 @@ import {
 } from '@/server/db/schema'
 import { createProjectSchema } from './common'
 
-export const createProjectAction = authedActionClient
+export const createProjectAction = orgScopedActionClient
+  .metadata({ authorize: { project: ['create'] } })
   .inputSchema(createProjectSchema)
   .action(
     async ({
@@ -31,12 +32,8 @@ export const createProjectAction = authedActionClient
         invoiceToName,
         invoiceToAddress,
       },
-      ctx: { orgMember, role },
+      ctx: { orgMember },
     }) => {
-      if (!role.authorize({ project: ['create'] }).success) {
-        throw new Error('You do not have permission to create projects')
-      }
-
       if (orgMember.organizationId !== organizationId) {
         throw new Error('Workspace mismatch')
       }
