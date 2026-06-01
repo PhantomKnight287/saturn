@@ -42,6 +42,7 @@ import {
   threads,
   users,
 } from '@/server/db/schema'
+import { CLIENT_VISIBLE_INVOICE_STATUSES } from '@/server/visibility/client-visibility'
 import { currencyConversionService } from '@/services/currency-conversion.service'
 import type { Role } from '@/types'
 
@@ -100,7 +101,7 @@ const listByProject = async ({
       .where(
         and(
           eq(invoices.projectId, projectId),
-          inArray(invoices.status, ['disputed', 'paid', 'sent', 'cancelled'])
+          inArray(invoices.status, CLIENT_VISIBLE_INVOICE_STATUSES)
         )
       )
       .innerJoin(
@@ -307,7 +308,7 @@ const listByProjectIds = async (
   const whereClause = opts.clientView
     ? and(
         inArray(invoices.projectId, projectIds),
-        inArray(invoices.status, ['disputed', 'paid', 'sent', 'cancelled'])
+        inArray(invoices.status, CLIENT_VISIBLE_INVOICE_STATUSES)
       )
     : inArray(invoices.projectId, projectIds)
 

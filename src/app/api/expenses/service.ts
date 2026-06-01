@@ -21,6 +21,7 @@ import {
   members,
   users,
 } from '@/server/db/schema'
+import { CLIENT_VISIBLE_EXPENSE_STATUSES } from '@/server/visibility/client-visibility'
 import type { Role } from '@/types'
 import { authService } from '../auth/service'
 import { projectsService } from '../projects/service'
@@ -77,11 +78,7 @@ const listByProject = async ({
       .where(
         and(
           eq(expenses.projectId, projectId),
-          inArray(expenses.status, [
-            'client_accepted',
-            'client_rejected',
-            'submitted_to_client',
-          ])
+          inArray(expenses.status, CLIENT_VISIBLE_EXPENSE_STATUSES)
         )
       )
       .orderBy(desc(expenses.date))

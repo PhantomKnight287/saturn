@@ -1,5 +1,5 @@
 import { render } from '@react-email/components'
-import { and, asc, desc, eq, getTableColumns, inArray, not } from 'drizzle-orm'
+import { and, asc, desc, eq } from 'drizzle-orm'
 import { organizationsService } from '@/app/api/organizations/service'
 import { projectsService } from '@/app/api/projects/service'
 import { teamService } from '@/app/api/teams/service'
@@ -22,6 +22,7 @@ import {
   threads,
   users,
 } from '@/server/db/schema'
+import { clientProposalVisibility } from '@/server/visibility/client-visibility'
 import type { Role } from '@/types'
 
 export const PROPOSALS_CACHE_TAG = 'proposals'
@@ -60,32 +61,16 @@ const listByProject = async ({
   projectId: string
   memberId: string
   role: Role
-}) => {
-  if (role === 'client') {
-    return await db
-      .select(getTableColumns(proposals))
-      .from(proposals)
-      .where(
-        and(
-          eq(proposals.projectId, projectId),
-          not(eq(proposals.status, 'draft'))
-        )
-      )
-      .innerJoin(
-        proposalRecipients,
-        and(
-          eq(proposalRecipients.proposalId, proposals.id),
-          eq(proposalRecipients.clientMemberId, memberId)
-        )
-      )
-      .orderBy(desc(proposals.updatedAt))
-  }
-  return db
+}) =>
+  await db
     .select()
     .from(proposals)
-    .where(eq(proposals.projectId, projectId))
+    .where(
+      role === 'client'
+        ? clientProposalVisibility(projectId, memberId)
+        : eq(proposals.projectId, projectId)
+    )
     .orderBy(desc(proposals.updatedAt))
-}
 
 const getBySlug = async ({
   projectId,
@@ -98,27 +83,17 @@ const getBySlug = async ({
   role: Role
   memberId: string
 }) => {
-  let proposal: typeof proposals.$inferSelect | undefined
-  if (role === 'client') {
-    const proposalArray = await db
-      .select(getTableColumns(proposals))
-      .from(proposals)
-      .where(and(eq(proposals.projectId, projectId), eq(proposals.slug, slug)))
-      .innerJoin(
-        proposalRecipients,
-        and(
-          eq(proposalRecipients.proposalId, proposals.id),
-          eq(proposalRecipients.clientMemberId, memberId)
-        )
-      )
-    proposal = proposalArray[0]
-  } else {
-    const proposalArray = await db
-      .select()
-      .from(proposals)
-      .where(and(eq(proposals.projectId, projectId), eq(proposals.slug, slug)))
-    proposal = proposalArray[0]
-  }
+  const [proposal] = await db
+    .select()
+    .from(proposals)
+    .where(
+      role === 'client'
+        ? and(
+            eq(proposals.slug, slug),
+            clientProposalVisibility(projectId, memberId)
+          )
+        : and(eq(proposals.projectId, projectId), eq(proposals.slug, slug))
+    )
   return proposal ?? null
 }
 
@@ -129,77 +104,6 @@ const getDeliverables = async (proposalId: string) =>
     .where(eq(proposalDeliverables.proposalId, proposalId))
     .orderBy(asc(proposalDeliverables.sortOrder))
 
-const getThreads = async (projectId: string, entityId: string) => {
-  const rows = await db
-    .select()
-    .from(threads)
-    .where(
-      and(eq(threads.projectId, projectId), eq(threads.entityId, entityId))
-    )
-    .orderBy(asc(threads.createdAt))
-
-  const threadIds = rows.map((t) => t.id)
-  if (threadIds.length === 0) {
-    return []
-  }
-
-  const messages = await db
-    .select({
-      id: threadMessages.id,
-      threadId: threadMessages.threadId,
-      authorMemberId: threadMessages.authorMemberId,
-      authorName: users.name,
-      authorImage: users.image,
-      body: threadMessages.body,
-      createdAt: threadMessages.createdAt,
-    })
-    .from(threadMessages)
-    .leftJoin(membersTable, eq(threadMessages.authorMemberId, membersTable.id))
-    .leftJoin(users, eq(membersTable.userId, users.id))
-    .where(inArray(threadMessages.threadId, threadIds))
-    .orderBy(asc(threadMessages.createdAt))
-
-  const messagesByThread = new Map<string, typeof messages>()
-  for (const msg of messages) {
-    const list = messagesByThread.get(msg.threadId) ?? []
-    list.push(msg)
-    messagesByThread.set(msg.threadId, list)
-  }
-
-  const creatorIds = rows
-    .map((t) => t.createdByMemberId)
-    .filter((id): id is string => id != null)
-  const creators =
-    creatorIds.length > 0
-      ? await db
-          .select({
-            memberId: membersTable.id,
-            name: users.name,
-            image: users.image,
-          })
-          .from(membersTable)
-          .leftJoin(users, eq(membersTable.userId, users.id))
-          .where(inArray(membersTable.id, creatorIds))
-      : []
-
-  const creatorMap = new Map(creators.map((c) => [c.memberId, c]))
-
-  return rows.map((t) => {
-    const creator = t.createdByMemberId
-      ? creatorMap.get(t.createdByMemberId)
-      : null
-    return {
-      id: t.id,
-      selectedText: t.selectedText,
-      status: t.status,
-      createdByMemberId: t.createdByMemberId,
-      createdByName: creator?.name ?? null,
-      createdByImage: creator?.image ?? null,
-      messages: messagesByThread.get(t.id) ?? [],
-      createdAt: t.createdAt,
-    }
-  })
-}
 const getRecipients = async (proposalId: string) =>
   await db
     .select()
@@ -225,20 +129,6 @@ const getSignatures = async (proposalId: string) =>
     )
     .leftJoin(users, eq(membersTable.userId, users.id))
     .where(eq(proposalSignatures.proposalId, proposalId))
-
-const getSignatureMediaForMember = async (memberId: string) =>
-  await db
-    .select({
-      id: mediaTable.id,
-      name: mediaTable.name,
-      contentType: mediaTable.contentType,
-      createdAt: mediaTable.createdAt,
-    })
-    .from(proposalSignatures)
-    .innerJoin(mediaTable, eq(proposalSignatures.mediaId, mediaTable.id))
-    .where(eq(proposalSignatures.clientMemberId, memberId))
-    .groupBy(mediaTable.id)
-    .orderBy(desc(mediaTable.createdAt))
 
 const create = async ({
   project,
@@ -411,17 +301,17 @@ const send = async ({
     throw new Error('Proposal not found')
   }
 
+  const recipientsToSend: {
+    email: string
+    name: string
+    memberId: string
+  }[] = []
   await db.transaction(async (tx) => {
     await tx
       .update(proposals)
       .set({ status: 'submitted_to_client' })
       .where(eq(proposals.id, proposalId))
 
-    const recipientsToSend: {
-      email: string
-      name: string
-      memberId: string
-    }[] = []
     for (const recipient of recipients) {
       const clientMember = await teamService.getClientMemberById(
         project.organizationId,
@@ -437,37 +327,6 @@ const send = async ({
       })
     }
 
-    await sendEmailsToRecipients(recipientsToSend, async (recipient) => {
-      const html = await render(
-        ProposalSentEmail({
-          recipientName: recipient.name ?? 'there',
-          proposalTitle: proposal.title,
-          organizationName: organization.name,
-          senderName: orgMember.user.name ?? 'there',
-          totalAmount: proposal.totalAmount,
-          currency: proposal.currency,
-          pricingType: 'fixed',
-          validUntil: proposal.validUntil
-            ? new Date(`${proposal.validUntil}T00:00:00`).toLocaleDateString(
-                'en-GB',
-                {
-                  month: 'long',
-                  day: 'numeric',
-                  year: 'numeric',
-                }
-              )
-            : null,
-          orgSlug,
-          proposalSlug: proposal.slug,
-        })
-      )
-      return {
-        to: recipient.email,
-        subject: `New proposal: "${proposal.title}" — ${project.name}`,
-        html,
-      }
-    })
-
     await tx
       .insert(proposalRecipients)
       .values(
@@ -477,6 +336,37 @@ const send = async ({
         }))
       )
       .onConflictDoNothing()
+  })
+
+  await sendEmailsToRecipients(recipientsToSend, async (recipient) => {
+    const html = await render(
+      ProposalSentEmail({
+        recipientName: recipient.name ?? 'there',
+        proposalTitle: proposal.title,
+        organizationName: organization.name,
+        senderName: orgMember.user.name ?? 'there',
+        totalAmount: proposal.totalAmount,
+        currency: proposal.currency,
+        pricingType: 'fixed',
+        validUntil: proposal.validUntil
+          ? new Date(`${proposal.validUntil}T00:00:00`).toLocaleDateString(
+              'en-GB',
+              {
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric',
+              }
+            )
+          : null,
+        orgSlug,
+        proposalSlug: proposal.slug,
+      })
+    )
+    return {
+      to: recipient.email,
+      subject: `New proposal: "${proposal.title}" — ${project.name}`,
+      html,
+    }
   })
 
   return proposal
@@ -536,33 +426,30 @@ const sign = async ({
         .set({ status: 'client_accepted' })
         .where(eq(proposals.id, proposalId))
     }
+  })
 
-    const admins = await teamService.getAdminAndOwners(project.organizationId)
-    const emailsToSend: { email: string; name: string }[] = []
-    for (const admin of admins) {
-      emailsToSend.push({
-        email: admin.users.email,
-        name: admin.users.name,
+  const admins = await teamService.getAdminAndOwners(project.organizationId)
+  const emailsToSend = admins.map((admin) => ({
+    email: admin.users.email,
+    name: admin.users.name,
+  }))
+  await sendEmailsToRecipients(emailsToSend, async (recipient) => {
+    const html = await render(
+      ProposalApprovedEmail({
+        recipientName: recipient.name ?? 'there',
+        proposalTitle: proposal.title,
+        clientName: orgMember.user.name ?? 'A stakeholder',
+        totalAmount: proposal.totalAmount,
+        currency: proposal.currency,
+        orgSlug,
+        proposalSlug: proposal.slug,
       })
+    )
+    return {
+      to: recipient.email,
+      subject: `Proposal signed: "${proposal.title}" — ${project.name}`,
+      html,
     }
-    await sendEmailsToRecipients(emailsToSend, async (recipient) => {
-      const html = await render(
-        ProposalApprovedEmail({
-          recipientName: recipient.name ?? 'there',
-          proposalTitle: proposal.title,
-          clientName: orgMember.user.name ?? 'A stakeholder',
-          totalAmount: proposal.totalAmount,
-          currency: proposal.currency,
-          orgSlug,
-          proposalSlug: proposal.slug,
-        })
-      )
-      return {
-        to: recipient.email,
-        subject: `Proposal signed: "${proposal.title}" — ${project.name}`,
-        html,
-      }
-    })
   })
 
   return { success: true }
@@ -597,37 +484,6 @@ const createThread = async ({
         createdByMemberId: orgMember.id,
       })
       .returning()
-    const receipients = await teamService.getAdminAndOwners(
-      project.organizationId
-    )
-    const emailsToSend: { email: string; name: string }[] = []
-    for (const recipient of receipients) {
-      emailsToSend.push({
-        email: recipient.users.email,
-        name: recipient.users.name,
-      })
-    }
-    await sendEmailsToRecipients(emailsToSend, async (recipient) => {
-      const html = await render(
-        ThreadNewMessageEmail({
-          contextName: proposal.title,
-          contextType: 'proposal',
-          projectName: project.name,
-          orgSlug,
-          projectSlug: project.slug,
-          threadLink: `${baseUrl}/${orgSlug}/${project.slug}/proposals/${proposal.slug}#thread_${createdThread!.id}`,
-          messagePreview: threadBody,
-          senderName: orgMember.user.name ?? 'there',
-          threadTitle: selectedText,
-          recipientName: recipient.name ?? 'there',
-        })
-      )
-      return {
-        to: recipient.email,
-        subject: `New thread in "${proposal.title}" — ${project.name}`,
-        html,
-      }
-    })
     await tx.insert(threadMessages).values({
       threadId: createdThread!.id,
       body: threadBody,
@@ -635,7 +491,39 @@ const createThread = async ({
     })
     return createdThread
   })
-  return thread ?? null
+  if (!thread) {
+    return null
+  }
+
+  const receipients = await teamService.getAdminAndOwners(
+    project.organizationId
+  )
+  const emailsToSend = receipients.map((recipient) => ({
+    email: recipient.users.email,
+    name: recipient.users.name,
+  }))
+  await sendEmailsToRecipients(emailsToSend, async (recipient) => {
+    const html = await render(
+      ThreadNewMessageEmail({
+        contextName: proposal.title,
+        contextType: 'proposal',
+        projectName: project.name,
+        orgSlug,
+        projectSlug: project.slug,
+        threadLink: `${baseUrl}/${orgSlug}/${project.slug}/proposals/${proposal.slug}#thread_${thread.id}`,
+        messagePreview: threadBody,
+        senderName: orgMember.user.name ?? 'there',
+        threadTitle: selectedText,
+        recipientName: recipient.name ?? 'there',
+      })
+    )
+    return {
+      to: recipient.email,
+      subject: `New thread in "${proposal.title}" — ${project.name}`,
+      html,
+    }
+  })
+  return thread
 }
 
 const addThreadReply = async ({
@@ -664,47 +552,42 @@ const addThreadReply = async ({
   if (!thread) {
     throw new Error('Thread not found')
   }
-  const threadMessage = await db.transaction(async (tx) => {
-    const [createdMessage] = await tx
-      .insert(threadMessages)
-      .values({
-        threadId,
-        body: replyBody,
-        authorMemberId: orgMember.id,
-      })
-      .returning()
-    const receipients = await teamService.getAdminAndOwners(
-      project.organizationId
-    )
-    const emailsToSend: { email: string; name: string }[] = []
-    for (const recipient of receipients) {
-      emailsToSend.push({
-        email: recipient.users.email,
-        name: recipient.users.name,
-      })
-    }
-    await sendEmailsToRecipients(emailsToSend, async (recipient) => {
-      const html = await render(
-        ThreadNewMessageEmail({
-          recipientName: recipient.name ?? 'there',
-          senderName: orgMember.user.name ?? 'there',
-          threadTitle: thread.selectedText,
-          messagePreview: replyBody,
-          contextType: 'proposal',
-          contextName: proposal.title,
-          projectName: project.name,
-          orgSlug,
-          projectSlug: project.slug,
-          threadLink: `${baseUrl}/${orgSlug}/${project.slug}/proposals/${proposal.slug}#thread_${thread.id}`,
-        })
-      )
-      return {
-        to: recipient.email,
-        subject: `New reply in thread "${thread.selectedText}" — ${project.name}`,
-        html,
-      }
+  const [threadMessage] = await db
+    .insert(threadMessages)
+    .values({
+      threadId,
+      body: replyBody,
+      authorMemberId: orgMember.id,
     })
-    return createdMessage
+    .returning()
+
+  const receipients = await teamService.getAdminAndOwners(
+    project.organizationId
+  )
+  const emailsToSend = receipients.map((recipient) => ({
+    email: recipient.users.email,
+    name: recipient.users.name,
+  }))
+  await sendEmailsToRecipients(emailsToSend, async (recipient) => {
+    const html = await render(
+      ThreadNewMessageEmail({
+        recipientName: recipient.name ?? 'there',
+        senderName: orgMember.user.name ?? 'there',
+        threadTitle: thread.selectedText,
+        messagePreview: replyBody,
+        contextType: 'proposal',
+        contextName: proposal.title,
+        projectName: project.name,
+        orgSlug,
+        projectSlug: project.slug,
+        threadLink: `${baseUrl}/${orgSlug}/${project.slug}/proposals/${proposal.slug}#thread_${thread.id}`,
+      })
+    )
+    return {
+      to: recipient.email,
+      subject: `New reply in thread "${thread.selectedText}" — ${project.name}`,
+      html,
+    }
   })
   return threadMessage
 }
@@ -761,10 +644,8 @@ export const proposalsService = {
   listByProject,
   getById,
   getBySlug,
-  getThreads,
   getRecipients,
   getSignatures,
-  getSignatureMediaForMember,
   getDeliverables,
   create,
   update,
