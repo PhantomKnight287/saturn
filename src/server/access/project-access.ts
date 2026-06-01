@@ -7,25 +7,20 @@ import {
   projectTeamAssignments,
   teamMembers,
 } from '@/server/db/schema'
+import type { auth } from '../auth'
 
 export type Project = typeof projects.$inferSelect
 
-/** The member facts the access decision needs — a subset of the active org member. */
-export interface AccessMember {
-  id: string
-  role: string
-  userId: string
-}
+type OrgMember = Awaited<ReturnType<typeof auth.api.getActiveMember>>
 
-/**
- * The active org member as the domain layer consumes it: a superset of
- * [[AccessMember]] carrying the org it's scoped to and the user's display name
- * (for notifications). `ctx.orgMember` from a scoped action client satisfies it.
- */
-export interface ActiveMember extends AccessMember {
-  organizationId: string
-  user: { name: string | null }
-}
+export interface AccessMember
+  extends Pick<OrgMember, 'id' | 'role' | 'userId'> {}
+
+export interface ActiveMember
+  extends Pick<
+    OrgMember,
+    'id' | 'role' | 'userId' | 'organizationId' | 'user'
+  > {}
 
 const resolveById = async (projectId: string, organizationId: string) => {
   const [project] = await db
