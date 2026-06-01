@@ -122,6 +122,25 @@ const check = async (
 }
 
 /**
+ * Existence guard: verify `projectId` belongs to `organizationId`, throwing
+ * otherwise and returning the verified row. Unlike [[assert]] this does *not*
+ * check Project Access — it's the primitive for owner/admin-only management
+ * surfaces (settings, custom fields) that are already authorized at the org level
+ * and only need the project to exist within the workspace.
+ */
+const assertInOrg = async (
+  projectId: string,
+  organizationId: string,
+  notFoundMessage = 'Project not found in this workspace'
+) => {
+  const project = await resolveById(projectId, organizationId)
+  if (!project) {
+    throw new Error(notFoundMessage)
+  }
+  return project
+}
+
+/**
  * Entity-scoped guard: verify `member` may touch `projectId` within its own org,
  * throwing `notFoundMessage` otherwise. The single home for the "load entity →
  * check access" preamble every service write shares.
@@ -143,4 +162,5 @@ export const projectAccess = {
   hasAccess,
   check,
   assert,
+  assertInOrg,
 }

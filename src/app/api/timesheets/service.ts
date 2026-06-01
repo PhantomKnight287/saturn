@@ -29,9 +29,9 @@ import {
   type Project,
   projectAccess,
 } from '@/server/access/project-access'
+import { customFieldsService } from '@/server/custom-fields/service'
 import { db } from '@/server/db'
 import {
-  customFields,
   invoices,
   memberRates,
   members,
@@ -45,15 +45,6 @@ import {
 } from '@/server/db/schema'
 import { currencyConversionService } from '@/services/currency-conversion.service'
 import type { Role } from '@/types'
-
-const loadProjectCustomFieldDefs = async (
-  projectId: string
-): Promise<CustomFieldDefinition[]> =>
-  await db
-    .select()
-    .from(customFields)
-    .where(eq(customFields.projectId, projectId))
-    .orderBy(asc(customFields.createdAt))
 
 const validateCustomValues = (
   defs: CustomFieldDefinition[],
@@ -708,20 +699,8 @@ const getEntryForEdit = async (entryId: string, projectId: string) => {
   return entry ?? null
 }
 
-const getProjectCustomFields = async (
-  projectId: string,
-  role: 'owner' | 'admin' | 'member' | 'client'
-) => {
-  const conditions = [eq(customFields.projectId, projectId)]
-  if (role === 'client') {
-    conditions.push(eq(customFields.visibleToClient, true))
-  }
-  return await db
-    .select()
-    .from(customFields)
-    .where(and(...conditions))
-    .orderBy(asc(customFields.createdAt))
-}
+const getProjectCustomFields = (projectId: string, role: Role) =>
+  customFieldsService.getProjectFields(projectId, role)
 
 /**
  * Ensures a member has a usable rate before their entries are approved.
@@ -852,7 +831,12 @@ const checkBudgetThreshold = async (
 
 type TimeEntryWritable = Pick<
   typeof timeEntries.$inferInsert,
-  'requirementId' | 'description' | 'date' | 'durationMinutes' | 'billable' | 'customValues'
+  | 'requirementId'
+  | 'description'
+  | 'date'
+  | 'durationMinutes'
+  | 'billable'
+  | 'customValues'
 >
 
 const createEntry = async ({
@@ -877,7 +861,7 @@ const createEntry = async ({
     await ensureMemberRate(orgMember.id, projectId, date, settings)
   }
 
-  const defs = await loadProjectCustomFieldDefs(projectId)
+  const defs = await customFieldsService.getProjectFields(projectId)
   const validatedCustomValues = validateCustomValues(defs, customValues)
 
   const [entry] = await db
@@ -976,7 +960,7 @@ const updateEntry = async ({
     updates.billable = billable
   }
   if (customValues !== undefined) {
-    const defs = await loadProjectCustomFieldDefs(existing.projectId)
+    const defs = await customFieldsService.getProjectFields(existing.projectId)
     updates.customValues = validateCustomValues(defs, customValues)
   }
   // Reset rejected entries to draft when edited so they can be resubmitted

@@ -1,11 +1,12 @@
-import { and, asc, count, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { and, count, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { getUserBillingStatus } from '@/cache/billing'
 import { formatLocalDateOnly } from '@/lib/custom-fields'
 import { titleToSlug } from '@/lib/utils'
 import { FREE_PLAN_LIMITS } from '@/limits'
+import { projectAccess } from '@/server/access/project-access'
+import { customFieldsService } from '@/server/custom-fields/service'
 import { db } from '@/server/db'
 import {
-  customFields,
   members,
   organizations,
   projectClientAssignments,
@@ -221,25 +222,6 @@ const getSettings = async (organizationId: string, projectId?: string) => {
   return orgSettings ?? SETTINGS_DEFAULTS
 }
 
-const assertProjectInOrg = async (
-  projectId: string,
-  organizationId: string
-) => {
-  const [project] = await db
-    .select({ id: projects.id })
-    .from(projects)
-    .where(
-      and(
-        eq(projects.id, projectId),
-        eq(projects.organizationId, organizationId)
-      )
-    )
-    .limit(1)
-  if (!project) {
-    throw new Error('Project not found in this workspace')
-  }
-}
-
 // When no billing rate is set, billing mirrors pay entirely — otherwise stale
 // billing currency/frequency could leak into "same as pay" mode.
 const resolveRateDefaults = (i: {
@@ -360,34 +342,11 @@ const create = async ({
       authorId,
     })
 
-    const orgTemplates = await tx
-      .select({
-        label: customFields.label,
-        type: customFields.type,
-        required: customFields.required,
-        visibleToClient: customFields.visibleToClient,
-        defaultValue: customFields.defaultValue,
-        options: customFields.options,
-        config: customFields.config,
-      })
-      .from(customFields)
-      .where(
-        and(
-          eq(customFields.organizationId, organizationId),
-          isNull(customFields.projectId)
-        )
-      )
-      .orderBy(asc(customFields.createdAt))
-
-    if (orgTemplates.length > 0) {
-      await tx.insert(customFields).values(
-        orgTemplates.map((t) => ({
-          ...t,
-          organizationId,
-          projectId: createdProject.id,
-        }))
-      )
-    }
+    await customFieldsService.copyOrgTemplatesToProject(
+      tx,
+      organizationId,
+      createdProject.id
+    )
 
     const fromName = invoiceFromName?.trim() || null
     const fromAddress = invoiceFromAddress?.trim() || null
@@ -513,7 +472,7 @@ const updateProjectBillingDetails = async ({
   invoiceToName?: string
   invoiceToAddress?: string
 }) => {
-  await assertProjectInOrg(projectId, organizationId)
+  await projectAccess.assertInOrg(projectId, organizationId)
 
   const values = {
     invoiceFromName: invoiceFromName?.trim() || null,
@@ -548,7 +507,7 @@ const updateProjectTimesheetDefaults = async ({
   defaultBillingFrequency?: Frequency
   defaultTimesheetDuration: TimesheetDuration
 }) => {
-  await assertProjectInOrg(projectId, organizationId)
+  await projectAccess.assertInOrg(projectId, organizationId)
   const defaults = resolveRateDefaults(rates)
   await db
     .insert(settingsTable)
@@ -660,7 +619,7 @@ const updateInvoiceImportDefaults = async ({
   invoiceTimeUnit: NonNullable<SettingsInsert['invoiceTimeUnit']>
 }) => {
   if (projectId) {
-    await assertProjectInOrg(projectId, organizationId)
+    await projectAccess.assertInOrg(projectId, organizationId)
     await db
       .insert(settingsTable)
       .values({ organizationId, projectId, invoiceTimeUnit })

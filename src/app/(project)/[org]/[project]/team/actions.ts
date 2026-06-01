@@ -71,14 +71,11 @@ export const unassignTeamAction = orgScopedActionClient
 export const addExistingMemberToProjectAction = projectScopedActionClient
   .metadata({ authorize: { member: ['create'] } })
   .inputSchema(addExistingMemberToProjectSchema)
-  .action(({ parsedInput, ctx: { orgMember, project } }) => {
-    if (orgMember.organizationId !== parsedInput.organizationId) {
-      throw new Error('Organization mismatch')
-    }
-    return teamService.addExistingMember({
+  .action(({ parsedInput, ctx: { orgMember, project } }) =>
+    teamService.addExistingMember({
       project,
       email: parsedInput.email,
-      organizationId: parsedInput.organizationId,
+      organizationId: orgMember.organizationId,
       type: parsedInput.type,
       payRate: parsedInput.payRate,
       payCurrency: parsedInput.payCurrency,
@@ -88,4 +85,4 @@ export const addExistingMemberToProjectAction = projectScopedActionClient
       billingFrequency: parsedInput.billingFrequency,
       setAsOrgDefault: parsedInput.setAsOrgDefault,
     })
-  })
+  )

@@ -1,4 +1,3 @@
-import { and, asc, eq } from 'drizzle-orm'
 import { ArrowLeft } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
@@ -6,10 +5,8 @@ import { redirect } from 'next/navigation'
 import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
 import { requirementsService } from '@/app/api/requirements/service'
 import { buttonVariants } from '@/components/ui/button-variants'
-import type { CustomFieldDefinition } from '@/lib/custom-fields'
 import { createMetadata } from '@/lib/metadata'
-import { db } from '@/server/db'
-import { customFields } from '@/server/db/schema'
+import { customFieldsService } from '@/server/custom-fields/service'
 import type { RouteImpl } from '@/types'
 import { TimeEntryFormBody } from '../_components/time-entry-form-body'
 
@@ -26,8 +23,10 @@ export default async function NewTimeEntryPage({
 }: PageProps<'/[org]/[project]/timesheets/new'>) {
   const { org, project: projectSlug } = await params
   const { date: dateParam, duration } = await searchParams
-  const { organization, project, role, orgMember } =
-    await resolveProjectContext(org, projectSlug)
+  const { project, role, orgMember } = await resolveProjectContext(
+    org,
+    projectSlug
+  )
 
   if (!role.authorize({ time_entry: ['create'] }).success) {
     redirect(
@@ -41,16 +40,7 @@ export default async function NewTimeEntryPage({
       role: orgMember.role,
       projectId: project.id,
     }),
-    db
-      .select()
-      .from(customFields)
-      .where(
-        and(
-          eq(customFields.projectId, project.id),
-          eq(customFields.organizationId, organization.id)
-        )
-      )
-      .orderBy(asc(customFields.createdAt)) as Promise<CustomFieldDefinition[]>,
+    customFieldsService.getProjectFields(project.id),
   ])
 
   const defaultDate =
