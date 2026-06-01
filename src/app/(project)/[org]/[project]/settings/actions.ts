@@ -1,14 +1,10 @@
 'use server'
 
 import { and, eq, inArray, isNull, sql } from 'drizzle-orm'
-import { formatLocalDateOnly } from '@/lib/custom-fields'
+import { projectsService } from '@/app/api/projects/service'
 import { orgScopedActionClient } from '@/lib/safe-action'
 import { db } from '@/server/db'
-import {
-  customFields,
-  settings as settingsTable,
-  timeEntries,
-} from '@/server/db/schema'
+import { customFields, timeEntries } from '@/server/db/schema'
 import { projects } from '@/server/db/schema/project'
 import {
   clientInvolvementProjectSchema,
@@ -27,208 +23,41 @@ export const renameProjectAction = orgScopedActionClient
   .metadata({ authorize: { organization: ['update'] } })
   .inputSchema(renameProjectSchema)
   .action(
-    async ({
-      parsedInput: { projectId, organizationId, name, slug, dueDate },
-      ctx: { orgMember },
-    }) => {
-      if (orgMember.organizationId !== organizationId) {
-        throw new Error('Organization mismatch')
-      }
-
-      await db
-        .update(projects)
-        .set({
-          name,
-          slug,
-          dueDate: dueDate ? formatLocalDateOnly(dueDate) : null,
-        })
-        .where(
-          and(
-            eq(projects.id, projectId),
-            eq(projects.organizationId, organizationId)
-          )
-        )
-
-      return { success: true, slug }
-    }
+    ({ parsedInput: { projectId, organizationId, name, slug, dueDate } }) =>
+      projectsService.rename({ projectId, organizationId, name, slug, dueDate })
   )
 
 export const updateProjectTimesheetDefaultsAction = orgScopedActionClient
   .metadata({ authorize: { organization: ['update'] } })
   .inputSchema(updateProjectTimesheetDefaultsSchema)
-  .action(
-    async ({
-      parsedInput: {
-        organizationId,
-        projectId,
-        defaultPayRate,
-        defaultPayCurrency,
-        defaultPayFrequency,
-        defaultBillingRate,
-        defaultBillingCurrency,
-        defaultBillingFrequency,
-        defaultTimesheetDuration,
-      },
-      ctx: { orgMember },
-    }) => {
-      if (orgMember.organizationId !== organizationId) {
-        throw new Error('Organization mismatch')
-      }
-      await assertProjectInOrg(projectId, organizationId)
-
-      // When no billing rate is set, billing mirrors pay entirely — otherwise
-      // stale billing currency/frequency could leak into "same as pay" mode.
-      const usePayForBilling = defaultBillingRate === undefined
-      const defaults = {
-        payRate: defaultPayRate,
-        payCurrency: defaultPayCurrency,
-        payFrequency: defaultPayFrequency,
-        billingRate: usePayForBilling ? defaultPayRate : defaultBillingRate,
-        billingCurrency: usePayForBilling
-          ? defaultPayCurrency
-          : (defaultBillingCurrency ?? defaultPayCurrency),
-        billingFrequency: usePayForBilling
-          ? defaultPayFrequency
-          : (defaultBillingFrequency ?? defaultPayFrequency),
-        timesheetDuration: defaultTimesheetDuration,
-      }
-      await db
-        .insert(settingsTable)
-        .values({
-          organizationId,
-          projectId,
-          ...defaults,
-        })
-        .onConflictDoUpdate({
-          target: [settingsTable.organizationId, settingsTable.projectId],
-          set: defaults,
-        })
-
-      return { success: true }
-    }
+  .action(({ parsedInput }) =>
+    projectsService.updateProjectTimesheetDefaults(parsedInput)
   )
 
 export const updateProjectBillingDetailsAction = orgScopedActionClient
   .metadata({ authorize: { organization: ['update'] } })
   .inputSchema(updateProjectBillingDetailsSchema)
-  .action(
-    async ({
-      parsedInput: {
-        organizationId,
-        projectId,
-        invoiceFromName,
-        invoiceFromAddress,
-        invoiceToName,
-        invoiceToAddress,
-      },
-      ctx: { orgMember },
-    }) => {
-      if (orgMember.organizationId !== organizationId) {
-        throw new Error('Organization mismatch')
-      }
-
-      await assertProjectInOrg(projectId, organizationId)
-
-      const fromName = invoiceFromName?.trim() || null
-      const fromAddress = invoiceFromAddress?.trim() || null
-      const toName = invoiceToName?.trim() || null
-      const toAddress = invoiceToAddress?.trim() || null
-
-      await db
-        .insert(settingsTable)
-        .values({
-          organizationId,
-          projectId,
-          invoiceFromName: fromName,
-          invoiceFromAddress: fromAddress,
-          invoiceToName: toName,
-          invoiceToAddress: toAddress,
-        })
-        .onConflictDoUpdate({
-          target: [settingsTable.organizationId, settingsTable.projectId],
-          set: {
-            invoiceFromName: fromName,
-            invoiceFromAddress: fromAddress,
-            invoiceToName: toName,
-            invoiceToAddress: toAddress,
-          },
-        })
-
-      return { success: true }
-    }
+  .action(({ parsedInput }) =>
+    projectsService.updateProjectBillingDetails(parsedInput)
   )
 
 export const updateProjectStatusAction = orgScopedActionClient
   .metadata({ authorize: { organization: ['update'] } })
   .inputSchema(updateProjectStatusSchema)
   .action(
-    async ({
-      parsedInput: { projectId, organizationId, status },
-      ctx: { role, orgMember },
-    }) => {
+    ({ parsedInput: { projectId, organizationId, status }, ctx: { role } }) => {
       if (!role.authorize({ organization: ['update'] }).success) {
         throw new Error('You do not have permission to update project status')
       }
-
-      if (orgMember.organizationId !== organizationId) {
-        throw new Error('Organization mismatch')
-      }
-
-      await db
-        .update(projects)
-        .set({ status })
-        .where(
-          and(
-            eq(projects.id, projectId),
-            eq(projects.organizationId, organizationId)
-          )
-        )
-
-      return { success: true, status }
+      return projectsService.updateStatus({ projectId, organizationId, status })
     }
   )
 
 export const deleteProjectAction = orgScopedActionClient
   .metadata({ authorize: { organization: ['delete'] } })
   .inputSchema(deleteProjectSchema)
-  .action(
-    async ({
-      parsedInput: { projectId, organizationId, confirmName },
-      ctx: { orgMember },
-    }) => {
-      if (orgMember.organizationId !== organizationId) {
-        throw new Error('Organization mismatch')
-      }
-
-      const [project] = await db
-        .select({ name: projects.name })
-        .from(projects)
-        .where(
-          and(
-            eq(projects.id, projectId),
-            eq(projects.organizationId, organizationId)
-          )
-        )
-
-      if (!project) {
-        throw new Error('Project not found')
-      }
-
-      if (project.name !== confirmName) {
-        throw new Error('Project name does not match')
-      }
-
-      await db
-        .delete(projects)
-        .where(
-          and(
-            eq(projects.id, projectId),
-            eq(projects.organizationId, organizationId)
-          )
-        )
-
-      return { success: true }
-    }
+  .action(({ parsedInput: { projectId, organizationId, confirmName } }) =>
+    projectsService.remove({ projectId, organizationId, confirmName })
   )
 
 async function assertProjectInOrg(projectId: string, organizationId: string) {
@@ -439,42 +268,10 @@ export const importOrgCustomFieldsAction = orgScopedActionClient
 export const updateClientInvolvementLevelAction = orgScopedActionClient
   .metadata({ authorize: { organization: ['update'] } })
   .inputSchema(clientInvolvementProjectSchema)
-  .action(
-    async ({
-      parsedInput: { clientInvolvement, organizationId, projectId },
-      ctx: { orgMember },
-    }) => {
-      if (orgMember.organizationId !== organizationId) {
-        throw new Error('Organization mismatch')
-      }
-
-      const [project] = await db
-        .select({ name: projects.name })
-        .from(projects)
-        .where(
-          and(
-            eq(projects.id, projectId),
-            eq(projects.organizationId, organizationId)
-          )
-        )
-
-      if (!project) {
-        throw new Error('Project not found')
-      }
-      await db
-        .insert(settingsTable)
-        .values({
-          organizationId,
-          projectId,
-          clientInvolvement,
-        })
-        .onConflictDoUpdate({
-          target: [settingsTable.organizationId, settingsTable.projectId],
-          set: {
-            clientInvolvement,
-          },
-        })
-
-      return { success: true }
-    }
+  .action(({ parsedInput: { clientInvolvement, organizationId, projectId } }) =>
+    projectsService.updateProjectClientInvolvement({
+      organizationId,
+      projectId,
+      clientInvolvement,
+    })
   )

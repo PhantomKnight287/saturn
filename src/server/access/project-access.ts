@@ -7,15 +7,24 @@ import {
   projectTeamAssignments,
   teamMembers,
 } from '@/server/db/schema'
-import type { Role } from '@/types'
 
 export type Project = typeof projects.$inferSelect
 
 /** The member facts the access decision needs — a subset of the active org member. */
 export interface AccessMember {
   id: string
-  role: Role
+  role: string
   userId: string
+}
+
+/**
+ * The active org member as the domain layer consumes it: a superset of
+ * [[AccessMember]] carrying the org it's scoped to and the user's display name
+ * (for notifications). `ctx.orgMember` from a scoped action client satisfies it.
+ */
+export interface ActiveMember extends AccessMember {
+  organizationId: string
+  user: { name: string | null }
 }
 
 const resolveById = async (projectId: string, organizationId: string) => {
@@ -112,4 +121,26 @@ const check = async (
   return hasAccess(project, member)
 }
 
-export const projectAccess = { resolveById, resolveBySlug, hasAccess, check }
+/**
+ * Entity-scoped guard: verify `member` may touch `projectId` within its own org,
+ * throwing `notFoundMessage` otherwise. The single home for the "load entity →
+ * check access" preamble every service write shares.
+ */
+const assert = async (
+  projectId: string,
+  member: ActiveMember,
+  notFoundMessage: string
+) => {
+  const granted = await check(projectId, member.organizationId, member)
+  if (!granted) {
+    throw new Error(notFoundMessage)
+  }
+}
+
+export const projectAccess = {
+  resolveById,
+  resolveBySlug,
+  hasAccess,
+  check,
+  assert,
+}

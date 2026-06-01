@@ -1,13 +1,9 @@
 'use server'
 
-import { and, count, eq, sql } from 'drizzle-orm'
 import { headers } from 'next/headers'
+import { teamService } from '@/app/api/teams/service'
 import { orgScopedActionClient } from '@/lib/safe-action'
 import { auth } from '@/server/auth'
-import { db } from '@/server/db'
-import { settings as settingsTable } from '@/server/db/schema'
-import { members, teamMembers, teams } from '@/server/db/schema/auth'
-import { pendingMemberRates } from '@/server/db/schema/timesheet'
 import {
   addTeamMemberSchema,
   changeOrgMemberRoleSchema,
@@ -36,58 +32,27 @@ export const inviteOrgMemberAction = orgScopedActionClient
         billingFrequency,
         setAsOrgDefault,
       },
-      ctx: { orgMember },
     }) => {
-      if (orgMember.organizationId !== organizationId) {
-        throw new Error('Organization mismatch')
-      }
-
       if ((payRate !== undefined) !== !!payCurrency) {
         throw new Error('Pay rate and currency must be provided together')
       }
       const result = await auth.api.createInvitation({
         headers: await headers(),
-        body: {
-          email,
-          role: inviteRole,
-          organizationId,
-        },
+        body: { email, role: inviteRole, organizationId },
       })
       if (payRate !== undefined && payCurrency) {
-        const usePayForBilling = billingRate === undefined
-        const rateValues = {
-          payRate,
-          payCurrency,
-          payFrequency: payFrequency ?? 'hourly',
-          billingRate: usePayForBilling ? payRate : billingRate,
-          billingCurrency: usePayForBilling
-            ? payCurrency
-            : (billingCurrency ?? payCurrency),
-          billingFrequency: usePayForBilling
-            ? (payFrequency ?? 'hourly')
-            : (billingFrequency ?? payFrequency ?? 'hourly'),
-        }
-
-        await db.insert(pendingMemberRates).values({
+        await teamService.recordInvitePendingRate({
           invitationId: result.id,
           organizationId,
           email,
-          ...rateValues,
+          payRate,
+          payCurrency,
+          payFrequency,
+          billingRate,
+          billingCurrency,
+          billingFrequency,
+          setAsOrgDefault,
         })
-
-        if (setAsOrgDefault) {
-          await db
-            .insert(settingsTable)
-            .values({
-              organizationId,
-              ...rateValues,
-            })
-            .onConflictDoUpdate({
-              target: [settingsTable.organizationId],
-              targetWhere: sql`${settingsTable.projectId} IS NULL`,
-              set: rateValues,
-            })
-        }
       }
 
       return { success: true }
@@ -98,14 +63,7 @@ export const removeOrgMemberAction = orgScopedActionClient
   .metadata({ authorize: { member: ['delete'] } })
   .inputSchema(removeOrgMemberSchema)
   .action(async ({ parsedInput: { memberId }, ctx: { orgMember } }) => {
-    const [target] = await db
-      .select({ id: members.id, organizationId: members.organizationId })
-      .from(members)
-      .where(eq(members.id, memberId))
-
-    if (!target || target.organizationId !== orgMember.organizationId) {
-      throw new Error('Member not found')
-    }
+    await teamService.assertMemberInOrg(memberId, orgMember.organizationId)
 
     await auth.api.removeMember({
       headers: await headers(),
@@ -123,18 +81,7 @@ export const changeOrgMemberRoleAction = orgScopedActionClient
       parsedInput: { memberId, role: newRole },
       ctx: { orgMember },
     }) => {
-      const [target] = await db
-        .select({
-          id: members.id,
-          organizationId: members.organizationId,
-          userId: members.userId,
-        })
-        .from(members)
-        .where(eq(members.id, memberId))
-
-      if (!target || target.organizationId !== orgMember.organizationId) {
-        throw new Error('Member not found')
-      }
+      await teamService.assertMemberInOrg(memberId, orgMember.organizationId)
 
       await auth.api.updateMemberRole({
         headers: await headers(),
@@ -152,93 +99,42 @@ export const changeOrgMemberRoleAction = orgScopedActionClient
 export const createTeamAction = orgScopedActionClient
   .metadata({ authorize: { team: ['create'] } })
   .inputSchema(createTeamSchema)
-  .action(
-    async ({ parsedInput: { organizationId, name }, ctx: { orgMember } }) => {
-      if (orgMember.organizationId !== organizationId) {
-        throw new Error('Organization mismatch')
-      }
+  .action(async ({ parsedInput: { organizationId, name } }) => {
+    const team = await auth.api.createTeam({
+      headers: await headers(),
+      body: { name, organizationId },
+    })
 
-      const team = await auth.api.createTeam({
-        headers: await headers(),
-        body: { name, organizationId },
-      })
-
-      return team
-    }
-  )
+    return team
+  })
 
 export const renameTeamAction = orgScopedActionClient
   .metadata({ authorize: { team: ['update'] } })
   .inputSchema(renameTeamSchema)
-  .action(async ({ parsedInput: { teamId, name }, ctx: { orgMember } }) => {
-    const [team] = await db
-      .select({ id: teams.id, organizationId: teams.organizationId })
-      .from(teams)
-      .where(eq(teams.id, teamId))
-
-    if (!team || team.organizationId !== orgMember.organizationId) {
-      throw new Error('Team not found')
-    }
-
-    await db.update(teams).set({ name }).where(eq(teams.id, teamId))
-
-    return { success: true }
-  })
+  .action(({ parsedInput: { teamId, name }, ctx: { orgMember } }) =>
+    teamService.renameTeam({
+      teamId,
+      name,
+      organizationId: orgMember.organizationId,
+    })
+  )
 
 export const deleteTeamAction = orgScopedActionClient
   .metadata({ authorize: { team: ['delete'] } })
   .inputSchema(deleteTeamSchema)
-  .action(async ({ parsedInput: { teamId }, ctx: { orgMember } }) => {
-    const [team] = await db
-      .select({ id: teams.id, organizationId: teams.organizationId })
-      .from(teams)
-      .where(eq(teams.id, teamId))
-
-    if (!team || team.organizationId !== orgMember.organizationId) {
-      throw new Error('Team not found')
-    }
-
-    const [record] = await db
-      .select({ teamCount: count() })
-      .from(teams)
-      .where(eq(teams.organizationId, orgMember.organizationId))
-
-    if (!record || record.teamCount <= 1) {
-      throw new Error('Cannot delete the last team in the workspace')
-    }
-
-    await db.delete(teams).where(eq(teams.id, teamId))
-
-    return { success: true }
-  })
+  .action(({ parsedInput: { teamId }, ctx: { orgMember } }) =>
+    teamService.deleteTeam({ teamId, organizationId: orgMember.organizationId })
+  )
 
 export const addTeamMemberAction = orgScopedActionClient
   .metadata({ authorize: { team: ['update'] } })
   .inputSchema(addTeamMemberSchema)
   .action(async ({ parsedInput: { teamId, userId }, ctx: { orgMember } }) => {
-    const [team] = await db
-      .select({ id: teams.id, organizationId: teams.organizationId })
-      .from(teams)
-      .where(eq(teams.id, teamId))
-
-    if (!team || team.organizationId !== orgMember.organizationId) {
-      throw new Error('Team not found')
-    }
-
-    // Verify user is an org member
-    const [member] = await db
-      .select({ id: members.id })
-      .from(members)
-      .where(
-        and(
-          eq(members.userId, userId),
-          eq(members.organizationId, orgMember.organizationId)
-        )
-      )
-
-    if (!member) {
-      throw new Error('User is not a member of this organization')
-    }
+    await teamService.assertTeamMemberAddable({
+      teamId,
+      userId,
+      organizationId: orgMember.organizationId,
+    })
 
     await auth.api.addTeamMember({
       headers: await headers(),
@@ -251,29 +147,9 @@ export const addTeamMemberAction = orgScopedActionClient
 export const removeTeamMemberAction = orgScopedActionClient
   .metadata({ authorize: { team: ['update'] } })
   .inputSchema(removeTeamMemberSchema)
-  .action(async ({ parsedInput: { teamMemberId }, ctx: { orgMember } }) => {
-    const [tm] = await db
-      .select({
-        id: teamMembers.id,
-        teamId: teamMembers.teamId,
-      })
-      .from(teamMembers)
-      .where(eq(teamMembers.id, teamMemberId))
-
-    if (!tm) {
-      throw new Error('Team member not found')
-    }
-
-    const [team] = await db
-      .select({ organizationId: teams.organizationId })
-      .from(teams)
-      .where(eq(teams.id, tm.teamId))
-
-    if (!team || team.organizationId !== orgMember.organizationId) {
-      throw new Error('Team member not found')
-    }
-
-    await db.delete(teamMembers).where(eq(teamMembers.id, teamMemberId))
-
-    return { success: true }
-  })
+  .action(({ parsedInput: { teamMemberId }, ctx: { orgMember } }) =>
+    teamService.removeTeamMember({
+      teamMemberId,
+      organizationId: orgMember.organizationId,
+    })
+  )

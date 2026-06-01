@@ -1,29 +1,10 @@
 'use server'
 
-import { render } from '@react-email/render'
-import { and, eq, inArray } from 'drizzle-orm'
-import { authService } from '@/app/api/auth/service'
-import { projectsService } from '@/app/api/projects/service'
-import ExpenseApprovedEmail from '@/emails/templates/expense-approved'
-import ExpenseRejectedEmail from '@/emails/templates/expense-rejected'
-import ExpenseSentToClientEmail from '@/emails/templates/expense-sent-to-client'
-import ExpenseSubmittedEmail from '@/emails/templates/expense-submitted'
-import { getAdminsAndOwners, sendEmailsToRecipients } from '@/lib/notifications'
+import { expensesServices } from '@/app/api/expenses/service'
 import {
   orgScopedActionClient,
   projectScopedActionClient,
 } from '@/lib/safe-action'
-import { formatDateOnly } from '@/lib/utils'
-import { projectAccess } from '@/server/access/project-access'
-import { db } from '@/server/db'
-import {
-  expenseCategories,
-  expenseRecipients,
-  expenses,
-  members,
-  users,
-} from '@/server/db/schema'
-import type { Role } from '@/types'
 import {
   approveExpensesSchema,
   archiveExpenseCategorySchema,
@@ -31,7 +12,6 @@ import {
   createExpenseCategorySchema,
   createExpenseSchema,
   deleteExpenseSchema,
-  formatCurrency,
   rejectExpensesSchema,
   sendExpensesToClientSchema,
   submitExpensesSchema,
@@ -39,918 +19,115 @@ import {
   updateExpenseSchema,
 } from './common'
 
-const bulkExpenseColumns = {
-  id: expenses.id,
-  projectId: expenses.projectId,
-  memberId: expenses.memberId,
-  amountCents: expenses.amountCents,
-  currency: expenses.currency,
-  date: expenses.date,
-  status: expenses.status,
-  categoryId: expenses.categoryId,
-  title: expenses.title,
-  billable: expenses.billable,
-} as const
-
-function assertSameProject(entries: { projectId: string }[]): string {
-  const projectIds = new Set(entries.map((e) => e.projectId))
-  if (projectIds.size !== 1) {
-    throw new Error('All expenses must belong to the same project')
-  }
-  return entries[0]!.projectId
-}
-
-async function batchFetchCategoryNames(
-  categoryIds: string[]
-): Promise<Map<string, string>> {
-  const uniqueIds = [...new Set(categoryIds)]
-  if (uniqueIds.length === 0) {
-    return new Map()
-  }
-  const categories = await db
-    .select({ id: expenseCategories.id, name: expenseCategories.name })
-    .from(expenseCategories)
-    .where(inArray(expenseCategories.id, uniqueIds))
-  return new Map(categories.map((c) => [c.id, c.name]))
-}
-
 export const createExpenseAction = projectScopedActionClient
   .metadata({ authorize: { expense: ['create'] } })
   .inputSchema(createExpenseSchema)
-  .action(
-    async ({
-      parsedInput: {
-        projectId,
-        description,
-        amountCents,
-        currency,
-        date,
-        categoryId,
-        milestoneId,
-        billable,
-        recurring,
-        receiptMediaId,
-        title,
-      },
-      ctx: { orgMember },
-    }) => {
-      // Admin/owner expenses are auto-approved — they don't need admin approval
-      const isAdmin = orgMember.role === 'owner' || orgMember.role === 'admin'
-      const settings = await projectsService.getSettings(
-        orgMember.organizationId,
-        projectId
-      )
-      const clientOff = settings.clientInvolvement.expenses === 'off'
-
-      const [expense] = await db
-        .insert(expenses)
-        .values({
-          amountCents,
-          categoryId,
-          currency,
-          date,
-          memberId: orgMember.id,
-          projectId,
-          title,
-          billable,
-          recurring,
-          description,
-          status: isAdmin
-            ? clientOff
-              ? 'client_accepted'
-              : 'admin_accepted'
-            : 'draft',
-          receiptMediaId,
-          milestoneId,
-        })
-        .returning()
-
-      return expense
-    }
+  .action(({ parsedInput, ctx: { orgMember, project } }) =>
+    expensesServices.create({
+      project,
+      orgMember,
+      title: parsedInput.title,
+      amountCents: parsedInput.amountCents,
+      currency: parsedInput.currency,
+      date: parsedInput.date,
+      categoryId: parsedInput.categoryId,
+      milestoneId: parsedInput.milestoneId,
+      billable: parsedInput.billable,
+      recurring: parsedInput.recurring,
+      description: parsedInput.description,
+      receiptMediaId: parsedInput.receiptMediaId,
+    })
   )
 
 export const updateExpenseAction = orgScopedActionClient
   .metadata({ authorize: { expense: ['update'] } })
   .inputSchema(updateExpenseSchema)
-  .action(
-    async ({ parsedInput: { expenseId, ...updates }, ctx: { orgMember } }) => {
-      const existing = await db
-        .select(bulkExpenseColumns)
-        .from(expenses)
-        .where(eq(expenses.id, expenseId))
-        .then((r) => r.at(0))
-
-      if (!existing) {
-        throw new Error('Expense not found')
-      }
-      const granted = await projectAccess.check(
-        existing.projectId,
-        orgMember.organizationId,
-        {
-          id: orgMember.id,
-          userId: orgMember.userId,
-          role: orgMember.role as Role,
-        }
-      )
-      if (!granted) {
-        throw new Error('Expense not found')
-      }
-
-      const isAdmin = orgMember.role === 'owner' || orgMember.role === 'admin'
-      if (!isAdmin && existing.memberId !== orgMember.id) {
-        throw new Error('You can only edit your own expenses')
-      }
-      if (
-        !isAdmin &&
-        existing.status !== 'draft' &&
-        existing.status !== 'admin_rejected'
-      ) {
-        throw new Error('Only draft or rejected expenses can be edited')
-      }
-
-      const setValues: Partial<typeof expenses.$inferInsert> = {}
-      if (updates.title !== undefined) {
-        setValues.title = updates.title
-      }
-      if (updates.amountCents !== undefined) {
-        setValues.amountCents = updates.amountCents
-      }
-      if (updates.currency !== undefined) {
-        setValues.currency = updates.currency
-      }
-      if (updates.date !== undefined) {
-        setValues.date = updates.date
-      }
-      if (updates.categoryId !== undefined) {
-        setValues.categoryId = updates.categoryId
-      }
-      if (updates.milestoneId !== undefined) {
-        setValues.milestoneId = updates.milestoneId
-      }
-      if (updates.billable !== undefined) {
-        setValues.billable = updates.billable
-      }
-      if (updates.recurring !== undefined) {
-        setValues.recurring = updates.recurring
-      }
-      if (updates.description !== undefined) {
-        setValues.description = updates.description
-      }
-      if (updates.receiptMediaId !== undefined) {
-        setValues.receiptMediaId = updates.receiptMediaId
-      }
-
-      // Reset rejected expenses when edited
-      if (existing.status === 'admin_rejected' && !isAdmin) {
-        setValues.status = 'draft'
-        setValues.rejectReason = null
-      }
-      if (existing.status === 'client_rejected' && isAdmin) {
-        setValues.status = 'admin_accepted'
-        setValues.rejectReason = null
-      }
-
-      const [updated] = await db
-        .update(expenses)
-        .set(setValues)
-        .where(eq(expenses.id, expenseId))
-        .returning()
-
-      return updated
-    }
+  .action(({ parsedInput: { expenseId, ...updates }, ctx: { orgMember } }) =>
+    expensesServices.update({ expenseId, orgMember, updates })
   )
 
 export const deleteExpenseAction = orgScopedActionClient
   .metadata({ authorize: { expense: ['delete'] } })
   .inputSchema(deleteExpenseSchema)
-  .action(async ({ parsedInput: { expenseId }, ctx: { orgMember } }) => {
-    const existing = await db
-      .select(bulkExpenseColumns)
-      .from(expenses)
-      .where(eq(expenses.id, expenseId))
-      .then((r) => r.at(0))
-
-    if (!existing) {
-      throw new Error('Expense not found')
-    }
-    const granted = await projectAccess.check(
-      existing.projectId,
-      orgMember.organizationId,
-      {
-        id: orgMember.id,
-        userId: orgMember.userId,
-        role: orgMember.role as Role,
-      }
-    )
-    if (!granted) {
-      throw new Error('Expense not found')
-    }
-
-    const isAdmin = orgMember.role === 'owner' || orgMember.role === 'admin'
-    if (!isAdmin && existing.memberId !== orgMember.id) {
-      throw new Error('You can only delete your own expenses')
-    }
-    if (!isAdmin && existing.status !== 'draft') {
-      throw new Error('Only draft expenses can be deleted')
-    }
-
-    await db.delete(expenses).where(eq(expenses.id, expenseId))
-
-    return { success: true }
-  })
+  .action(({ parsedInput: { expenseId }, ctx: { orgMember } }) =>
+    expensesServices.remove({ expenseId, orgMember })
+  )
 
 export const submitExpensesAction = orgScopedActionClient
   .metadata({ authorize: { expense: ['submit'] } })
   .inputSchema(submitExpensesSchema)
-  .action(async ({ parsedInput: { expenseIds }, ctx: { orgMember, user } }) => {
-    const entries = await db
-      .select(bulkExpenseColumns)
-      .from(expenses)
-      .where(inArray(expenses.id, expenseIds))
-
-    if (entries.length === 0) {
-      throw new Error('No expenses found')
-    }
-    const projectId = assertSameProject(entries)
-    const granted = await projectAccess.check(
-      projectId,
-      orgMember.organizationId,
-      {
-        id: orgMember.id,
-        userId: orgMember.userId,
-        role: orgMember.role as Role,
-      }
-    )
-    if (!granted) {
-      throw new Error('No expenses found')
-    }
-
-    for (const entry of entries) {
-      if (entry.memberId !== orgMember.id) {
-        throw new Error('You can only submit your own expenses')
-      }
-      if (entry.status !== 'draft' && entry.status !== 'admin_rejected') {
-        throw new Error('Only draft or rejected expenses can be submitted')
-      }
-    }
-
-    await db
-      .update(expenses)
-      .set({ status: 'submitted_to_admin', rejectReason: null })
-      .where(inArray(expenses.id, expenseIds))
-
-    // Notify admins/owners
-    const details = await projectsService.getProjectDetails(projectId)
-    const adminsAndOwners = await getAdminsAndOwners(orgMember.organizationId)
-
-    const categoryMap = await batchFetchCategoryNames(
-      entries.map((e) => e.categoryId)
-    )
-
-    const totalCents = entries.reduce((sum, e) => sum + e.amountCents, 0)
-    const currency = entries.at(0)?.currency ?? 'USD'
-    const formattedAmount = formatCurrency(totalCents, currency)
-
-    const firstEntry = entries[0]
-    const category = categoryMap.get(firstEntry!.categoryId) ?? 'Uncategorized'
-    const desc =
-      entries.length === 1
-        ? firstEntry!.title
-        : `${entries.length} expenses submitted`
-
-    await sendEmailsToRecipients(adminsAndOwners, async (recipient) => {
-      const html = await render(
-        ExpenseSubmittedEmail({
-          recipientName: recipient.name ?? 'there',
-          memberName: user.name ?? 'there',
-          projectName: details.projectName,
-          title: desc,
-          amount: formattedAmount,
-          category,
-          expenseDate: formatDateOnly(firstEntry!.date),
-          billable: firstEntry!.billable,
-          orgSlug: details.orgSlug ?? '',
-          projectSlug: details.projectSlug,
-        })
-      )
-      return {
-        to: recipient.email,
-        subject: `Expense submitted — ${user.name ?? 'A member'} (${formattedAmount})`,
-        html,
-      }
-    })
-
-    return { success: true }
-  })
+  .action(({ parsedInput: { expenseIds }, ctx: { orgMember } }) =>
+    expensesServices.submit({ expenseIds, orgMember })
+  )
 
 export const approveExpensesAction = orgScopedActionClient
   .metadata({ authorize: { expense: ['approve'] } })
   .inputSchema(approveExpensesSchema)
-  .action(async ({ parsedInput: { expenseIds }, ctx: { user, orgMember } }) => {
-    const entries = await db
-      .select(bulkExpenseColumns)
-      .from(expenses)
-      .where(inArray(expenses.id, expenseIds))
-
-    if (entries.length === 0) {
-      throw new Error('No expenses found')
-    }
-    const projectId = assertSameProject(entries)
-    const granted = await projectAccess.check(
-      projectId,
-      orgMember.organizationId,
-      {
-        id: orgMember.id,
-        userId: orgMember.userId,
-        role: orgMember.role as Role,
-      }
-    )
-    if (!granted) {
-      throw new Error('No expenses found')
-    }
-
-    for (const entry of entries) {
-      if (entry.status !== 'submitted_to_admin') {
-        throw new Error('Only submitted expenses can be approved')
-      }
-    }
-
-    const approveSettings = await projectsService.getSettings(
-      orgMember.organizationId,
-      projectId
-    )
-    const approvedStatus =
-      approveSettings.clientInvolvement.expenses === 'off'
-        ? 'client_accepted'
-        : 'admin_accepted'
-
-    await db
-      .update(expenses)
-      .set({ status: approvedStatus })
-      .where(inArray(expenses.id, expenseIds))
-
-    // Notify each submitter
-    const details = await projectsService.getProjectDetails(projectId)
-    const categoryMap = await batchFetchCategoryNames(
-      entries.map((e) => e.categoryId)
-    )
-
-    const memberIds = [...new Set(entries.map((e) => e.memberId))]
-    for (const memberId of memberIds) {
-      const memberExpenses = entries.filter((e) => e.memberId === memberId)
-      const totalCents = memberExpenses.reduce(
-        (sum, e) => sum + e.amountCents,
-        0
-      )
-      const currency = memberExpenses.at(0)?.currency ?? 'USD'
-
-      const [member] = await db
-        .select({ email: users.email, name: users.name })
-        .from(members)
-        .innerJoin(users, eq(members.userId, users.id))
-        .where(eq(members.id, memberId))
-
-      if (member) {
-        const firstEntry = memberExpenses[0]
-        const category =
-          categoryMap.get(firstEntry!.categoryId) ?? 'Uncategorized'
-        const formattedAmount = formatCurrency(totalCents, currency)
-
-        await sendEmailsToRecipients([member], async (recipient) => {
-          const html = await render(
-            ExpenseApprovedEmail({
-              recipientName: recipient.name ?? 'there',
-              approverName: user.name ?? 'there',
-              projectName: details.projectName,
-              title:
-                memberExpenses.length === 1
-                  ? firstEntry!.title
-                  : `${memberExpenses.length} expenses`,
-              amount: formattedAmount,
-              category,
-              expenseDate: formatDateOnly(firstEntry!.date),
-              billable: firstEntry!.billable,
-              orgSlug: details.orgSlug ?? '',
-              projectSlug: details.projectSlug,
-            })
-          )
-          return {
-            to: recipient.email,
-            subject: `Expense approved — ${formattedAmount}`,
-            html,
-          }
-        })
-      }
-    }
-
-    return { success: true }
-  })
+  .action(({ parsedInput: { expenseIds }, ctx: { orgMember } }) =>
+    expensesServices.approve({ expenseIds, orgMember })
+  )
 
 export const rejectExpensesAction = orgScopedActionClient
   .metadata({ authorize: { expense: ['reject'] } })
   .inputSchema(rejectExpensesSchema)
-  .action(
-    async ({
-      parsedInput: { expenseIds, reason },
-      ctx: { user, orgMember },
-    }) => {
-      const entries = await db
-        .select(bulkExpenseColumns)
-        .from(expenses)
-        .where(inArray(expenses.id, expenseIds))
-
-      if (entries.length === 0) {
-        throw new Error('No expenses found')
-      }
-      const projectId = assertSameProject(entries)
-      const granted = await projectAccess.check(
-        projectId,
-        orgMember.organizationId,
-        {
-          id: orgMember.id,
-          userId: orgMember.userId,
-          role: orgMember.role as Role,
-        }
-      )
-      if (!granted) {
-        throw new Error('No expenses found')
-      }
-
-      for (const entry of entries) {
-        if (entry.status !== 'submitted_to_admin') {
-          throw new Error('Only submitted expenses can be rejected')
-        }
-      }
-
-      await db
-        .update(expenses)
-        .set({ status: 'admin_rejected', rejectReason: reason })
-        .where(inArray(expenses.id, expenseIds))
-
-      // Notify each submitter
-      const details = await projectsService.getProjectDetails(projectId)
-      const categoryMap = await batchFetchCategoryNames(
-        entries.map((e) => e.categoryId)
-      )
-
-      const memberIds = [...new Set(entries.map((e) => e.memberId))]
-      for (const memberId of memberIds) {
-        const memberExpenses = entries.filter((e) => e.memberId === memberId)
-        const totalCents = memberExpenses.reduce(
-          (sum, e) => sum + e.amountCents,
-          0
-        )
-        const currency = memberExpenses.at(0)?.currency ?? 'USD'
-
-        const [member] = await db
-          .select({ email: users.email, name: users.name })
-          .from(members)
-          .innerJoin(users, eq(members.userId, users.id))
-          .where(eq(members.id, memberId))
-
-        if (member) {
-          const firstEntry = memberExpenses[0]
-          const category =
-            categoryMap.get(firstEntry!.categoryId) ?? 'Uncategorized'
-          const formattedAmount = formatCurrency(totalCents, currency)
-
-          await sendEmailsToRecipients([member], async (recipient) => {
-            const html = await render(
-              ExpenseRejectedEmail({
-                recipientName: recipient.name ?? 'there',
-                rejectorName: user.name ?? 'there',
-                projectName: details.projectName,
-                title:
-                  memberExpenses.length === 1
-                    ? firstEntry!.title
-                    : `${memberExpenses.length} expenses`,
-                amount: formattedAmount,
-                category,
-                expenseDate: formatDateOnly(firstEntry!.date),
-                reason,
-                orgSlug: details.orgSlug ?? '',
-                projectSlug: details.projectSlug,
-              })
-            )
-            return {
-              to: recipient.email,
-              subject: 'Expense rejected — changes requested',
-              html,
-            }
-          })
-        }
-      }
-
-      return { success: true }
-    }
+  .action(({ parsedInput: { expenseIds, reason }, ctx: { orgMember } }) =>
+    expensesServices.reject({ expenseIds, reason, orgMember })
   )
 
 export const sendExpensesToClientAction = orgScopedActionClient
   .metadata({ authorize: { expense: ['approve'] } })
   .inputSchema(sendExpensesToClientSchema)
   .action(
-    async ({
-      parsedInput: { expenseIds, clientMemberIds },
-      ctx: { user, orgMember },
-    }) => {
-      const entries = await db
-        .select(bulkExpenseColumns)
-        .from(expenses)
-        .where(inArray(expenses.id, expenseIds))
-
-      if (entries.length === 0) {
-        throw new Error('No expenses found')
-      }
-      const projectId = assertSameProject(entries)
-      const granted = await projectAccess.check(
-        projectId,
-        orgMember.organizationId,
-        {
-          id: orgMember.id,
-          userId: orgMember.userId,
-          role: orgMember.role as Role,
-        }
-      )
-      if (!granted) {
-        throw new Error('No expenses found')
-      }
-
-      const settings = await projectsService.getSettings(
-        orgMember.organizationId,
-        projectId
-      )
-      if (settings.clientInvolvement.expenses === 'off') {
-        throw new Error(
-          'Client involvement is disabled for expenses in this project'
-        )
-      }
-
-      for (const entry of entries) {
-        if (
-          entry.status !== 'admin_accepted' &&
-          entry.status !== 'client_rejected'
-        ) {
-          throw new Error(
-            'Only admin-approved or client-rejected expenses can be sent to client'
-          )
-        }
-      }
-
-      const selectedClients = await db
-        .select({
-          memberId: members.id,
-          userId: members.userId,
-          email: users.email,
-          name: users.name,
-        })
-        .from(members)
-        .innerJoin(users, eq(members.userId, users.id))
-        .where(inArray(members.id, clientMemberIds))
-
-      if (selectedClients.length === 0) {
-        throw new Error('Selected client not found')
-      }
-
-      for (const client of selectedClients) {
-        const clientHasProjectAccess = await authService.checkProjectAccess(
-          orgMember.organizationId,
-          projectId,
-          client.userId
-        )
-        if (!clientHasProjectAccess.success) {
-          throw new Error(
-            'Selected client does not have access to this project'
-          )
-        }
-      }
-
-      await db.transaction(async (tx) => {
-        await tx
-          .update(expenses)
-          .set({ status: 'submitted_to_client', rejectReason: null })
-          .where(inArray(expenses.id, expenseIds))
-
-        const recipientRows = expenseIds.flatMap((expenseId) =>
-          clientMemberIds.map((clientMemberId) => ({
-            expenseId,
-            clientMemberId,
-            status: 'pending' as const,
-          }))
-        )
-
-        await tx
-          .insert(expenseRecipients)
-          .values(recipientRows)
-          .onConflictDoUpdate({
-            target: [
-              expenseRecipients.expenseId,
-              expenseRecipients.clientMemberId,
-            ],
-            set: {
-              status: 'pending',
-              rejectReason: null,
-              respondedAt: null,
-            },
-          })
-      })
-
-      const uniqueRecipients = [
-        ...new Map(selectedClients.map((c) => [c.email, c])).values(),
-      ]
-
-      const details = await projectsService.getProjectDetails(projectId)
-      const totalCents = entries.reduce((sum, e) => sum + e.amountCents, 0)
-      const currency = entries.at(0)?.currency ?? 'USD'
-      const totalAmount = formatCurrency(totalCents, currency)
-
-      await sendEmailsToRecipients(uniqueRecipients, async (recipient) => {
-        const html = await render(
-          ExpenseSentToClientEmail({
-            recipientName: recipient.name ?? 'there',
-            senderName: user.name ?? 'there',
-            projectName: details.projectName,
-            expenseCount: entries.length,
-            totalAmount,
-            currency,
-            orgSlug: details.orgSlug ?? '',
-            projectSlug: details.projectSlug,
-          })
-        )
-        return {
-          to: recipient.email,
-          subject: `Expenses for review — ${totalAmount}`,
-          html,
-        }
-      })
-
-      return { success: true }
-    }
+    ({ parsedInput: { expenseIds, clientMemberIds }, ctx: { orgMember } }) =>
+      expensesServices.sendToClient({ expenseIds, clientMemberIds, orgMember })
   )
 
 export const clientRespondExpensesAction = orgScopedActionClient
   .metadata({})
   .inputSchema(clientRespondExpensesSchema)
   .action(
-    async ({
+    ({
       parsedInput: { expenseIds, action, reason },
-      ctx: { role, user, orgMember },
+      ctx: { role, orgMember },
     }) => {
-      const permission =
-        action === 'approve' ? ('approve' as const) : ('reject' as const)
+      const permission = action === 'approve' ? 'approve' : 'reject'
       if (!role.authorize({ expense: [permission] }).success) {
         throw new Error(`You do not have permission to ${action} expenses`)
       }
-
-      const entries = await db
-        .select(bulkExpenseColumns)
-        .from(expenses)
-        .where(inArray(expenses.id, expenseIds))
-
-      if (entries.length === 0) {
-        throw new Error('No expenses found')
-      }
-      const projectId = assertSameProject(entries)
-      const granted = await projectAccess.check(
-        projectId,
-        orgMember.organizationId,
-        {
-          id: orgMember.id,
-          userId: orgMember.userId,
-          role: orgMember.role as Role,
-        }
-      )
-      if (!granted) {
-        throw new Error('No expenses found')
-      }
-
-      const settings = await projectsService.getSettings(
-        orgMember.organizationId,
-        projectId
-      )
-      if (settings.clientInvolvement.expenses === 'off') {
-        throw new Error(
-          'Client involvement is disabled for expenses in this project'
-        )
-      }
-
-      for (const entry of entries) {
-        if (entry.status !== 'submitted_to_client') {
-          throw new Error('Only sent expenses can be responded to')
-        }
-      }
-
-      const recipientStatus = action === 'approve' ? 'approved' : 'rejected'
-
-      await db.transaction(async (tx) => {
-        const recipients = await tx
-          .select({
-            id: expenseRecipients.id,
-            expenseId: expenseRecipients.expenseId,
-            clientMemberId: expenseRecipients.clientMemberId,
-            status: expenseRecipients.status,
-          })
-          .from(expenseRecipients)
-          .where(inArray(expenseRecipients.expenseId, expenseIds))
-
-        for (const expenseId of expenseIds) {
-          const currentRecipient = recipients.find(
-            (r) =>
-              r.expenseId === expenseId && r.clientMemberId === orgMember.id
-          )
-          if (!currentRecipient) {
-            throw new Error(
-              'You are not a recipient of one or more of these expenses'
-            )
-          }
-          if (currentRecipient.status !== 'pending') {
-            throw new Error('You have already responded to this expense')
-          }
-        }
-
-        await tx
-          .update(expenseRecipients)
-          .set({
-            status: recipientStatus,
-            rejectReason: action === 'reject' ? (reason ?? null) : null,
-            respondedAt: new Date(),
-          })
-          .where(
-            and(
-              inArray(expenseRecipients.expenseId, expenseIds),
-              eq(expenseRecipients.clientMemberId, orgMember.id)
-            )
-          )
-
-        for (const expenseId of expenseIds) {
-          if (action === 'reject') {
-            await tx
-              .update(expenses)
-              .set({
-                status: 'client_rejected',
-                rejectReason: reason ?? null,
-              })
-              .where(eq(expenses.id, expenseId))
-          } else {
-            const freshRecips = await tx
-              .select({ status: expenseRecipients.status })
-              .from(expenseRecipients)
-              .where(eq(expenseRecipients.expenseId, expenseId))
-            const allApproved =
-              freshRecips.length > 0 &&
-              freshRecips.every((r) => r.status === 'approved')
-            if (allApproved) {
-              await tx
-                .update(expenses)
-                .set({
-                  status: 'client_accepted',
-                  rejectReason: null,
-                })
-                .where(eq(expenses.id, expenseId))
-            }
-          }
-        }
+      return expensesServices.clientRespond({
+        expenseIds,
+        action,
+        reason,
+        orgMember,
       })
-
-      const details = await projectsService.getProjectDetails(projectId)
-      const adminsAndOwners = await getAdminsAndOwners(orgMember.organizationId)
-
-      const categoryMap = await batchFetchCategoryNames(
-        entries.map((e) => e.categoryId)
-      )
-      const totalCents = entries.reduce((sum, e) => sum + e.amountCents, 0)
-      const currency = entries.at(0)?.currency ?? 'USD'
-      const formattedAmount = formatCurrency(totalCents, currency)
-
-      const firstEntry = entries[0]!
-      const category = categoryMap.get(firstEntry.categoryId) ?? 'Uncategorized'
-      const desc =
-        entries.length === 1 ? firstEntry.title : `${entries.length} expenses`
-
-      if (action === 'approve') {
-        await sendEmailsToRecipients(adminsAndOwners, async (recipient) => {
-          const html = await render(
-            ExpenseApprovedEmail({
-              recipientName: recipient.name ?? 'there',
-              approverName: user.name ?? 'A client',
-              projectName: details.projectName,
-              title: desc,
-              amount: formattedAmount,
-              category,
-              expenseDate: formatDateOnly(firstEntry.date),
-              billable: firstEntry.billable,
-              orgSlug: details.orgSlug ?? '',
-              projectSlug: details.projectSlug,
-            })
-          )
-          return {
-            to: recipient.email,
-            subject: `Expense approved by client — ${formattedAmount}`,
-            html,
-          }
-        })
-      } else {
-        await sendEmailsToRecipients(adminsAndOwners, async (recipient) => {
-          const html = await render(
-            ExpenseRejectedEmail({
-              recipientName: recipient.name ?? 'there',
-              rejectorName: user.name ?? 'A client',
-              projectName: details.projectName,
-              title: desc,
-              amount: formattedAmount,
-              category,
-              expenseDate: formatDateOnly(firstEntry.date),
-              reason: reason ?? '',
-              orgSlug: details.orgSlug ?? '',
-              projectSlug: details.projectSlug,
-            })
-          )
-          return {
-            to: recipient.email,
-            subject: `Expense rejected by client — ${formattedAmount}`,
-            html,
-          }
-        })
-      }
-
-      return { success: true }
     }
   )
 
 export const createExpenseCategoryAction = orgScopedActionClient
   .metadata({ authorize: { expense_category: ['create'] } })
   .inputSchema(createExpenseCategorySchema)
-  .action(async ({ parsedInput: { organizationId, name, color } }) => {
-    const [category] = await db
-      .insert(expenseCategories)
-      .values({
-        organizationId,
-        name,
-        color: color || null,
-      })
-      .returning()
-
-    return category
-  })
+  .action(({ parsedInput: { organizationId, name, color } }) =>
+    expensesServices.createCategory({ organizationId, name, color })
+  )
 
 export const updateExpenseCategoryAction = orgScopedActionClient
   .metadata({ authorize: { expense_category: ['update'] } })
   .inputSchema(updateExpenseCategorySchema)
-  .action(
-    async ({ parsedInput: { categoryId, ...updates }, ctx: { orgMember } }) => {
-      const [cat] = await db
-        .select({ organizationId: expenseCategories.organizationId })
-        .from(expenseCategories)
-        .where(eq(expenseCategories.id, categoryId))
-      if (!cat) {
-        throw new Error('Category not found')
-      }
-      if (cat.organizationId !== orgMember.organizationId) {
-        throw new Error('Category not found')
-      }
-
-      const setValues: Partial<typeof expenseCategories.$inferInsert> = {}
-      if (updates.name !== undefined) {
-        setValues.name = updates.name
-      }
-      if (updates.color !== undefined) {
-        setValues.color = updates.color
-      }
-
-      const [updated] = await db
-        .update(expenseCategories)
-        .set(setValues)
-        .where(eq(expenseCategories.id, categoryId))
-        .returning()
-
-      return updated
-    }
+  .action(({ parsedInput: { categoryId, name, color }, ctx: { orgMember } }) =>
+    expensesServices.updateCategory({
+      categoryId,
+      organizationId: orgMember.organizationId,
+      name,
+      color,
+    })
   )
 
 export const archiveExpenseCategoryAction = orgScopedActionClient
   .metadata({ authorize: { expense_category: ['delete'] } })
   .inputSchema(archiveExpenseCategorySchema)
-  .action(async ({ parsedInput: { categoryId }, ctx: { orgMember } }) => {
-    const existing = await db
-      .select({
-        id: expenseCategories.id,
-        organizationId: expenseCategories.organizationId,
-        isArchived: expenseCategories.isArchived,
-      })
-      .from(expenseCategories)
-      .where(eq(expenseCategories.id, categoryId))
-      .then((r) => r.at(0))
-
-    if (!existing) {
-      throw new Error('Category not found')
-    }
-    if (existing.organizationId !== orgMember.organizationId) {
-      throw new Error('Category not found')
-    }
-
-    await db
-      .update(expenseCategories)
-      .set({ isArchived: !existing.isArchived })
-      .where(eq(expenseCategories.id, categoryId))
-
-    return { success: true }
-  })
+  .action(({ parsedInput: { categoryId }, ctx: { orgMember } }) =>
+    expensesServices.archiveCategory({
+      categoryId,
+      organizationId: orgMember.organizationId,
+    })
+  )

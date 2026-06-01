@@ -4,7 +4,6 @@ import { z } from 'zod'
 import { projectAccess } from '@/server/access/project-access'
 import { getSession } from '@/server/auth'
 import { roles } from '@/server/auth/permissions'
-import type { Role } from '@/types'
 import { authClient } from './auth-client'
 
 type RoleClient = (typeof roles)[keyof typeof roles]
@@ -103,11 +102,7 @@ export const projectScopedActionClient = scopedBase.use(
       throw new Error('Project not found')
     }
 
-    const granted = await projectAccess.hasAccess(project, {
-      id: ctx.orgMember.id,
-      userId: ctx.orgMember.userId,
-      role: ctx.orgMember.role as Role,
-    })
+    const granted = await projectAccess.hasAccess(project, ctx.orgMember)
     if (!granted) {
       throw new Error('You do not have access to this project')
     }

@@ -1,15 +1,12 @@
 'use server'
 
-import { and, eq, isNull, sql } from 'drizzle-orm'
+import { and, eq, isNull } from 'drizzle-orm'
 import { headers } from 'next/headers'
+import { projectsService } from '@/app/api/projects/service'
 import { orgScopedActionClient } from '@/lib/safe-action'
 import { auth } from '@/server/auth'
 import { db } from '@/server/db'
-import {
-  customFields,
-  projects as projectsTable,
-  settings as settingsTable,
-} from '@/server/db/schema'
+import { customFields } from '@/server/db/schema'
 import { organizations } from '@/server/db/schema/auth'
 import {
   createOrgCustomFieldSchema,
@@ -51,212 +48,36 @@ export const renameOrganizationAction = orgScopedActionClient
 export const updateTimesheetDefaultsAction = orgScopedActionClient
   .metadata({ authorize: { organization: ['update'] } })
   .inputSchema(updateTimesheetDefaultsSchema)
-  .action(
-    async ({
-      parsedInput: {
-        organizationId,
-        defaultPayRate,
-        defaultPayCurrency,
-        defaultPayFrequency,
-        defaultBillingRate,
-        defaultBillingCurrency,
-        defaultBillingFrequency,
-        defaultTimesheetDuration,
-      },
-      ctx: { orgMember },
-    }) => {
-      if (orgMember.organizationId !== organizationId) {
-        throw new Error('Organization mismatch')
-      }
-      // When no billing rate is set, billing mirrors pay entirely — otherwise
-      // stale billing currency/frequency could leak into "same as pay" mode.
-      const usePayForBilling = defaultBillingRate === undefined
-      const defaults = {
-        payRate: defaultPayRate,
-        payCurrency: defaultPayCurrency,
-        payFrequency: defaultPayFrequency,
-        billingRate: usePayForBilling ? defaultPayRate : defaultBillingRate,
-        billingCurrency: usePayForBilling
-          ? defaultPayCurrency
-          : (defaultBillingCurrency ?? defaultPayCurrency),
-        billingFrequency: usePayForBilling
-          ? defaultPayFrequency
-          : (defaultBillingFrequency ?? defaultPayFrequency),
-        timesheetDuration: defaultTimesheetDuration,
-      }
-      await db
-        .insert(settingsTable)
-        .values({
-          organizationId,
-          ...defaults,
-        })
-        .onConflictDoUpdate({
-          target: [settingsTable.organizationId],
-          targetWhere: sql`${settingsTable.projectId} IS NULL`,
-          set: defaults,
-        })
-
-      return { success: true }
-    }
+  .action(({ parsedInput }) =>
+    projectsService.updateOrgTimesheetDefaults(parsedInput)
   )
 
 export const updateInvoiceNumberTemplateAction = orgScopedActionClient
   .metadata({ authorize: { organization: ['update'] } })
   .inputSchema(updateInvoiceNumberTemplateSchema)
-  .action(
-    async ({
-      parsedInput: { organizationId, projectId, invoiceNumberTemplate },
-      ctx: { orgMember },
-    }) => {
-      if (orgMember.organizationId !== organizationId) {
-        throw new Error('Organization mismatch')
-      }
-
-      if (projectId) {
-        await db
-          .insert(settingsTable)
-          .values({
-            organizationId,
-            projectId,
-            invoiceNumberTemplate,
-          })
-          .onConflictDoUpdate({
-            target: [settingsTable.organizationId, settingsTable.projectId],
-            set: { invoiceNumberTemplate },
-          })
-      } else {
-        await db
-          .insert(settingsTable)
-          .values({
-            organizationId,
-            invoiceNumberTemplate,
-          })
-          .onConflictDoUpdate({
-            target: [settingsTable.organizationId],
-            targetWhere: sql`${settingsTable.projectId} IS NULL`,
-            set: { invoiceNumberTemplate },
-          })
-      }
-
-      return { success: true }
-    }
+  .action(({ parsedInput }) =>
+    projectsService.updateInvoiceNumberTemplate(parsedInput)
   )
 
 export const updateInvoiceImportDefaultsAction = orgScopedActionClient
   .metadata({ authorize: { organization: ['update'] } })
   .inputSchema(updateInvoiceImportDefaultsSchema)
-  .action(
-    async ({
-      parsedInput: { organizationId, projectId, invoiceTimeUnit },
-      ctx: { orgMember },
-    }) => {
-      if (orgMember.organizationId !== organizationId) {
-        throw new Error('Organization mismatch')
-      }
-
-      if (projectId) {
-        const [project] = await db
-          .select({ id: projectsTable.id })
-          .from(projectsTable)
-          .where(
-            and(
-              eq(projectsTable.id, projectId),
-              eq(projectsTable.organizationId, organizationId)
-            )
-          )
-          .limit(1)
-
-        if (!project) {
-          throw new Error('Project does not belong to this organization')
-        }
-
-        await db
-          .insert(settingsTable)
-          .values({
-            organizationId,
-            projectId,
-            invoiceTimeUnit,
-          })
-          .onConflictDoUpdate({
-            target: [settingsTable.organizationId, settingsTable.projectId],
-            set: { invoiceTimeUnit },
-          })
-      } else {
-        await db
-          .insert(settingsTable)
-          .values({
-            organizationId,
-            invoiceTimeUnit,
-          })
-          .onConflictDoUpdate({
-            target: [settingsTable.organizationId],
-            targetWhere: sql`${settingsTable.projectId} IS NULL`,
-            set: { invoiceTimeUnit },
-          })
-      }
-
-      return { success: true }
-    }
+  .action(({ parsedInput }) =>
+    projectsService.updateInvoiceImportDefaults(parsedInput)
   )
 
 export const updateInvoiceFromDetailsAction = orgScopedActionClient
   .metadata({ authorize: { organization: ['update'] } })
   .inputSchema(updateInvoiceFromDetailsSchema)
-  .action(
-    async ({
-      parsedInput: { organizationId, invoiceFromName, invoiceFromAddress },
-      ctx: { orgMember },
-    }) => {
-      if (orgMember.organizationId !== organizationId) {
-        throw new Error('Organization mismatch')
-      }
-
-      const fromName = invoiceFromName?.trim() || null
-      const fromAddress = invoiceFromAddress?.trim() || null
-
-      await db
-        .insert(settingsTable)
-        .values({
-          organizationId,
-          invoiceFromName: fromName,
-          invoiceFromAddress: fromAddress,
-        })
-        .onConflictDoUpdate({
-          target: [settingsTable.organizationId],
-          targetWhere: sql`${settingsTable.projectId} IS NULL`,
-          set: {
-            invoiceFromName: fromName,
-            invoiceFromAddress: fromAddress,
-          },
-        })
-
-      return { success: true }
-    }
+  .action(({ parsedInput }) =>
+    projectsService.updateInvoiceFromDetails(parsedInput)
   )
 
 export const updateOrgClientInvolvementAction = orgScopedActionClient
   .metadata({ authorize: { organization: ['update'] } })
   .inputSchema(updateOrgClientInvolvementSchema)
-  .action(
-    async ({
-      parsedInput: { organizationId, clientInvolvement },
-      ctx: { orgMember },
-    }) => {
-      if (orgMember.organizationId !== organizationId) {
-        throw new Error('Organization mismatch')
-      }
-
-      await db
-        .insert(settingsTable)
-        .values({ organizationId, clientInvolvement })
-        .onConflictDoUpdate({
-          target: [settingsTable.organizationId],
-          targetWhere: sql`${settingsTable.projectId} IS NULL`,
-          set: { clientInvolvement },
-        })
-
-      return { success: true }
-    }
+  .action(({ parsedInput }) =>
+    projectsService.updateOrgClientInvolvement(parsedInput)
   )
 
 export const createOrgCustomFieldAction = orgScopedActionClient
