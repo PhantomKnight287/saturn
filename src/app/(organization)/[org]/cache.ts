@@ -1,18 +1,11 @@
-import { and, eq, inArray } from 'drizzle-orm'
 import type { ReadonlyHeaders } from 'next/dist/server/web/spec-extension/adapters/headers'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { authClient } from '@/lib/auth-client'
+import { projectAccess } from '@/server/access/project-access'
 import { getSession } from '@/server/auth'
 import { roles } from '@/server/auth/permissions'
-import { db } from '@/server/db'
-import {
-  projectClientAssignments,
-  projectMemberAssignments,
-  projects,
-  projectTeamAssignments,
-  teamMembers,
-} from '@/server/db/schema'
+import type { Role as MemberRole } from '@/types'
 
 export const getCachedUserSession = async () => {
   const session = await getSession()
@@ -110,81 +103,28 @@ export const resolveProjectContext = async (
   const orgContext = await resolveOrgContext(orgSlug)
   const { organization, orgMember } = orgContext
 
-  const [project] = await db
-    .select()
-    .from(projects)
-    .where(
-      and(
-        eq(projects.organizationId, organization.id),
-        eq(projects.slug, projectSlug)
-      )
-    )
+  const project = await projectAccess.resolveBySlug(
+    projectSlug,
+    organization.id
+  )
 
   if (!project) {
     redirect(`/error/404?message=${encodeURIComponent('Project not found')}`)
   }
 
-  // Owners and admins have access to all projects in the org
-  if (orgMember.role === 'owner' || orgMember.role === 'admin') {
-    return { ...orgContext, project }
-  }
+  const granted = await projectAccess.hasAccess(project, {
+    id: orgMember.id,
+    userId: orgMember.userId,
+    role: orgMember.role as MemberRole,
+  })
 
-  // Check direct member assignment
-  const [memberAssignment] = await db
-    .select({ id: projectMemberAssignments.id })
-    .from(projectMemberAssignments)
-    .where(
-      and(
-        eq(projectMemberAssignments.projectId, project.id),
-        eq(projectMemberAssignments.memberId, orgMember.id)
-      )
+  if (!granted) {
+    redirect(
+      `/error/403?message=${encodeURIComponent('You do not have access to this project')}`
     )
-
-  if (memberAssignment) {
-    return { ...orgContext, project }
   }
 
-  // Check direct client assignment
-  const [clientAssignment] = await db
-    .select({ id: projectClientAssignments.id })
-    .from(projectClientAssignments)
-    .where(
-      and(
-        eq(projectClientAssignments.projectId, project.id),
-        eq(projectClientAssignments.memberId, orgMember.id)
-      )
-    )
-
-  if (clientAssignment) {
-    return { ...orgContext, project }
-  }
-
-  // Check team-based assignment: user's teams → project team assignments
-  const userTeams = await db
-    .select({ teamId: teamMembers.teamId })
-    .from(teamMembers)
-    .where(eq(teamMembers.userId, orgMember.userId))
-
-  if (userTeams.length > 0) {
-    const teamIds = userTeams.map((t) => t.teamId)
-    const [teamAssignment] = await db
-      .select({ id: projectTeamAssignments.id })
-      .from(projectTeamAssignments)
-      .where(
-        and(
-          eq(projectTeamAssignments.projectId, project.id),
-          inArray(projectTeamAssignments.teamId, teamIds)
-        )
-      )
-
-    if (teamAssignment) {
-      return { ...orgContext, project }
-    }
-  }
-
-  redirect(
-    `/error/403?message=${encodeURIComponent('You do not have access to this project')}`
-  )
+  return { ...orgContext, project }
 }
 
 type Role = (typeof roles)[keyof typeof roles]

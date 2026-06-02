@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
 import { projectsService } from '@/app/api/projects/service'
@@ -35,10 +34,11 @@ export default async function Proposals({
     )
   }
 
-  const proposalList = await proposalsService.listByProject(
-    currentProject.id,
-    await headers()
-  )
+  const proposalList = await proposalsService.listByProject({
+    memberId: orgMember.id,
+    role: orgMember.role,
+    projectId: currentProject.id,
+  })
 
   const canCreate = role.authorize({ proposal: ['create'] }).success
   const settings = await projectsService.getSettings(

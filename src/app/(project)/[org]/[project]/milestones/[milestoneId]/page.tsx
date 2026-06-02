@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
 import { milestonesService } from '@/app/api/milestones/service'
@@ -27,6 +26,7 @@ export default async function MilestoneDetail({
     project: currentProject,
     role,
     organization,
+    orgMember,
   } = await resolveProjectContext(org, projectSlug)
 
   if (!role.authorize({ milestone: ['read'] }).success) {
@@ -48,7 +48,11 @@ export default async function MilestoneDetail({
     await Promise.all([
       milestonesService.getLinkedRequirements(milestoneId),
       milestonesService.getProgress(milestoneId),
-      requirementsService.listByProject(currentProject.id, await headers()),
+      requirementsService.listByProject({
+        memberId: orgMember.id,
+        projectId: currentProject.id,
+        role: orgMember.role,
+      }),
       projectsService.getSettings(organization.id, currentProject.id),
     ])
 

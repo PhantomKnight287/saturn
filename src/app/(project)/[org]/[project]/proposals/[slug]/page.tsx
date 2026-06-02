@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
 import { projectsService } from '@/app/api/projects/service'
@@ -39,11 +38,12 @@ export default async function ProposalDetail({
     )
   }
 
-  const proposal = await proposalsService.getBySlug(
-    currentProject.id,
+  const proposal = await proposalsService.getBySlug({
+    role: orgMember.role,
+    memberId: orgMember.id,
     slug,
-    await headers()
-  )
+    projectId: currentProject.id,
+  })
 
   if (!proposal) {
     redirect(`/error/404?message=${encodeURIComponent('Proposal not found')}`)

@@ -50,6 +50,7 @@
     "@polar-sh/better-auth": "^1.8.4",
     "@polar-sh/sdk": "^0.47.1",
     "@react-email/components": "^1.0.12",
+    "@react-email/render": "^2.0.6",
     "@react-pdf/renderer": "^4.5.1",
     "@scalar/hono-api-reference": "^0.10.14",
     "@t3-oss/env-core": "^0.13.11",

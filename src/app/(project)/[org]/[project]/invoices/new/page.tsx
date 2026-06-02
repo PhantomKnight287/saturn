@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
 import { expensesServices } from '@/app/api/expenses/service'
@@ -54,8 +53,6 @@ export default async function NewInvoice({
     )
   }
 
-  const h = await headers()
-
   const [
     clients,
     requirementList,
@@ -67,7 +64,11 @@ export default async function NewInvoice({
     member,
   ] = await Promise.all([
     teamService.getProjectClients(currentProject.id),
-    requirementsService.listByProject(currentProject.id, h),
+    requirementsService.listByProject({
+      memberId: orgMember.id,
+      projectId: currentProject.id,
+      role: orgMember.role,
+    }),
     usersService.getMedias(orgMember.userId),
     timesheetService.getBillableSummary(currentProject.id),
     expensesServices.listUnpaidExpensesByProject(
@@ -131,7 +132,8 @@ export default async function NewInvoice({
         invoiceId: extend,
         projectId: currentProject.id,
         organizationId: organization.id,
-        headers: await headers(),
+        memberId: orgMember.id,
+        role: orgMember.role,
       }),
       invoicesService.getItems(extend),
       invoicesService.getRecipients(extend),

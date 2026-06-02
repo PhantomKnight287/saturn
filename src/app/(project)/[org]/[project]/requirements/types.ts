@@ -1,11 +1,12 @@
 import type { requirementsService } from '@/app/api/requirements/service'
 import type { signaturesService } from '@/app/api/signatures/service'
 import type { teamService } from '@/app/api/teams/service'
+import type { threadService } from '@/app/api/threads/service'
 import type { requirements } from '@/server/db/schema'
 import type { Role } from '@/types'
 
 export type Thread = Awaited<
-  ReturnType<typeof requirementsService.getThreads>
+  ReturnType<typeof threadService.getThreads>
 >[number]
 
 export type ThreadMessage = Thread['messages'][number]

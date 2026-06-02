@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
 import { expensesServices } from '@/app/api/expenses/service'
@@ -37,12 +36,15 @@ export default async function Expenses({
     )
   }
 
-  const h = await headers()
   const isAdmin = orgMember.role === 'owner' || orgMember.role === 'admin'
   const isClient = orgMember.role === 'client'
 
   const [allExpenses, categories, clients, settings] = await Promise.all([
-    expensesServices.listByProject(currentProject.id, h),
+    expensesServices.listByProject({
+      memberId: orgMember.id,
+      role: orgMember.role,
+      projectId: currentProject.id,
+    }),
     expensesServices.listCategoriesByOrg(organization.id),
     isAdmin
       ? teamService.getProjectClients(currentProject.id)
