@@ -1,4 +1,4 @@
-import { render } from '@react-email/components'
+import { render } from '@react-email/render'
 import { and, desc, eq } from 'drizzle-orm'
 import { projectsService } from '@/app/api/projects/service'
 import { teamService } from '@/app/api/teams/service'
@@ -300,6 +300,14 @@ const sendForSign = async ({
 
   const recipientsToSend: { email: string; name: string }[] = []
   await db.transaction(async (tx) => {
+    await tx
+      .delete(requirementRecipients)
+      .where(eq(requirementRecipients.requirementId, requirementId))
+
+    await tx
+      .delete(requirementSignaturesTable)
+      .where(eq(requirementSignaturesTable.requirementId, requirementId))
+
     await tx
       .update(requirements)
       .set({ status: 'submitted_to_client' })
@@ -643,8 +651,8 @@ const resolveChangeRequest = async ({
   const [updatedChangeRequest] = await db
     .update(requirementChangeRequestsTable)
     .set({ status: resolution, resolvedAt: new Date() })
-    .returning()
     .where(eq(requirementChangeRequestsTable.id, changeRequestId))
+    .returning()
   return updatedChangeRequest
 }
 

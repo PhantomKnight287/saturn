@@ -106,8 +106,12 @@ export const clientRespondExpensesAction = orgScopedActionClient
 export const createExpenseCategoryAction = orgScopedActionClient
   .metadata({ authorize: { expense_category: ['create'] } })
   .inputSchema(createExpenseCategorySchema)
-  .action(({ parsedInput: { organizationId, name, color } }) =>
-    expensesServices.createCategory({ organizationId, name, color })
+  .action(({ parsedInput: { name, color }, ctx: { orgMember } }) =>
+    expensesServices.createCategory({
+      organizationId: orgMember.organizationId,
+      name,
+      color,
+    })
   )
 
 export const updateExpenseCategoryAction = orgScopedActionClient

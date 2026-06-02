@@ -663,11 +663,10 @@ const update = async ({
         .where(eq(invoices.id, invoiceId))
         .returning()
 
+      await tx
+        .delete(invoiceRecipients)
+        .where(eq(invoiceRecipients.invoiceId, invoiceId))
       if (clientMemberIds?.length) {
-        await tx
-          .delete(invoiceRecipients)
-          .where(eq(invoiceRecipients.invoiceId, invoiceId))
-
         await tx.insert(invoiceRecipients).values(
           clientMemberIds.map((clientMemberId) => ({
             invoiceId: insertedInvoice!.id,
@@ -676,11 +675,8 @@ const update = async ({
         )
       }
 
+      await tx.delete(invoiceItems).where(eq(invoiceItems.invoiceId, invoiceId))
       if (items?.length) {
-        await tx
-          .delete(invoiceItems)
-          .where(eq(invoiceItems.invoiceId, invoiceId))
-
         await tx.insert(invoiceItems).values(
           items.map((item, index) => ({
             invoiceId: insertedInvoice!.id,
@@ -693,11 +689,10 @@ const update = async ({
         )
       }
 
+      await tx
+        .delete(invoiceRequirements)
+        .where(eq(invoiceRequirements.invoiceId, invoiceId))
       if (requirementIds?.length) {
-        await tx
-          .delete(invoiceRequirements)
-          .where(eq(invoiceRequirements.invoiceId, invoiceId))
-
         await tx.insert(invoiceRequirements).values(
           requirementIds.map((requirementId) => ({
             invoiceId: insertedInvoice!.id,
@@ -793,6 +788,32 @@ const send = async ({
 
   if (items.length === 0) {
     throw new Error('Invoice must have at least one item')
+  }
+
+  if (clientMemberIds.length === 0) {
+    throw new Error('Invoice must have at least one recipient')
+  }
+
+  const validRecipients = await db
+    .select({ id: members.id })
+    .from(members)
+    .innerJoin(
+      projectClientAssignments,
+      and(
+        eq(projectClientAssignments.memberId, members.id),
+        eq(projectClientAssignments.projectId, invoice.projectId)
+      )
+    )
+    .where(
+      and(
+        inArray(members.id, clientMemberIds),
+        eq(members.organizationId, orgMember.organizationId),
+        eq(members.role, 'client')
+      )
+    )
+
+  if (validRecipients.length !== clientMemberIds.length) {
+    throw new Error('One or more recipients are invalid for this project')
   }
 
   await db

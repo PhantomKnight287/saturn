@@ -36,6 +36,7 @@ import {
   memberRates,
   members,
   projectBudgets,
+  projectClientAssignments,
   requirements,
   timeEntries,
   timesheetReportEntries,
@@ -270,7 +271,7 @@ const getProjectBudgetStatus = async (projectId: string) => {
     .where(
       and(
         eq(timeEntries.projectId, projectId),
-        eq(timeEntries.status, 'admin_accepted')
+        inArray(timeEntries.status, ['admin_accepted', 'client_accepted'])
       )
     )
 
@@ -915,6 +916,7 @@ const updateEntry = async ({
       projectId: timeEntries.projectId,
       memberId: timeEntries.memberId,
       status: timeEntries.status,
+      invoiceId: timeEntries.invoiceId,
     })
     .from(timeEntries)
     .where(eq(timeEntries.id, timeEntryId))
@@ -928,6 +930,19 @@ const updateEntry = async ({
     orgMember,
     'Time entry not found'
   )
+
+  // Once an entry is part of a sent report or an invoice, editing it would
+  // silently diverge from what the client already saw and from the cached
+  // report/invoice totals, so it is frozen for everyone — admins included.
+  if (
+    existing.invoiceId ||
+    existing.status === 'submitted_to_client' ||
+    existing.status === 'client_accepted'
+  ) {
+    throw new Error(
+      'This entry has been sent to a client or invoiced and can no longer be edited'
+    )
+  }
 
   const isAdmin = orgMember.role === 'owner' || orgMember.role === 'admin'
 
@@ -1035,6 +1050,9 @@ const submit = async ({
   if (entries.length === 0) {
     throw new Error('No time entries found')
   }
+  if (entries.length !== timeEntryIds.length) {
+    throw new Error('Some of the selected time entries could not be found')
+  }
 
   const projectId = assertSingleProject(entries)
   await projectAccess.assert(projectId, orgMember, 'No time entries found')
@@ -1096,6 +1114,9 @@ const approve = async ({
 
   if (entries.length === 0) {
     throw new Error('No time entries found')
+  }
+  if (entries.length !== timeEntryIds.length) {
+    throw new Error('Some of the selected time entries could not be found')
   }
 
   const projectId = assertSingleProject(entries)
@@ -1193,6 +1214,9 @@ const reject = async ({
 
   if (entries.length === 0) {
     throw new Error('No time entries found')
+  }
+  if (entries.length !== timeEntryIds.length) {
+    throw new Error('Some of the selected time entries could not be found')
   }
 
   const projectId = assertSingleProject(entries)
@@ -1398,6 +1422,9 @@ const linkToInvoice = async ({
   if (entries.length === 0) {
     throw new Error('No time entries found')
   }
+  if (entries.length !== timeEntryIds.length) {
+    throw new Error('Some of the selected time entries could not be found')
+  }
 
   const projectId = assertSingleProject(entries)
   await projectAccess.assert(projectId, orgMember, 'No time entries found')
@@ -1463,6 +1490,30 @@ const sendToClient = async ({
     if (entry.status !== 'admin_accepted') {
       throw new Error('Only approved entries can be sent to clients')
     }
+  }
+
+  const validRecipients = await db
+    .select({ id: members.id })
+    .from(members)
+    .innerJoin(
+      projectClientAssignments,
+      and(
+        eq(projectClientAssignments.memberId, members.id),
+        eq(projectClientAssignments.projectId, projectId)
+      )
+    )
+    .where(
+      and(
+        inArray(members.id, clientMemberIds),
+        eq(members.organizationId, organizationId),
+        eq(members.role, 'client')
+      )
+    )
+
+  if (validRecipients.length !== clientMemberIds.length) {
+    throw new Error(
+      'One or more recipients are not assigned as clients on this project'
+    )
   }
 
   const totalMinutes = entries.reduce((sum, e) => sum + e.durationMinutes, 0)
@@ -1597,85 +1648,81 @@ const respondReport = async ({
     throw new Error('Only sent reports can be responded to')
   }
 
-  const recipients = await db
-    .select({
-      id: timesheetReportRecipients.id,
-      clientMemberId: timesheetReportRecipients.clientMemberId,
-      status: timesheetReportRecipients.status,
-    })
-    .from(timesheetReportRecipients)
-    .where(eq(timesheetReportRecipients.reportId, reportId))
-
-  const currentRecipient = recipients.find(
-    (r) => r.clientMemberId === orgMember.id
-  )
-  if (!currentRecipient) {
-    throw new Error('Only assigned clients can respond to this report')
-  }
-  if (currentRecipient.status !== 'pending') {
-    throw new Error('You have already responded to this report')
-  }
-
   const recipientStatus = action === 'approve' ? 'approved' : 'disputed'
 
-  await db
-    .update(timesheetReportRecipients)
-    .set({
-      status: recipientStatus,
-      disputeReason: action === 'dispute' ? (reason ?? null) : null,
-      respondedAt: new Date(),
-    })
-    .where(eq(timesheetReportRecipients.id, currentRecipient.id))
+  // The recipient update and the aggregate report/status promotion must run in
+  // one transaction with the recipient rows locked, otherwise two clients
+  // responding at once can both read a stale snapshot and leave a fully
+  // approved report stuck in `sent`.
+  await db.transaction(async (tx) => {
+    const recipients = await tx
+      .select({
+        id: timesheetReportRecipients.id,
+        clientMemberId: timesheetReportRecipients.clientMemberId,
+        status: timesheetReportRecipients.status,
+      })
+      .from(timesheetReportRecipients)
+      .where(eq(timesheetReportRecipients.reportId, reportId))
+      .for('update')
 
-  if (action === 'dispute') {
-    await db.transaction(async (tx) => {
+    const currentRecipient = recipients.find(
+      (r) => r.clientMemberId === orgMember.id
+    )
+    if (!currentRecipient) {
+      throw new Error('Only assigned clients can respond to this report')
+    }
+    if (currentRecipient.status !== 'pending') {
+      throw new Error('You have already responded to this report')
+    }
+
+    await tx
+      .update(timesheetReportRecipients)
+      .set({
+        status: recipientStatus,
+        disputeReason: action === 'dispute' ? (reason ?? null) : null,
+        respondedAt: new Date(),
+      })
+      .where(eq(timesheetReportRecipients.id, currentRecipient.id))
+
+    const entryLinks = await tx
+      .select({ timeEntryId: timesheetReportEntries.timeEntryId })
+      .from(timesheetReportEntries)
+      .where(eq(timesheetReportEntries.reportId, reportId))
+    const entryIds = entryLinks.map((e) => e.timeEntryId)
+
+    if (action === 'dispute') {
       await tx
         .update(timesheetReports)
         .set({ status: 'disputed', respondedAt: new Date() })
         .where(eq(timesheetReports.id, reportId))
-      const entries = await tx
-        .select()
-        .from(timesheetReportEntries)
-        .where(eq(timesheetReportEntries.reportId, reportId))
-      await tx
-        .update(timeEntries)
-        .set({ status: 'client_rejected' })
-        .where(
-          inArray(
-            timeEntries.id,
-            entries.map((e) => e.timeEntryId)
-          )
-        )
-    })
-  } else {
-    const totalRecipients = recipients.length
-    const alreadyApproved = recipients.filter(
-      (r) => r.status === 'approved'
-    ).length
-    const totalApproved = alreadyApproved + 1
-
-    if (totalApproved >= totalRecipients) {
-      await db.transaction(async (tx) => {
+      if (entryIds.length > 0) {
         await tx
-          .update(timesheetReports)
-          .set({ status: 'approved', respondedAt: new Date() })
-          .where(eq(timesheetReports.id, reportId))
-        const entries = await tx
-          .select()
-          .from(timesheetReportEntries)
-          .where(eq(timesheetReportEntries.reportId, reportId))
+          .update(timeEntries)
+          .set({ status: 'client_rejected' })
+          .where(inArray(timeEntries.id, entryIds))
+      }
+      return
+    }
+
+    // Count this responder's just-applied approval alongside the locked
+    // snapshot of the others.
+    const totalApproved = recipients.filter(
+      (r) => r.id === currentRecipient.id || r.status === 'approved'
+    ).length
+
+    if (totalApproved >= recipients.length) {
+      await tx
+        .update(timesheetReports)
+        .set({ status: 'approved', respondedAt: new Date() })
+        .where(eq(timesheetReports.id, reportId))
+      if (entryIds.length > 0) {
         await tx
           .update(timeEntries)
           .set({ status: 'client_accepted' })
-          .where(
-            inArray(
-              timeEntries.id,
-              entries.map((e) => e.timeEntryId)
-            )
-          )
-      })
+          .where(inArray(timeEntries.id, entryIds))
+      }
     }
-  }
+  })
 
   if (report.sentByMemberId) {
     const [sender] = await db

@@ -1,4 +1,4 @@
-import { render } from '@react-email/components'
+import { render } from '@react-email/render'
 import { and, asc, desc, eq } from 'drizzle-orm'
 import { organizationsService } from '@/app/api/organizations/service'
 import { projectsService } from '@/app/api/projects/service'
@@ -308,6 +308,14 @@ const send = async ({
   }[] = []
   await db.transaction(async (tx) => {
     await tx
+      .delete(proposalRecipients)
+      .where(eq(proposalRecipients.proposalId, proposalId))
+
+    await tx
+      .delete(proposalSignatures)
+      .where(eq(proposalSignatures.proposalId, proposalId))
+
+    await tx
       .update(proposals)
       .set({ status: 'submitted_to_client' })
       .where(eq(proposals.id, proposalId))
@@ -327,15 +335,17 @@ const send = async ({
       })
     }
 
-    await tx
-      .insert(proposalRecipients)
-      .values(
-        recipientsToSend.map(({ memberId }) => ({
-          proposalId,
-          clientMemberId: memberId,
-        }))
-      )
-      .onConflictDoNothing()
+    if (recipientsToSend.length > 0) {
+      await tx
+        .insert(proposalRecipients)
+        .values(
+          recipientsToSend.map(({ memberId }) => ({
+            proposalId,
+            clientMemberId: memberId,
+          }))
+        )
+        .onConflictDoNothing()
+    }
   })
 
   await sendEmailsToRecipients(recipientsToSend, async (recipient) => {

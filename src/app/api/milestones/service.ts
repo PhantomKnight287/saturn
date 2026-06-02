@@ -148,32 +148,39 @@ const create = async ({
   budgetMinutes?: number
   budgetAmountCents?: number
   currency: string
-}) => {
-  const existing = await db
-    .select({ sortOrder: milestones.sortOrder })
-    .from(milestones)
-    .where(eq(milestones.projectId, projectId))
-    .orderBy(milestones.sortOrder)
+}) =>
+  await db.transaction(async (tx) => {
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtext(${`milestone_sort:${projectId}`}))`
+    )
 
-  const nextSortOrder =
-    existing.length > 0 ? Math.max(...existing.map((m) => m.sortOrder)) + 1 : 0
+    const existing = await tx
+      .select({ sortOrder: milestones.sortOrder })
+      .from(milestones)
+      .where(eq(milestones.projectId, projectId))
+      .orderBy(milestones.sortOrder)
 
-  const [milestone] = await db
-    .insert(milestones)
-    .values({
-      projectId,
-      name,
-      description,
-      dueDate: dueDate ? formatLocalDateOnly(dueDate) : null,
-      budgetMinutes,
-      budgetAmountCents,
-      sortOrder: nextSortOrder,
-      currency,
-    })
-    .returning()
+    const nextSortOrder =
+      existing.length > 0
+        ? Math.max(...existing.map((m) => m.sortOrder)) + 1
+        : 0
 
-  return milestone
-}
+    const [milestone] = await tx
+      .insert(milestones)
+      .values({
+        projectId,
+        name,
+        description,
+        dueDate: dueDate ? formatLocalDateOnly(dueDate) : null,
+        budgetMinutes,
+        budgetAmountCents,
+        sortOrder: nextSortOrder,
+        currency,
+      })
+      .returning()
+
+    return milestone
+  })
 
 const update = async ({
   milestoneId,
@@ -231,6 +238,7 @@ const update = async ({
   }
   if (status !== undefined) {
     updates.status = status
+    updates.completedAt = status === 'completed' ? new Date() : null
   }
   if (blockReason !== undefined) {
     updates.blockReason = blockReason
@@ -330,6 +338,24 @@ const reorder = async ({
   projectId: string
   orderedIds: string[]
 }) => {
+  const projectMilestones = await db
+    .select({ id: milestones.id })
+    .from(milestones)
+    .where(eq(milestones.projectId, projectId))
+
+  const projectIds = new Set(projectMilestones.map((m) => m.id))
+  const uniqueOrderedIds = new Set(orderedIds)
+
+  if (
+    uniqueOrderedIds.size !== orderedIds.length ||
+    orderedIds.length !== projectIds.size ||
+    orderedIds.some((id) => !projectIds.has(id))
+  ) {
+    throw new Error(
+      'Reorder payload must list every milestone in this project exactly once'
+    )
+  }
+
   await db.transaction(async (tx) => {
     for (let i = 0; i < orderedIds.length; i++) {
       await tx
@@ -384,26 +410,32 @@ const linkRequirement = async ({
     throw new Error('Requirement does not belong to the same project')
   }
 
-  const existingLinks = await db
-    .select({ sortOrder: milestoneRequirements.sortOrder })
-    .from(milestoneRequirements)
-    .where(eq(milestoneRequirements.milestoneId, milestoneId))
+  return await db.transaction(async (tx) => {
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtext(${`milestone_req_sort:${milestoneId}`}))`
+    )
 
-  const nextSortOrder =
-    existingLinks.length > 0
-      ? Math.max(...existingLinks.map((l) => l.sortOrder)) + 1
-      : 0
+    const existingLinks = await tx
+      .select({ sortOrder: milestoneRequirements.sortOrder })
+      .from(milestoneRequirements)
+      .where(eq(milestoneRequirements.milestoneId, milestoneId))
 
-  const [link] = await db
-    .insert(milestoneRequirements)
-    .values({
-      milestoneId,
-      requirementId,
-      sortOrder: nextSortOrder,
-    })
-    .returning()
+    const nextSortOrder =
+      existingLinks.length > 0
+        ? Math.max(...existingLinks.map((l) => l.sortOrder)) + 1
+        : 0
 
-  return link
+    const [link] = await tx
+      .insert(milestoneRequirements)
+      .values({
+        milestoneId,
+        requirementId,
+        sortOrder: nextSortOrder,
+      })
+      .returning()
+
+    return link
+  })
 }
 
 const unlinkRequirement = async ({

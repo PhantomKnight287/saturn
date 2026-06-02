@@ -101,12 +101,13 @@ export const setMemberRateAction = orgScopedActionClient
 export const setProjectBudgetAction = projectScopedActionClient
   .metadata({ authorize: { project_budget: ['manage'] } })
   .inputSchema(setProjectBudgetSchema)
-  .action(({ parsedInput: { projectId, budgetMinutes, alertThreshold } }) =>
-    timesheetService.setProjectBudget({
-      projectId,
-      budgetMinutes,
-      alertThreshold,
-    })
+  .action(
+    ({ parsedInput: { budgetMinutes, alertThreshold }, ctx: { project } }) =>
+      timesheetService.setProjectBudget({
+        projectId: project.id,
+        budgetMinutes,
+        alertThreshold,
+      })
   )
 
 export const linkTimeEntriesToInvoiceAction = orgScopedActionClient
