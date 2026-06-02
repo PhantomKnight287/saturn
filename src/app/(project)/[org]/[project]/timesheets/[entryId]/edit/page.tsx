@@ -1,17 +1,13 @@
-import { and, asc, eq } from 'drizzle-orm'
 import { ArrowLeft } from 'lucide-react'
 import type { Metadata } from 'next'
-import { headers } from 'next/headers'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
 import { requirementsService } from '@/app/api/requirements/service'
 import { timesheetService } from '@/app/api/timesheets/service'
 import { buttonVariants } from '@/components/ui/button-variants'
-import type { CustomFieldDefinition } from '@/lib/custom-fields'
 import { createMetadata } from '@/lib/metadata'
-import { db } from '@/server/db'
-import { customFields } from '@/server/db/schema'
+import { customFieldsService } from '@/server/custom-fields/service'
 import type { RouteImpl } from '@/types'
 import { TimeEntryFormBody } from '../../_components/time-entry-form-body'
 
@@ -47,19 +43,13 @@ export default async function EditTimeEntryPage({
     notFound()
   }
 
-  const h = await headers()
   const [requirementsList, defs] = await Promise.all([
-    requirementsService.listByProject(project.id, h),
-    db
-      .select()
-      .from(customFields)
-      .where(
-        and(
-          eq(customFields.projectId, project.id),
-          eq(customFields.organizationId, organization.id)
-        )
-      )
-      .orderBy(asc(customFields.createdAt)) as Promise<CustomFieldDefinition[]>,
+    requirementsService.listByProject({
+      memberId: orgMember.id,
+      role: orgMember.role,
+      projectId: project.id,
+    }),
+    customFieldsService.getProjectFields(project.id),
   ])
 
   const backHref = `/${org}/${projectSlug}/timesheets`

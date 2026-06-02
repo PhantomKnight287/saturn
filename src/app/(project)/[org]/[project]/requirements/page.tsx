@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
 import { projectsService } from '@/app/api/projects/service'
@@ -35,10 +34,11 @@ export default async function Requirements({
     )
   }
 
-  const requirementList = await requirementsService.listByProject(
-    currentProject.id,
-    await headers()
-  )
+  const requirementList = await requirementsService.listByProject({
+    memberId: orgMember.id,
+    role: orgMember.role,
+    projectId: currentProject.id,
+  })
 
   const canCreate = role.authorize({ requirement: ['create'] }).success
   const settings = await projectsService.getSettings(

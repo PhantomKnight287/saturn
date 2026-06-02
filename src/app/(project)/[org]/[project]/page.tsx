@@ -11,7 +11,6 @@ import {
   Users,
 } from 'lucide-react'
 import type { Metadata } from 'next'
-import { headers } from 'next/headers'
 
 import {
   requirePermission,
@@ -69,7 +68,6 @@ export default async function ProjectOverview({
     'You do not have permission to view this project'
   )
 
-  const h = await headers()
   const isClient = orgMember.role === 'client'
   const isAdmin = orgMember.role === 'owner' || orgMember.role === 'admin'
 
@@ -97,22 +95,42 @@ export default async function ProjectOverview({
       ? milestonesService.listByProjectWithProgress(project.id)
       : Promise.resolve([]),
     canReadRequirements
-      ? requirementsService.listByProject(project.id, h)
+      ? requirementsService.listByProject({
+          memberId: orgMember.id,
+          role: orgMember.role,
+          projectId: project.id,
+        })
       : Promise.resolve([]),
     canReadTimesheets
-      ? timesheetService.listByProject(project.id, h)
+      ? timesheetService.listByProject({
+          memberId: orgMember.id,
+          role: orgMember.role,
+          projectId: project.id,
+        })
       : Promise.resolve([]),
     isAdmin
       ? timesheetService.getProjectBudgetStatus(project.id)
       : Promise.resolve(null),
     canReadExpenses
-      ? expensesServices.listByProject(project.id, h)
+      ? expensesServices.listByProject({
+          memberId: orgMember.id,
+          projectId: project.id,
+          role: orgMember.role,
+        })
       : Promise.resolve([]),
     canReadInvoices
-      ? invoicesService.listByProject(project.id, h)
+      ? invoicesService.listByProject({
+          memberId: orgMember.id,
+          role: orgMember.role,
+          projectId: project.id,
+        })
       : Promise.resolve([]),
     canReadProposals
-      ? proposalsService.listByProject(project.id, h)
+      ? proposalsService.listByProject({
+          memberId: orgMember.id,
+          projectId: project.id,
+          role: orgMember.role,
+        })
       : Promise.resolve([]),
     canReadReports
       ? timesheetService.listReportsByProject(project.id)
