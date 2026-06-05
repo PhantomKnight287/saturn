@@ -21,8 +21,18 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/saturn_test
+      REDIS_URL: redis://localhost:6379
       BETTER_AUTH_SECRET: test-secret-not-for-production
       GITHUB_CLIENT_ID: test
       GITHUB_CLIENT_SECRET: test
@@ -46,7 +56,7 @@ jobs:
       - name: Run migrations
         run: bun db:migrate
       - name: Vitest
-        run: bun test
+        run: bun run test
 
   e2e:
     name: E2E smoke (Playwright)
@@ -65,8 +75,18 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/saturn_test
+      REDIS_URL: redis://localhost:6379
       BETTER_AUTH_SECRET: test-secret-not-for-production
       GITHUB_CLIENT_ID: test
       GITHUB_CLIENT_SECRET: test
