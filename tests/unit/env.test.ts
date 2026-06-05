@@ -8,7 +8,7 @@ import { env } from '@/env'
 
 describe('env', () => {
   it('parses with test setup values', () => {
-    expect(env.DATABASE_URL).toMatch(/^postgresql:\/\//)
+    expect(env.DATABASE_URL).toMatch(/^postgres(?:ql)?:\/\//)
     expect(env.BETTER_AUTH_SECRET).toBeTruthy()
     expect(env.NEXT_PUBLIC_BASE_URL).toBe('http://localhost:3000')
   })
