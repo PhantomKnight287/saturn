@@ -100,7 +100,10 @@ describe('authService.checkProjectAccess', () => {
   it('grants access to a member assigned to the project', async () => {
     const org = await createOrganization()
     const project = await createProject({ organizationId: org.id })
-    const member = await createMember({ organizationId: org.id, role: 'member' })
+    const member = await createMember({
+      organizationId: org.id,
+      role: 'member',
+    })
     await assignProjectMember(project.id, member.id)
 
     const result = await authService.checkProjectAccess(
@@ -115,7 +118,10 @@ describe('authService.checkProjectAccess', () => {
   it('grants access to a client assigned to the project', async () => {
     const org = await createOrganization()
     const project = await createProject({ organizationId: org.id })
-    const client = await createMember({ organizationId: org.id, role: 'client' })
+    const client = await createMember({
+      organizationId: org.id,
+      role: 'client',
+    })
     await assignProjectClient(project.id, client.id)
 
     const result = await authService.checkProjectAccess(
@@ -130,7 +136,10 @@ describe('authService.checkProjectAccess', () => {
   it('denies a member with no assignment to the project', async () => {
     const org = await createOrganization()
     const project = await createProject({ organizationId: org.id })
-    const member = await createMember({ organizationId: org.id, role: 'member' })
+    const member = await createMember({
+      organizationId: org.id,
+      role: 'member',
+    })
 
     const result = await authService.checkProjectAccess(
       org.id,
@@ -148,7 +157,10 @@ describe('authService.checkProjectAccess', () => {
     const org = await createOrganization()
     const project = await createProject({ organizationId: org.id })
     const otherProject = await createProject({ organizationId: org.id })
-    const member = await createMember({ organizationId: org.id, role: 'member' })
+    const member = await createMember({
+      organizationId: org.id,
+      role: 'member',
+    })
     await assignProjectMember(otherProject.id, member.id)
 
     const result = await authService.checkProjectAccess(

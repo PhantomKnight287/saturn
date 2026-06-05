@@ -102,7 +102,9 @@ describe('expensesServices.create', () => {
 
   it('creates a non-admin expense as draft', async () => {
     const { org, project, category } = await setup()
-    const teammate = await activeMemberFor(await addProjectMember(org.id, project.id))
+    const teammate = await activeMemberFor(
+      await addProjectMember(org.id, project.id)
+    )
 
     const expense = await expensesServices.create({
       project,
@@ -117,8 +119,14 @@ describe('expensesServices.create', () => {
 describe('expensesServices.listByProject', () => {
   it('returns every expense for an admin/owner', async () => {
     const { org, owner, project, category } = await setup()
-    const teammate = await activeMemberFor(await addProjectMember(org.id, project.id))
-    await expensesServices.create({ project, orgMember: owner, ...draftFor(category) })
+    const teammate = await activeMemberFor(
+      await addProjectMember(org.id, project.id)
+    )
+    await expensesServices.create({
+      project,
+      orgMember: owner,
+      ...draftFor(category),
+    })
     await expensesServices.create({
       project,
       orgMember: teammate,
@@ -136,8 +144,14 @@ describe('expensesServices.listByProject', () => {
 
   it('shows a member only their own expenses', async () => {
     const { org, owner, project, category } = await setup()
-    const teammate = await activeMemberFor(await addProjectMember(org.id, project.id))
-    await expensesServices.create({ project, orgMember: owner, ...draftFor(category) })
+    const teammate = await activeMemberFor(
+      await addProjectMember(org.id, project.id)
+    )
+    await expensesServices.create({
+      project,
+      orgMember: owner,
+      ...draftFor(category),
+    })
     const own = await expensesServices.create({
       project,
       orgMember: teammate,
@@ -169,7 +183,11 @@ describe('expensesServices.listByProject', () => {
     })
 
     // An admin_accepted expense the client was never sent stays hidden.
-    await expensesServices.create({ project, orgMember: owner, ...draftFor(category) })
+    await expensesServices.create({
+      project,
+      orgMember: owner,
+      ...draftFor(category),
+    })
 
     const result = await expensesServices.listByProject({
       projectId: project.id,
@@ -194,9 +212,16 @@ describe('expensesServices.listByProjectIds', () => {
       organizationId: other.organizationId,
     })
     const otherOwner = await activeMemberFor(
-      await createMember({ organizationId: other.organizationId, role: 'owner' })
+      await createMember({
+        organizationId: other.organizationId,
+        role: 'owner',
+      })
     )
-    await expensesServices.create({ project, orgMember: owner, ...draftFor(category) })
+    await expensesServices.create({
+      project,
+      orgMember: owner,
+      ...draftFor(category),
+    })
     await expensesServices.create({
       project: other,
       orgMember: otherOwner,
@@ -235,8 +260,15 @@ describe('expensesServices.listCategoriesByOrg', () => {
 describe('expensesServices.listUnpaidExpensesByProject', () => {
   it('returns [] when the user has no access to the project', async () => {
     const { org, owner, project, category } = await setup()
-    await expensesServices.create({ project, orgMember: owner, ...draftFor(category) })
-    const outsider = await createMember({ organizationId: org.id, role: 'member' })
+    await expensesServices.create({
+      project,
+      orgMember: owner,
+      ...draftFor(category),
+    })
+    const outsider = await createMember({
+      organizationId: org.id,
+      role: 'member',
+    })
 
     const result = await expensesServices.listUnpaidExpensesByProject(
       org.id,
@@ -299,7 +331,9 @@ describe('expensesServices.update', () => {
 
   it('forbids a member from editing someone else’s expense', async () => {
     const { org, owner, project, category } = await setup()
-    const teammate = await activeMemberFor(await addProjectMember(org.id, project.id))
+    const teammate = await activeMemberFor(
+      await addProjectMember(org.id, project.id)
+    )
     const expense = await expensesServices.create({
       project,
       orgMember: owner,
@@ -317,13 +351,18 @@ describe('expensesServices.update', () => {
 
   it('forbids a member from editing a non-draft expense', async () => {
     const { org, project, category } = await setup()
-    const teammate = await activeMemberFor(await addProjectMember(org.id, project.id))
+    const teammate = await activeMemberFor(
+      await addProjectMember(org.id, project.id)
+    )
     const expense = await expensesServices.create({
       project,
       orgMember: teammate,
       ...draftFor(category),
     })
-    await expensesServices.submit({ expenseIds: [expense!.id], orgMember: teammate })
+    await expensesServices.submit({
+      expenseIds: [expense!.id],
+      orgMember: teammate,
+    })
 
     await expect(
       expensesServices.update({
@@ -336,13 +375,18 @@ describe('expensesServices.update', () => {
 
   it('resets a rejected expense back to draft when its owner edits it', async () => {
     const { org, owner, project, category } = await setup()
-    const teammate = await activeMemberFor(await addProjectMember(org.id, project.id))
+    const teammate = await activeMemberFor(
+      await addProjectMember(org.id, project.id)
+    )
     const expense = await expensesServices.create({
       project,
       orgMember: teammate,
       ...draftFor(category),
     })
-    await expensesServices.submit({ expenseIds: [expense!.id], orgMember: teammate })
+    await expensesServices.submit({
+      expenseIds: [expense!.id],
+      orgMember: teammate,
+    })
     await expensesServices.reject({
       expenseIds: [expense!.id],
       reason: 'fix it',
@@ -370,7 +414,9 @@ describe('expensesServices.remove', () => {
 
   it('lets a member delete their own draft', async () => {
     const { org, project, category } = await setup()
-    const teammate = await activeMemberFor(await addProjectMember(org.id, project.id))
+    const teammate = await activeMemberFor(
+      await addProjectMember(org.id, project.id)
+    )
     const expense = await expensesServices.create({
       project,
       orgMember: teammate,
@@ -383,19 +429,27 @@ describe('expensesServices.remove', () => {
     })
 
     expect(result).toEqual({ success: true })
-    const rows = await db.select().from(expenses).where(eq(expenses.id, expense!.id))
+    const rows = await db
+      .select()
+      .from(expenses)
+      .where(eq(expenses.id, expense!.id))
     expect(rows).toHaveLength(0)
   })
 
   it('forbids a member from deleting a non-draft expense', async () => {
     const { org, project, category } = await setup()
-    const teammate = await activeMemberFor(await addProjectMember(org.id, project.id))
+    const teammate = await activeMemberFor(
+      await addProjectMember(org.id, project.id)
+    )
     const expense = await expensesServices.create({
       project,
       orgMember: teammate,
       ...draftFor(category),
     })
-    await expensesServices.submit({ expenseIds: [expense!.id], orgMember: teammate })
+    await expensesServices.submit({
+      expenseIds: [expense!.id],
+      orgMember: teammate,
+    })
 
     await expect(
       expensesServices.remove({ expenseId: expense!.id, orgMember: teammate })
@@ -414,7 +468,9 @@ describe('expensesServices.submit', () => {
   it('rejects expenses spanning multiple projects', async () => {
     const { org, project, category } = await setup()
     const projectB = await createProject({ organizationId: org.id })
-    const teammate = await activeMemberFor(await addProjectMember(org.id, project.id))
+    const teammate = await activeMemberFor(
+      await addProjectMember(org.id, project.id)
+    )
     await assignProjectMember(projectB.id, teammate.id)
     const a = await expensesServices.create({
       project,
@@ -428,13 +484,18 @@ describe('expensesServices.submit', () => {
     })
 
     await expect(
-      expensesServices.submit({ expenseIds: [a!.id, b!.id], orgMember: teammate })
+      expensesServices.submit({
+        expenseIds: [a!.id, b!.id],
+        orgMember: teammate,
+      })
     ).rejects.toThrow('All expenses must belong to the same project')
   })
 
   it('moves a draft to submitted_to_admin', async () => {
     const { org, project, category } = await setup()
-    const teammate = await activeMemberFor(await addProjectMember(org.id, project.id))
+    const teammate = await activeMemberFor(
+      await addProjectMember(org.id, project.id)
+    )
     const expense = await expensesServices.create({
       project,
       orgMember: teammate,
@@ -452,7 +513,9 @@ describe('expensesServices.submit', () => {
 
   it('forbids submitting someone else’s expense', async () => {
     const { org, owner, project, category } = await setup()
-    const teammate = await activeMemberFor(await addProjectMember(org.id, project.id))
+    const teammate = await activeMemberFor(
+      await addProjectMember(org.id, project.id)
+    )
     const expense = await expensesServices.create({
       project,
       orgMember: teammate,
@@ -476,7 +539,10 @@ describe('expensesServices.approve', () => {
       orgMember: teammate,
       ...draftFor(ctx.category),
     })
-    await expensesServices.submit({ expenseIds: [expense!.id], orgMember: teammate })
+    await expensesServices.submit({
+      expenseIds: [expense!.id],
+      orgMember: teammate,
+    })
     return { ...ctx, teammate, expense: expense! }
   }
 
@@ -496,7 +562,10 @@ describe('expensesServices.approve', () => {
     const { org, owner, expense } = await submitted()
     await disableClientExpenses(org.id)
 
-    await expensesServices.approve({ expenseIds: [expense.id], orgMember: owner })
+    await expensesServices.approve({
+      expenseIds: [expense.id],
+      orgMember: owner,
+    })
 
     expect(await statusOf(expense.id)).toBe('client_accepted')
   })
@@ -518,13 +587,18 @@ describe('expensesServices.approve', () => {
 describe('expensesServices.reject', () => {
   it('rejects a submitted expense with a reason', async () => {
     const { org, owner, project, category } = await setup()
-    const teammate = await activeMemberFor(await addProjectMember(org.id, project.id))
+    const teammate = await activeMemberFor(
+      await addProjectMember(org.id, project.id)
+    )
     const expense = await expensesServices.create({
       project,
       orgMember: teammate,
       ...draftFor(category),
     })
-    await expensesServices.submit({ expenseIds: [expense!.id], orgMember: teammate })
+    await expensesServices.submit({
+      expenseIds: [expense!.id],
+      orgMember: teammate,
+    })
 
     const result = await expensesServices.reject({
       expenseIds: [expense!.id],
@@ -533,7 +607,10 @@ describe('expensesServices.reject', () => {
     })
 
     expect(result).toEqual({ success: true })
-    const [row] = await db.select().from(expenses).where(eq(expenses.id, expense!.id))
+    const [row] = await db
+      .select()
+      .from(expenses)
+      .where(eq(expenses.id, expense!.id))
     expect(row!.status).toBe('admin_rejected')
     expect(row!.rejectReason).toBe('missing receipt')
   })
@@ -573,12 +650,16 @@ describe('expensesServices.sendToClient', () => {
         clientMemberIds: [client.id],
         orgMember: owner,
       })
-    ).rejects.toThrow('Client involvement is disabled for expenses in this project')
+    ).rejects.toThrow(
+      'Client involvement is disabled for expenses in this project'
+    )
   })
 
   it('refuses to send an expense that is not admin-approved', async () => {
     const { org, owner, project, category } = await setup()
-    const teammate = await activeMemberFor(await addProjectMember(org.id, project.id))
+    const teammate = await activeMemberFor(
+      await addProjectMember(org.id, project.id)
+    )
     const client = await addProjectClient(org.id, project.id)
     const expense = await expensesServices.create({
       project,
@@ -600,7 +681,10 @@ describe('expensesServices.sendToClient', () => {
   it('refuses a client without project access', async () => {
     const { org, owner, project, category } = await setup()
     // Client exists in the org but is not assigned to the project.
-    const unassigned = await createMember({ organizationId: org.id, role: 'client' })
+    const unassigned = await createMember({
+      organizationId: org.id,
+      role: 'client',
+    })
     const expense = await expensesServices.create({
       project,
       orgMember: owner,
@@ -682,7 +766,10 @@ describe('expensesServices.clientRespond', () => {
       orgMember: await activeMemberFor(client),
     })
 
-    const [row] = await db.select().from(expenses).where(eq(expenses.id, expense.id))
+    const [row] = await db
+      .select()
+      .from(expenses)
+      .where(eq(expenses.id, expense.id))
     expect(row!.status).toBe('client_rejected')
     expect(row!.rejectReason).toBe('too expensive')
   })
@@ -715,7 +802,9 @@ describe('expensesServices.clientRespond', () => {
         action: 'approve',
         orgMember: await activeMemberFor(outsider),
       })
-    ).rejects.toThrow('You are not a recipient of one or more of these expenses')
+    ).rejects.toThrow(
+      'You are not a recipient of one or more of these expenses'
+    )
   })
 
   it('refuses a client who has already responded', async () => {

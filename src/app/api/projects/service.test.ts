@@ -15,7 +15,7 @@ import { projectsService } from './service'
 const billingStatus = vi.hoisted(() => ({ isPro: true }))
 
 vi.mock('@/cache/billing', () => ({
-  getUserBillingStatus: vi.fn(async () => billingStatus.isPro), 
+  getUserBillingStatus: vi.fn(async () => billingStatus.isPro),
   getOrganizationBillingStatus: vi.fn(async () => billingStatus.isPro),
 }))
 
