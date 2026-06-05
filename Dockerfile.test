@@ -1,14 +1,55 @@
-# Test runner image: bun + chromium for Playwright + everything needed to
-# run vitest and playwright against a real Postgres.
-FROM oven/bun:1.3-debian
+# Test runner image. Multi-stage so the common path (vitest + migrations) never
+# pays for Chromium, and the browser download is isolated in a layer that only
+# the Playwright version invalidates — not source edits or dependency bumps.
+#
+# Targets:
+#   unit  -> bun + node + JS deps + source (used by `migrate` and `unit`)
+#   e2e   -> everything in `unit` plus Chromium and its system libraries
+#
+# Build a specific stage with `--target`; docker-compose.test.yml wires them up.
+
+# ---- deps: bun + node + JS deps. No app source, no browser. ----
+FROM oven/bun:1.3-debian AS deps
 
 WORKDIR /app
 
-# Playwright system deps for headless Chromium. Kept minimal — only chromium.
+# node is required by `test:e2e` (`node node_modules/playwright/cli.js test`) and
+# is the runtime vitest expects; postgresql-client for db readiness/migrations.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
-    gnupg \
+    postgresql-client \
+  && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+  && apt-get install -y --no-install-recommends nodejs \
+  && rm -rf /var/lib/apt/lists/*
+
+# Install JS deps first to keep this layer cached.
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
+
+# ---- unit: deps + source. Used by the `migrate` and `unit` services. ----
+FROM deps AS unit
+
+COPY . .
+
+CMD ["bun", "run", "test"]
+
+# ---- browsers: Chromium download in isolation. Invalidated ONLY by
+#      PLAYWRIGHT_VERSION, so it is fetched once and reused across source and
+#      dependency changes. Keep PLAYWRIGHT_VERSION in sync with @playwright/test
+#      in package.json. ----
+FROM oven/bun:1.3-debian AS browsers
+
+ARG PLAYWRIGHT_VERSION=1.60.0
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+
+RUN bunx playwright@${PLAYWRIGHT_VERSION} install chromium
+
+# ---- e2e: unit image + Chromium and its system libraries. ----
+FROM deps AS e2e
+
+# Playwright system deps for headless Chromium. Kept minimal — only chromium.
+RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-liberation \
     libasound2 \
     libatk-bridge2.0-0 \
@@ -31,18 +72,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxfixes3 \
     libxkbcommon0 \
     libxrandr2 \
-    postgresql-client \
-  && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
-  && apt-get install -y --no-install-recommends nodejs \
   && rm -rf /var/lib/apt/lists/*
 
-# Install JS deps first to keep this layer cached.
-COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile
-
-# Playwright browser (chromium only, matches playwright.config.ts).
-RUN bunx playwright install chromium
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+COPY --from=browsers /ms-playwright /ms-playwright
 
 COPY . .
 
-CMD ["bun", "test"]
+CMD ["bun", "run", "test:e2e"]

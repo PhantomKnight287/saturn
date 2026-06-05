@@ -21,10 +21,21 @@ services:
       timeout: 3s
       retries: 20
 
+  redis:
+    image: redis:7-alpine
+    tmpfs:
+      - /data  # ephemeral, fast — wiped on `down`
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
   migrate:
     build:
       context: .
       dockerfile: Dockerfile.test
+      target: unit
     profiles: ['tests']
     depends_on:
       postgres:
@@ -36,23 +47,31 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.test
+      target: unit
     profiles: ['tests']
     depends_on:
       migrate:
         condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     env_file: .env.test
     volumes:
       - ./coverage:/app/coverage
-    command: bun test
+    command: bun run test
 
   e2e:
     build:
       context: .
       dockerfile: Dockerfile.test
+      target: e2e
     profiles: ['tests']
     depends_on:
       migrate:
         condition: service_completed_successfully
+      redis:
+        condition: service_healthy
     env_file: .env.test
     volumes:
       - ./playwright-report:/app/playwright-report

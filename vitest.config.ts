@@ -12,6 +12,10 @@ export default defineConfig({
     globals: false,
     environment: 'node',
     setupFiles: ['./tests/setup.ts'],
+    // Tests share one Postgres DB and truncate it between cases via resetDb().
+    // Running files in parallel (separate workers, same DB) would let one file's
+    // reset wipe another's rows mid-run, so force fully sequential execution.
+    fileParallelism: false,
     include: [
       'src/**/*.test.ts',
       'tests/unit/**/*.test.ts',
