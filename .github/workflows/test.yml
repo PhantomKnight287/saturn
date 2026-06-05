@@ -3,6 +3,9 @@ name: Test
 on:
   push:
 
+permissions:
+  contents: read
+
 jobs:
   unit:
     name: Unit & integration (Vitest)
