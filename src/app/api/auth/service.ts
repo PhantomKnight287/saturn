@@ -8,9 +8,6 @@ import {
   projects,
 } from '@/server/db/schema'
 
-const ORG_ACCESS_CACHE_KEY = 'ORG_ACCESS'
-const PROJECT_ACCESS_CACHE_KEY = 'PROJECT_ACCESS'
-
 const checkProjectAccess = async (
   organizationId: string,
   projectId: string,
@@ -90,6 +87,4 @@ const checkProjectAccess = async (
 
 export const authService = {
   checkProjectAccess,
-  ORG_ACCESS_CACHE_KEY,
-  PROJECT_ACCESS_CACHE_KEY,
 }

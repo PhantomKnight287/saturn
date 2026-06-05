@@ -1,0 +1,128 @@
+name: Test
+
+on:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    name: Unit & integration (Vitest)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: saturn_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/saturn_test
+      REDIS_URL: redis://localhost:6379
+      BETTER_AUTH_SECRET: test-secret-not-for-production
+      GITHUB_CLIENT_ID: test
+      GITHUB_CLIENT_SECRET: test
+      GOOGLE_CLIENT_ID: test
+      GOOGLE_CLIENT_SECRET: test
+      EMAIL_PROXY: http://localhost:9999
+      NEXT_PUBLIC_BASE_URL: http://localhost:3000
+      CORS_ORIGIN: http://localhost:3000
+      POLAR_ACCESS_TOKEN: test
+      POLAR_WEBHOOK_SECRET: test
+      POLAR_PRODUCT_ID: test
+      POLAR_PRODUCT_SLUG: test
+      S3_ENDPOINT: http://localhost:9000
+      S3_REGION: us-east-1
+      S3_ACCESS_KEY_ID: test
+      S3_SECRET_ACCESS_KEY: test
+      S3_BUCKET: test
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - name: Run migrations
+        run: bun db:migrate
+      - name: Vitest
+        run: bun run test
+
+  e2e:
+    name: E2E smoke (Playwright)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: saturn_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/saturn_test
+      REDIS_URL: redis://localhost:6379
+      BETTER_AUTH_SECRET: test-secret-not-for-production
+      GITHUB_CLIENT_ID: test
+      GITHUB_CLIENT_SECRET: test
+      GOOGLE_CLIENT_ID: test
+      GOOGLE_CLIENT_SECRET: test
+      EMAIL_PROXY: http://localhost:9999
+      NEXT_PUBLIC_BASE_URL: http://localhost:3000
+      CORS_ORIGIN: http://localhost:3000
+      POLAR_ACCESS_TOKEN: test
+      POLAR_WEBHOOK_SECRET: test
+      POLAR_PRODUCT_ID: test
+      POLAR_PRODUCT_SLUG: test
+      S3_ENDPOINT: http://localhost:9000
+      S3_REGION: us-east-1
+      S3_ACCESS_KEY_ID: test
+      S3_SECRET_ACCESS_KEY: test
+      S3_BUCKET: test
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - name: Install Playwright browsers
+        run: bun test:e2e:install
+      - name: Run migrations
+        run: bun db:migrate
+      - name: Playwright
+        run: bun test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report
+          retention-days: 7
