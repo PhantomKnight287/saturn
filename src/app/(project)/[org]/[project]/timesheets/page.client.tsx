@@ -141,8 +141,8 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
 
   if (isClient) {
     return (
-      <div className='w-full'>
-        <div className='mb-6 flex items-center justify-between'>
+      <div className='w-full py-2'>
+        <div className='mb-8 flex items-center justify-between'>
           <h1 className='font-semibold text-2xl'>Timesheets</h1>
         </div>
         <ClientReportsView
@@ -154,8 +154,8 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
   }
 
   return (
-    <div className='w-full'>
-      <div className='mb-6 flex items-center justify-between'>
+    <div className='w-full py-2'>
+      <div className='mb-8 flex items-center justify-between'>
         <div className='flex items-center gap-4'>
           <h1 className='font-semibold text-2xl'>Timesheets</h1>
           {budgetStatus && isAdmin && (
@@ -203,7 +203,7 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
       </div>
 
       <Tabs defaultValue={isAdmin ? 'team' : 'timesheet'}>
-        <TabsList className='mb-4' variant={'line'}>
+        <TabsList className='mb-6' variant={'line'}>
           <TabsTrigger value='timesheet'>My Timesheet</TabsTrigger>
           {isAdmin && (
             <>

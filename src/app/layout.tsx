@@ -3,6 +3,7 @@ import type { Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 
 import '@/styles/globals.css'
+import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import {
   APP_DEFAULT_TITLE,
   APP_DESCRIPTION,
@@ -46,7 +47,9 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
       <body
         className={`${geistSans.variable} ${geistMono.variable} flex min-h-svh flex-col antialiased`}
       >
-        <Providers>{children}</Providers>
+        <NuqsAdapter>
+          <Providers>{children}</Providers>
+        </NuqsAdapter>
         <Databuddy
           clientId='f825ca92-af36-4b2b-8c19-e9337cf65427'
           trackErrors={true}

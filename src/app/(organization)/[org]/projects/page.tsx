@@ -3,6 +3,7 @@ import { projectsService } from '@/app/api/projects/service'
 import { createMetadata } from '@/lib/metadata'
 import { requirePermission, resolveOrgContext } from '../cache'
 import { ProjectsClient } from './page.client'
+import { createLoader, parseAsInteger } from 'nuqs/server'
 
 export const metadata: Metadata = createMetadata({
   title: 'Projects',
@@ -15,13 +16,17 @@ export const metadata: Metadata = createMetadata({
   },
 })
 
+const loadSearchParams = createLoader({
+  newProject: parseAsInteger.withDefault(0),
+})
+
 export default async function Projects({
   params,
   searchParams,
 }: PageProps<'/[org]/projects'>) {
   const { org } = await params
   const { organization, orgMember, role } = await resolveOrgContext(org)
-  const { newProject } = await searchParams
+  const { newProject } = await loadSearchParams(searchParams)
   requirePermission(
     role,
     { project: ['read'] },
@@ -37,7 +42,7 @@ export default async function Projects({
   return (
     <ProjectsClient
       canCreate={canCreate}
-      openNewProjectDialog={newProject === '1'}
+      openNewProjectDialog={newProject === 1}
       organizationId={organization.id}
       orgSlug={org}
       projects={projectList}

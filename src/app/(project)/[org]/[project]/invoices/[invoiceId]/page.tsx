@@ -15,6 +15,7 @@ import type { Role } from '@/types'
 import { InvoiceClientView } from '../_components/invoice-client-view'
 import InvoiceEditor from '../_components/invoice-editor'
 import { buildMemberRateMap } from '../_lib/build-rate-map'
+import { createLoader, parseAsString } from 'nuqs/server'
 
 export const metadata: Metadata = createMetadata({
   title: 'Invoice',
@@ -25,6 +26,10 @@ export const metadata: Metadata = createMetadata({
   twitter: {
     images: ['/api/og?page=Invoices'],
   },
+})
+
+const loader = createLoader({
+  currency: parseAsString,
 })
 
 export default async function InvoiceDetail({
@@ -44,8 +49,8 @@ export default async function InvoiceDetail({
       `/error/403?message=${encodeURIComponent('You do not have permission to view invoices')}`
     )
   }
-  const { currency } = await searchParams
-  const currencyParam = Array.isArray(currency) ? currency[0] : currency
+  const { currency } = await loader(searchParams)
+
   const invoice = await invoicesService.getById({
     invoiceId,
     projectId: currentProject.id,
@@ -136,13 +141,10 @@ export default async function InvoiceDetail({
     expensesServices.listExpensesByInvoiceId(invoiceId),
   ])
 
-  // A saved invoice's currency is the source of truth — never let a query
-  // param override it, since line item unit prices are stored in that
-  // currency and switching would misprice them.
   const hasSavedItems = items.length > 0
   const baseCurrency = hasSavedItems
     ? invoice.currency
-    : (currencyParam ?? invoice.currency)
+    : (currency ?? invoice.currency)
 
   const dedupedExpenses = [
     ...new Map(

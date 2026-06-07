@@ -39,6 +39,7 @@ import { CustomValuesInline } from './custom-values-inline'
 import { exportTimeEntries } from './export-time-entries'
 import { StatusBadgeWithReason } from './status-badge-with-reason'
 import { TimeEntryForm } from './time-entry-form'
+import { TruncatedText } from './truncated-text'
 
 interface WeeklyTimesheetProps {
   currentMemberId: string
@@ -171,7 +172,7 @@ export function WeeklyTimesheet({
   const weekLabel = `${formatDate(weekDays.at(0)!)} – ${formatDate(weekDays.at(-1)!)}, ${weekDays.at(-1)!.getFullYear()}`
 
   return (
-    <div className='space-y-4'>
+    <div className='space-y-6'>
       <Card>
         <CardHeader className='pb-3'>
           <div className='flex items-center justify-between'>
@@ -238,7 +239,7 @@ export function WeeklyTimesheet({
         </CardHeader>
         <CardContent className='p-0'>
           <div className='overflow-x-auto'>
-            <Table>
+            <Table className='[&_td]:px-3 [&_td]:py-3.5 [&_th]:px-3'>
               <TableHeader>
                 <TableRow>
                   {showCheckboxes && (
@@ -317,9 +318,10 @@ export function WeeklyTimesheet({
                         )}
                         <TableCell>
                           <div className='flex items-center gap-1'>
-                            <span className='line-clamp-1 max-w-56 overflow-ellipsis text-sm'>
-                              {entry.description}
-                            </span>
+                            <TruncatedText
+                              className='max-w-56 text-sm'
+                              text={entry.description}
+                            />
                             {entry.billable && (
                               <Tooltip>
                                 <TooltipTrigger>
@@ -335,16 +337,23 @@ export function WeeklyTimesheet({
                           />
                         </TableCell>
                         <TableCell className='text-muted-foreground text-sm'>
-                          <span className='line-clamp-1 max-w-32'>
-                            <a
-                              className='hover:underline'
-                              href={`/${params.org}/${params.project}/requirements/${entry.requirementSlug}`}
-                              rel='noopener'
-                              target='_blank'
+                          {entry.requirementTitle ? (
+                            <TruncatedText
+                              className='max-w-32'
+                              text={entry.requirementTitle}
                             >
-                              {entry.requirementTitle ?? '—'}
-                            </a>
-                          </span>
+                              <a
+                                className='hover:underline'
+                                href={`/${params.org}/${params.project}/requirements/${entry.requirementSlug}`}
+                                rel='noopener'
+                                target='_blank'
+                              >
+                                {entry.requirementTitle}
+                              </a>
+                            </TruncatedText>
+                          ) : (
+                            '—'
+                          )}
                         </TableCell>
                         {weekDays.map((day) => (
                           <TableCell

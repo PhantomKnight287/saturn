@@ -351,7 +351,7 @@ export function MonthlyTimesheet({
             </div>
           </DialogHeader>
           <div className='overflow-x-auto'>
-            <Table>
+            <Table className='[&_td]:px-3 [&_td]:py-3.5 [&_th]:px-3'>
               <TableHeader>
                 <TableRow>
                   {showCheckboxes && <TableHead className='w-10' />}

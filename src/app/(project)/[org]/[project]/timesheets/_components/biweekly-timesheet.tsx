@@ -39,6 +39,7 @@ import { CustomValuesInline } from './custom-values-inline'
 import { exportTimeEntries } from './export-time-entries'
 import { StatusBadgeWithReason } from './status-badge-with-reason'
 import { TimeEntryForm } from './time-entry-form'
+import { TruncatedText } from './truncated-text'
 
 interface BiweeklyTimesheetProps {
   currentMemberId: string
@@ -181,7 +182,7 @@ export function BiweeklyTimesheet({
             {formatMinutes(weekTotal)}
           </span>
         </div>
-        <Table>
+        <Table className='[&_td]:px-3 [&_td]:py-3.5 [&_th]:px-3'>
           <TableHeader>
             <TableRow>
               {showCheckboxes && (
@@ -246,9 +247,10 @@ export function BiweeklyTimesheet({
                     )}
                     <TableCell>
                       <div className='flex items-center gap-1'>
-                        <span className='line-clamp-1 max-w-56 overflow-ellipsis text-sm'>
-                          {entry.description}
-                        </span>
+                        <TruncatedText
+                          className='max-w-56 text-sm'
+                          text={entry.description}
+                        />
                         {entry.billable && (
                           <Tooltip>
                             <TooltipTrigger>
@@ -264,16 +266,23 @@ export function BiweeklyTimesheet({
                       />
                     </TableCell>
                     <TableCell className='text-muted-foreground text-sm'>
-                      <span className='line-clamp-1 max-w-32'>
-                        <a
-                          className='hover:underline'
-                          href={`/${params.org}/${params.project}/requirements/${entry.requirementSlug}`}
-                          rel='noopener'
-                          target='_blank'
+                      {entry.requirementTitle ? (
+                        <TruncatedText
+                          className='max-w-32'
+                          text={entry.requirementTitle}
                         >
-                          {entry.requirementTitle ?? '—'}
-                        </a>
-                      </span>
+                          <a
+                            className='hover:underline'
+                            href={`/${params.org}/${params.project}/requirements/${entry.requirementSlug}`}
+                            rel='noopener'
+                            target='_blank'
+                          >
+                            {entry.requirementTitle}
+                          </a>
+                        </TruncatedText>
+                      ) : (
+                        '—'
+                      )}
                     </TableCell>
                     {weekDays.map((day) => (
                       <TableCell

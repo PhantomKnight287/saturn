@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation'
 import { useAction } from 'next-safe-action/hooks'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
+import { getStatusLabel, type Status } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -43,6 +44,18 @@ import type { ProjectMember, Requirement, TimeEntry } from '../types'
 import { CustomValuesInline } from './custom-values-inline'
 import { StatusBadgeWithReason } from './status-badge-with-reason'
 import { TimeEntryForm } from './time-entry-form'
+import { TruncatedText } from './truncated-text'
+
+const STATUS_FILTER_ORDER: Status[] = [
+  'submitted_to_admin',
+  'changes_requested',
+  'admin_rejected',
+  'admin_accepted',
+  'submitted_to_client',
+  'client_accepted',
+  'client_rejected',
+  'draft',
+]
 
 interface TeamEntriesTableProps {
   currentMemberId: string
@@ -124,6 +137,11 @@ export function TeamEntriesTable({
     [filtered]
   )
 
+  const statusOptions = useMemo(() => {
+    const present = new Set(entries.map((e) => e.status))
+    return STATUS_FILTER_ORDER.filter((s) => present.has(s))
+  }, [entries])
+
   const hasActiveFilters =
     filterMember !== 'all' ||
     filterStatus !== 'all' ||
@@ -167,11 +185,11 @@ export function TeamEntriesTable({
   }
 
   return (
-    <div className='space-y-4'>
-      <div className='flex flex-wrap items-center gap-2'>
+    <div className='space-y-6'>
+      <div className='flex flex-wrap items-center gap-3'>
         <Filter className='size-4 text-muted-foreground' />
         <Select onValueChange={setFilterMember} value={filterMember}>
-          <SelectTrigger className='h-8 w-40'>
+          <SelectTrigger className='h-9 w-40'>
             <SelectValue placeholder='All members' />
           </SelectTrigger>
           <SelectContent>
@@ -184,19 +202,20 @@ export function TeamEntriesTable({
           </SelectContent>
         </Select>
         <Select onValueChange={setFilterStatus} value={filterStatus}>
-          <SelectTrigger className='h-8 w-36'>
+          <SelectTrigger className='h-9 w-36'>
             <SelectValue placeholder='All statuses' />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value='all'>All statuses</SelectItem>
-            <SelectItem value='draft'>Draft</SelectItem>
-            <SelectItem value='submitted_to_admin'>Submitted</SelectItem>
-            <SelectItem value='admin_accepted'>Approved</SelectItem>
-            <SelectItem value='admin_rejected'>Rejected</SelectItem>
+            {statusOptions.map((status) => (
+              <SelectItem key={status} value={status}>
+                {getStatusLabel(status, { isClientInvolved })}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
         <Select onValueChange={setFilterRequirement} value={filterRequirement}>
-          <SelectTrigger className='h-8 w-44'>
+          <SelectTrigger className='h-9 w-44'>
             <SelectValue placeholder='All requirements' />
           </SelectTrigger>
           <SelectContent>
@@ -211,7 +230,7 @@ export function TeamEntriesTable({
         </Select>
         {hasActiveFilters && (
           <Button
-            className='h-8 text-xs'
+            className='h-9 text-xs'
             onClick={() => {
               setFilterMember('all')
               setFilterStatus('all')
@@ -246,7 +265,7 @@ export function TeamEntriesTable({
         <Card>
           <CardContent className='p-0'>
             <div className='overflow-x-auto'>
-              <Table>
+              <Table className='[&_td]:px-3 [&_td]:py-3.5 [&_th]:h-12 [&_th]:px-3'>
                 <TableHeader>
                   <TableRow>
                     {selectable && (
@@ -297,9 +316,10 @@ export function TeamEntriesTable({
                       </TableCell>
                       <TableCell>
                         <div className='flex items-center gap-1'>
-                          <span className='line-clamp-1 max-w-52 text-sm'>
-                            {entry.description}
-                          </span>
+                          <TruncatedText
+                            className='max-w-52 text-sm'
+                            text={entry.description}
+                          />
                           {entry.billable && (
                             <Tooltip>
                               <TooltipTrigger>
@@ -315,8 +335,11 @@ export function TeamEntriesTable({
                         />
                       </TableCell>
                       <TableCell className='text-muted-foreground text-sm'>
-                        <span className='line-clamp-1 max-w-36'>
-                          {entry.requirementTitle ? (
+                        {entry.requirementTitle ? (
+                          <TruncatedText
+                            className='max-w-36'
+                            text={entry.requirementTitle}
+                          >
                             <a
                               className='hover:underline'
                               href={`/${params.org}/${params.project}/requirements/${entry.requirementSlug}`}
@@ -325,10 +348,10 @@ export function TeamEntriesTable({
                             >
                               {entry.requirementTitle}
                             </a>
-                          ) : (
-                            '—'
-                          )}
-                        </span>
+                          </TruncatedText>
+                        ) : (
+                          '—'
+                        )}
                       </TableCell>
                       <TableCell
                         className='whitespace-nowrap text-sm'

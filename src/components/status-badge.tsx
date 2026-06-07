@@ -19,17 +19,17 @@ const variants: Record<Status, Variant> = {
     className: 'bg-muted text-muted-foreground border-muted',
   },
   submitted_to_admin: {
-    label: 'Pending Review',
+    label: 'Pending Admin Review',
     className:
       'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-800',
   },
   admin_accepted: {
-    label: 'Approved',
+    label: 'Admin Approved',
     className:
       'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/40 dark:text-green-300 dark:border-green-800',
   },
   admin_rejected: {
-    label: 'Rejected',
+    label: 'Admin Rejected',
     className:
       'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/40 dark:text-red-300 dark:border-red-800',
   },
@@ -63,6 +63,23 @@ const variants: Record<Status, Variant> = {
   },
 }
 
+export function getStatusLabel(
+  status: Status,
+  {
+    role,
+    isClientInvolved = true,
+  }: { role?: Role; isClientInvolved?: boolean } = {}
+): string {
+  const variant = variants[status]
+  if (!isClientInvolved && variant.noClientLabel) {
+    return variant.noClientLabel
+  }
+  if (role === 'client' && variant.clientLabel) {
+    return variant.clientLabel
+  }
+  return variant.label
+}
+
 export default function StatusBadge({
   status,
   role,
@@ -74,12 +91,7 @@ export default function StatusBadge({
 }) {
   const variant = variants[status]
 
-  let label = variant.label
-  if (!isClientInvolved && variant.noClientLabel) {
-    label = variant.noClientLabel
-  } else if (role === 'client' && variant.clientLabel) {
-    label = variant.clientLabel
-  }
+  const label = getStatusLabel(status, { role, isClientInvolved })
 
   const className =
     !isClientInvolved && variant.noClientClassName
