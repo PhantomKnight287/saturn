@@ -1,9 +1,9 @@
 import type { Metadata } from 'next'
+import { createLoader, parseAsInteger } from 'nuqs/server'
 import { projectsService } from '@/app/api/projects/service'
 import { createMetadata } from '@/lib/metadata'
 import { requirePermission, resolveOrgContext } from '../cache'
 import { ProjectsClient } from './page.client'
-import { createLoader, parseAsInteger } from 'nuqs/server'
 
 export const metadata: Metadata = createMetadata({
   title: 'Projects',

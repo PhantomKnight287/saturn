@@ -86,12 +86,12 @@ export interface TimeTrackingPageProps {
   currentMemberId: string
   customFields: CustomFieldDefinition[]
   defaultCurrency?: string
-  entries: TimeEntry[]
   initialLogMinutes?: number
   isAdmin: boolean
   isClient: boolean
   isClientInvolved: boolean
   memberRates: MemberRate[]
+  myEntries: TimeEntry[]
   orgSlug: string
   projectId: string
   projectMembers: ProjectMember[]
@@ -100,6 +100,12 @@ export interface TimeTrackingPageProps {
   reportEntriesMap: Record<string, ReportEntryDetail[]>
   reportRecipientsMap: Record<string, TimesheetReportRecipient[]>
   requirements: Requirement[]
+  submittedEntries: TimeEntry[]
+  teamEntries: TimeEntry[]
+  teamPage: number
+  teamPageSize: number
+  teamTotal: number
+  teamTotalMinutes: number
   timesheetDuration: TimesheetDuration
   timesheetReports: TimesheetReport[]
 }

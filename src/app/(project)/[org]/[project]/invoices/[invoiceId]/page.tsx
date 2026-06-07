@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
+import { createLoader, parseAsString } from 'nuqs/server'
 import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
 import { expensesServices } from '@/app/api/expenses/service'
 import { invoicesService } from '@/app/api/invoices/service'
@@ -15,7 +16,6 @@ import type { Role } from '@/types'
 import { InvoiceClientView } from '../_components/invoice-client-view'
 import InvoiceEditor from '../_components/invoice-editor'
 import { buildMemberRateMap } from '../_lib/build-rate-map'
-import { createLoader, parseAsString } from 'nuqs/server'
 
 export const metadata: Metadata = createMetadata({
   title: 'Invoice',

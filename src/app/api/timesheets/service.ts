@@ -2,6 +2,7 @@ import { render } from '@react-email/render'
 import {
   and,
   asc,
+  count,
   desc,
   eq,
   getTableColumns,
@@ -9,6 +10,7 @@ import {
   inArray,
   isNull,
   lte,
+  ne,
   sum,
 } from 'drizzle-orm'
 import { projectsService } from '@/app/api/projects/service'
@@ -185,6 +187,90 @@ const listByProject = async ({
     (typeof entries)[number],
     'requirementTitle' | 'requirementSlug'
   > & { requirementSlug: string; requirementTitle: string })[]
+}
+
+const listTeamEntriesPage = async ({
+  projectId,
+  filters,
+  page,
+  pageSize,
+}: {
+  projectId: string
+  filters?: ListFilters
+  page: number
+  pageSize: number
+}) => {
+  const conditions = [
+    eq(timeEntries.projectId, projectId),
+    ne(timeEntries.status, 'draft'),
+  ]
+
+  if (filters?.memberId) {
+    conditions.push(eq(timeEntries.memberId, filters.memberId))
+  }
+  if (filters?.status) {
+    conditions.push(
+      eq(
+        timeEntries.status,
+        filters.status as typeof timeEntries.$inferSelect.status
+      )
+    )
+  }
+  if (filters?.requirementId === 'general') {
+    conditions.push(isNull(timeEntries.requirementId))
+  } else if (filters?.requirementId) {
+    conditions.push(eq(timeEntries.requirementId, filters.requirementId))
+  }
+
+  const where = and(...conditions)
+
+  const [entries, [totals]] = await Promise.all([
+    db
+      .select({
+        id: timeEntries.id,
+        projectId: timeEntries.projectId,
+        requirementId: timeEntries.requirementId,
+        memberId: timeEntries.memberId,
+        description: timeEntries.description,
+        date: timeEntries.date,
+        durationMinutes: timeEntries.durationMinutes,
+        billable: timeEntries.billable,
+        status: timeEntries.status,
+        rejectReason: timeEntries.rejectReason,
+        invoiceId: timeEntries.invoiceId,
+        customValues: timeEntries.customValues,
+        createdAt: timeEntries.createdAt,
+        updatedAt: timeEntries.updatedAt,
+        memberName: users.name,
+        memberEmail: users.email,
+        requirementTitle: requirements.title,
+        requirementSlug: requirements.slug,
+      })
+      .from(timeEntries)
+      .innerJoin(members, eq(timeEntries.memberId, members.id))
+      .innerJoin(users, eq(members.userId, users.id))
+      .leftJoin(requirements, eq(timeEntries.requirementId, requirements.id))
+      .where(where)
+      .orderBy(desc(timeEntries.date), desc(timeEntries.createdAt))
+      .limit(pageSize)
+      .offset((page - 1) * pageSize),
+    db
+      .select({
+        total: count(),
+        totalMinutes: sum(timeEntries.durationMinutes),
+      })
+      .from(timeEntries)
+      .where(where),
+  ])
+
+  return {
+    entries: entries as (Omit<
+      (typeof entries)[number],
+      'requirementTitle' | 'requirementSlug'
+    > & { requirementSlug: string; requirementTitle: string })[],
+    total: totals?.total ?? 0,
+    totalMinutes: Number(totals?.totalMinutes ?? 0),
+  }
 }
 
 const getById = async (timeEntryId: string, projectId: string) => {
@@ -1895,6 +1981,7 @@ export const timesheetService = {
   ensureMemberRate,
   getProjectCustomFields,
   listByProject,
+  listTeamEntriesPage,
   listByProjectIdsSince,
   getById,
   getWeeklyTimesheet,

@@ -22,11 +22,17 @@ import { TimesheetApproval } from './_components/timesheet-approval'
 import { WeeklyTimesheet } from './_components/weekly-timesheet'
 import { sendTimesheetToClientAction } from './actions'
 import { formatMinutes } from './common'
-import type { TimeTrackingPageProps } from './types'
+import type { TimeEntry, TimeTrackingPageProps } from './types'
 
 export function TimeTrackingClient(props: TimeTrackingPageProps) {
   const {
-    entries,
+    myEntries,
+    submittedEntries,
+    teamEntries,
+    teamPage,
+    teamPageSize,
+    teamTotal,
+    teamTotalMinutes,
     projectId,
     projectName,
     orgSlug,
@@ -94,9 +100,9 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
   }, [hasCustomFields, router, timesheetsBase])
   const [ratesOpen, setRatesOpen] = useState(false)
   const [sendOpen, setSendOpen] = useState(false)
-  const [selectedEntryIds, setSelectedEntryIds] = useState<Set<string>>(
-    new Set()
-  )
+  const [selectedEntries, setSelectedEntries] = useState<
+    Map<string, TimeEntry>
+  >(new Map())
   const [reportTitle, setReportTitle] = useState('')
 
   const goToNew = (opts?: { date?: Date; durationMinutes?: number }) => {
@@ -127,14 +133,11 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
     setFormOpen(true)
   }
 
-  const selectedMinutes = entries
-    .filter((e) => selectedEntryIds.has(e.id))
-    .reduce((sum, e) => sum + e.durationMinutes, 0)
+  let selectedMinutes = 0
+  for (const entry of selectedEntries.values()) {
+    selectedMinutes += entry.durationMinutes
+  }
 
-  const myEntries = entries.filter((e) => e.memberId === currentMemberId)
-  const submittedEntries = entries.filter(
-    (e) => e.status === 'submitted_to_admin'
-  )
   const disputedReports = timesheetReports.filter(
     (r) => r.status === 'disputed'
   )
@@ -165,13 +168,13 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
         <div className='flex items-center gap-2'>
           {isAdmin && isClientInvolved && (
             <Button
-              disabled={selectedEntryIds.size === 0}
+              disabled={selectedEntries.size === 0}
               onClick={() => setSendOpen(true)}
               variant='outline'
             >
               <Send className='mr-1 size-4' />
               Send to Client
-              {selectedEntryIds.size > 0 && ` (${selectedEntryIds.size})`}
+              {selectedEntries.size > 0 && ` (${selectedEntries.size})`}
             </Button>
           )}
           {isAdmin && (
@@ -279,15 +282,19 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
               <TeamEntriesTable
                 currentMemberId={currentMemberId}
                 customFields={customFields}
-                entries={entries.filter((e) => e.status !== 'draft')}
+                entries={teamEntries}
                 isClientInvolved={isClientInvolved}
-                onSelectionChange={setSelectedEntryIds}
+                onSelectionChange={setSelectedEntries}
                 orgSlug={orgSlug}
+                page={teamPage}
+                pageSize={teamPageSize}
                 projectId={projectId}
                 projectMembers={projectMembers}
                 projectSlug={projectSlug}
                 requirements={requirements}
-                selectedIds={selectedEntryIds}
+                selectedEntries={selectedEntries}
+                total={teamTotal}
+                totalMinutes={teamTotalMinutes}
               />
             </TabsContent>
 
@@ -339,11 +346,11 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
       {isAdmin && isClientInvolved && (
         <SendToClientDialog
           clients={clients}
-          description={`Send ${selectedEntryIds.size} selected ${selectedEntryIds.size === 1 ? 'entry' : 'entries'} (${formatMinutes(selectedMinutes)}) for client review.`}
+          description={`Send ${selectedEntries.size} selected ${selectedEntries.size === 1 ? 'entry' : 'entries'} (${formatMinutes(selectedMinutes)}) for client review.`}
           onOpenChange={(open) => {
             setSendOpen(open)
             if (!open) {
-              setSelectedEntryIds(new Set())
+              setSelectedEntries(new Map())
               setReportTitle('')
             }
           }}
@@ -352,11 +359,11 @@ export function TimeTrackingClient(props: TimeTrackingPageProps) {
               projectId,
               clientMemberIds,
               title: reportTitle.trim(),
-              timeEntryIds: [...selectedEntryIds],
+              timeEntryIds: [...selectedEntries.keys()],
             })
             toast.success('Timesheet sent to client')
             setSendOpen(false)
-            setSelectedEntryIds(new Set())
+            setSelectedEntries(new Map())
             setReportTitle('')
             router.refresh()
           }}

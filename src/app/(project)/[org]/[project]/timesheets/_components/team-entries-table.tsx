@@ -1,9 +1,18 @@
 'use client'
 
 import { useRouter } from '@bprogress/next/app'
-import { Clock, DollarSign, Filter, Pencil, Trash2 } from 'lucide-react'
+import {
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  DollarSign,
+  Filter,
+  Pencil,
+  Trash2,
+} from 'lucide-react'
 import { useParams } from 'next/navigation'
 import { useAction } from 'next-safe-action/hooks'
+import { useQueryStates } from 'nuqs'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { getStatusLabel, type Status } from '@/components/status-badge'
@@ -40,6 +49,7 @@ import {
 import type { CustomFieldDefinition } from '@/lib/custom-fields'
 import { deleteTimeEntryAction } from '../actions'
 import { formatMinutes, formatShortDate } from '../common'
+import { teamEntriesSearchParams } from '../search-params'
 import type { ProjectMember, Requirement, TimeEntry } from '../types'
 import { CustomValuesInline } from './custom-values-inline'
 import { StatusBadgeWithReason } from './status-badge-with-reason'
@@ -62,13 +72,17 @@ interface TeamEntriesTableProps {
   customFields?: CustomFieldDefinition[]
   entries: TimeEntry[]
   isClientInvolved?: boolean
-  onSelectionChange?: (ids: Set<string>) => void
+  onSelectionChange?: (next: Map<string, TimeEntry>) => void
   orgSlug?: string
+  page: number
+  pageSize: number
   projectId: string
   projectMembers: ProjectMember[]
   projectSlug?: string
   requirements: Requirement[]
-  selectedIds?: Set<string>
+  selectedEntries?: Map<string, TimeEntry>
+  total: number
+  totalMinutes: number
 }
 
 export function TeamEntriesTable({
@@ -76,19 +90,28 @@ export function TeamEntriesTable({
   projectMembers,
   requirements,
   projectId,
-  selectedIds,
+  selectedEntries,
   onSelectionChange,
   isClientInvolved,
   customFields = [],
   orgSlug,
   projectSlug,
+  page,
+  pageSize,
+  total,
+  totalMinutes,
 }: TeamEntriesTableProps) {
   const selectable = !!onSelectionChange
   const params = useParams()
   const router = useRouter()
-  const [filterMember, setFilterMember] = useState<string>('all')
-  const [filterStatus, setFilterStatus] = useState<string>('all')
-  const [filterRequirement, setFilterRequirement] = useState<string>('all')
+  const [
+    {
+      member: filterMember,
+      status: filterStatus,
+      requirement: filterRequirement,
+    },
+    setFilters,
+  ] = useQueryStates(teamEntriesSearchParams, { shallow: false })
   const [editEntry, setEditEntry] = useState<TimeEntry | null>(null)
   const hasCustomFields = customFields.length > 0
   const editHrefBase =
@@ -107,40 +130,7 @@ export function TeamEntriesTable({
       toast.error(error.serverError ?? 'Failed to delete entry'),
   })
 
-  const filtered = useMemo(
-    () =>
-      entries.filter((e) => {
-        if (filterMember !== 'all' && e.memberId !== filterMember) {
-          return false
-        }
-        if (filterStatus !== 'all' && e.status !== filterStatus) {
-          return false
-        }
-        if (filterRequirement !== 'all') {
-          if (filterRequirement === 'general' && e.requirementId !== null) {
-            return false
-          }
-          if (
-            filterRequirement !== 'general' &&
-            e.requirementId !== filterRequirement
-          ) {
-            return false
-          }
-        }
-        return true
-      }),
-    [entries, filterMember, filterStatus, filterRequirement]
-  )
-
-  const totalMinutes = useMemo(
-    () => filtered.reduce((sum, e) => sum + e.durationMinutes, 0),
-    [filtered]
-  )
-
-  const statusOptions = useMemo(() => {
-    const present = new Set(entries.map((e) => e.status))
-    return STATUS_FILTER_ORDER.filter((s) => present.has(s))
-  }, [entries])
+  const pageCount = Math.max(1, Math.ceil(total / pageSize))
 
   const hasActiveFilters =
     filterMember !== 'all' ||
@@ -148,48 +138,49 @@ export function TeamEntriesTable({
     filterRequirement !== 'all'
 
   const selectableEntries = useMemo(
-    () => filtered.filter((e) => e.status === 'admin_accepted' && !e.invoiceId),
-    [filtered]
+    () => entries.filter((e) => e.status === 'admin_accepted' && !e.invoiceId),
+    [entries]
   )
 
-  const toggleEntry = (id: string) => {
-    if (!(onSelectionChange && selectedIds)) {
+  const toggleEntry = (entry: TimeEntry) => {
+    if (!(onSelectionChange && selectedEntries)) {
       return
     }
-    const next = new Set(selectedIds)
-    if (next.has(id)) {
-      next.delete(id)
+    const next = new Map(selectedEntries)
+    if (next.has(entry.id)) {
+      next.delete(entry.id)
     } else {
-      next.add(id)
+      next.set(entry.id, entry)
     }
     onSelectionChange(next)
   }
 
   const toggleAll = () => {
-    if (!(onSelectionChange && selectedIds)) {
+    if (!(onSelectionChange && selectedEntries)) {
       return
     }
-    if (selectableEntries.every((e) => selectedIds.has(e.id))) {
-      const next = new Set(selectedIds)
+    const next = new Map(selectedEntries)
+    if (selectableEntries.every((e) => selectedEntries.has(e.id))) {
       for (const e of selectableEntries) {
         next.delete(e.id)
       }
-      onSelectionChange(next)
     } else {
-      const next = new Set(selectedIds)
       for (const e of selectableEntries) {
-        next.add(e.id)
+        next.set(e.id, e)
       }
-      onSelectionChange(next)
     }
+    onSelectionChange(next)
   }
 
   return (
     <div className='space-y-6'>
       <div className='flex flex-wrap items-center gap-3'>
         <Filter className='size-4 text-muted-foreground' />
-        <Select onValueChange={setFilterMember} value={filterMember}>
-          <SelectTrigger className='h-9 w-40'>
+        <Select
+          onValueChange={(v) => setFilters({ member: v, page: 1 })}
+          value={filterMember}
+        >
+          <SelectTrigger className='*:data-[slot=select-value]:block! h-9 w-40 *:data-[slot=select-value]:min-w-0 *:data-[slot=select-value]:truncate'>
             <SelectValue placeholder='All members' />
           </SelectTrigger>
           <SelectContent>
@@ -201,21 +192,29 @@ export function TeamEntriesTable({
             ))}
           </SelectContent>
         </Select>
-        <Select onValueChange={setFilterStatus} value={filterStatus}>
-          <SelectTrigger className='h-9 w-36'>
+        <Select
+          onValueChange={(v) =>
+            setFilters({ status: v as Status | 'all', page: 1 })
+          }
+          value={filterStatus}
+        >
+          <SelectTrigger className='*:data-[slot=select-value]:block! h-9 w-36 *:data-[slot=select-value]:min-w-0 *:data-[slot=select-value]:truncate'>
             <SelectValue placeholder='All statuses' />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value='all'>All statuses</SelectItem>
-            {statusOptions.map((status) => (
+            {STATUS_FILTER_ORDER.map((status) => (
               <SelectItem key={status} value={status}>
                 {getStatusLabel(status, { isClientInvolved })}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
-        <Select onValueChange={setFilterRequirement} value={filterRequirement}>
-          <SelectTrigger className='h-9 w-44'>
+        <Select
+          onValueChange={(v) => setFilters({ requirement: v, page: 1 })}
+          value={filterRequirement}
+        >
+          <SelectTrigger className='*:data-[slot=select-value]:block! h-9 w-44 *:data-[slot=select-value]:min-w-0 *:data-[slot=select-value]:truncate'>
             <SelectValue placeholder='All requirements' />
           </SelectTrigger>
           <SelectContent>
@@ -231,23 +230,26 @@ export function TeamEntriesTable({
         {hasActiveFilters && (
           <Button
             className='h-9 text-xs'
-            onClick={() => {
-              setFilterMember('all')
-              setFilterStatus('all')
-              setFilterRequirement('all')
-            }}
+            onClick={() =>
+              setFilters({
+                member: 'all',
+                status: 'all',
+                requirement: 'all',
+                page: 1,
+              })
+            }
             variant='ghost'
           >
             Clear filters
           </Button>
         )}
         <span className='ml-auto text-muted-foreground text-sm'>
-          {filtered.length} {filtered.length === 1 ? 'entry' : 'entries'} ·{' '}
+          {total} {total === 1 ? 'entry' : 'entries'} ·{' '}
           {formatMinutes(totalMinutes)}
         </span>
       </div>
 
-      {filtered.length === 0 ? (
+      {entries.length === 0 ? (
         <Empty>
           <EmptyHeader>
             <EmptyMedia variant='icon'>
@@ -274,7 +276,7 @@ export function TeamEntriesTable({
                           checked={
                             selectableEntries.length > 0 &&
                             selectableEntries.every((e) =>
-                              selectedIds?.has(e.id)
+                              selectedEntries?.has(e.id)
                             )
                           }
                           disabled={selectableEntries.length === 0}
@@ -296,15 +298,15 @@ export function TeamEntriesTable({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map((entry) => (
+                  {entries.map((entry) => (
                     <TableRow key={entry.id}>
                       {selectable && (
                         <TableCell>
                           {entry.status === 'admin_accepted' &&
                           !entry.invoiceId ? (
                             <Checkbox
-                              checked={selectedIds?.has(entry.id) ?? false}
-                              onCheckedChange={() => toggleEntry(entry.id)}
+                              checked={selectedEntries?.has(entry.id) ?? false}
+                              onCheckedChange={() => toggleEntry(entry)}
                             />
                           ) : (
                             <span />
@@ -399,6 +401,30 @@ export function TeamEntriesTable({
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {pageCount > 1 && (
+        <div className='flex items-center justify-end gap-3'>
+          <span className='text-muted-foreground text-sm'>
+            Page {page} of {pageCount}
+          </span>
+          <Button
+            disabled={page <= 1}
+            onClick={() => setFilters({ page: page - 1 })}
+            size='icon'
+            variant='outline'
+          >
+            <ChevronLeft className='size-4' />
+          </Button>
+          <Button
+            disabled={page >= pageCount}
+            onClick={() => setFilters({ page: page + 1 })}
+            size='icon'
+            variant='outline'
+          >
+            <ChevronRight className='size-4' />
+          </Button>
+        </div>
       )}
 
       {editEntry && (

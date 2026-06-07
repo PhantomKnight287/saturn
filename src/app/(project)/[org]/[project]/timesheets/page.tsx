@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
+import { createLoader, parseAsInteger } from 'nuqs/server'
 import { resolveProjectContext } from '@/app/(organization)/[org]/cache'
 import { projectsService } from '@/app/api/projects/service'
 import { requirementsService } from '@/app/api/requirements/service'
@@ -8,9 +9,15 @@ import { timesheetService } from '@/app/api/timesheets/service'
 
 import { createMetadata } from '@/lib/metadata'
 import { TimeTrackingClient } from './page.client'
+import { teamEntriesSearchParams } from './search-params'
 import type { ClientReportWithEntries } from './types'
 
-const LOG_MINUTES_RE = /^\d+$/
+const TEAM_PAGE_SIZE = 25
+
+const loadSearchParams = createLoader({
+  logMinutes: parseAsInteger,
+  ...teamEntriesSearchParams,
+})
 
 export const metadata: Metadata = createMetadata({
   title: 'Timesheets',
@@ -28,13 +35,11 @@ export default async function TimeTracking({
   searchParams,
 }: PageProps<'/[org]/[project]/timesheets'>) {
   const { org, project: projectSlug } = await params
-  const { logMinutes } = await searchParams
+  const { logMinutes, page, member, status, requirement } =
+    await loadSearchParams(searchParams)
   let initialLogMinutes: number | undefined
-  if (typeof logMinutes === 'string' && LOG_MINUTES_RE.test(logMinutes)) {
-    const parsed = Number(logMinutes)
-    if (Number.isSafeInteger(parsed)) {
-      initialLogMinutes = Math.max(1, parsed)
-    }
+  if (logMinutes !== null && Number.isSafeInteger(logMinutes)) {
+    initialLogMinutes = Math.max(1, logMinutes)
   }
   const {
     organization,
@@ -57,8 +62,16 @@ export default async function TimeTracking({
     )
   }
 
+  const teamFilters = {
+    ...(member !== 'all' && { memberId: member }),
+    ...(status !== 'all' && { status }),
+    ...(requirement !== 'all' && { requirementId: requirement }),
+  }
+
   const [
-    entries,
+    myEntries,
+    teamData,
+    submittedEntries,
     requirementsList,
     projectMembers,
     budgetStatus,
@@ -73,6 +86,23 @@ export default async function TimeTracking({
           memberId: orgMember.id,
           role: orgMember.role,
           projectId: currentProject.id,
+          filters: { memberId: orgMember.id },
+        })
+      : Promise.resolve([]),
+    isAdmin && canReadTimeEntries
+      ? timesheetService.listTeamEntriesPage({
+          projectId: currentProject.id,
+          filters: teamFilters,
+          page,
+          pageSize: TEAM_PAGE_SIZE,
+        })
+      : Promise.resolve({ entries: [], total: 0, totalMinutes: 0 }),
+    isAdmin && canReadTimeEntries
+      ? timesheetService.listByProject({
+          memberId: orgMember.id,
+          role: orgMember.role,
+          projectId: currentProject.id,
+          filters: { status: 'submitted_to_admin' },
         })
       : Promise.resolve([]),
     requirementsService.listByProject({
@@ -129,12 +159,12 @@ export default async function TimeTracking({
       currentMemberId={orgMember.id}
       customFields={projectCustomFields}
       defaultCurrency={settings.currency}
-      entries={entries}
       initialLogMinutes={initialLogMinutes}
       isAdmin={isAdmin}
       isClient={isClient}
       isClientInvolved={settings.clientInvolvement.timesheets === 'on'}
       memberRates={rates}
+      myEntries={myEntries}
       orgSlug={org}
       projectId={currentProject.id}
       projectMembers={projectMembers.map((m) => ({
@@ -147,6 +177,12 @@ export default async function TimeTracking({
       reportEntriesMap={reportEntriesMap}
       reportRecipientsMap={reportRecipientsMap}
       requirements={requirementsList}
+      submittedEntries={submittedEntries}
+      teamEntries={teamData.entries}
+      teamPage={page}
+      teamPageSize={TEAM_PAGE_SIZE}
+      teamTotal={teamData.total}
+      teamTotalMinutes={teamData.totalMinutes}
       timesheetDuration={settings.timesheetDuration}
       timesheetReports={reports}
     />
