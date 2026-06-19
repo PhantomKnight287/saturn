@@ -251,7 +251,9 @@ describe('timesheetService.listTeamEntriesPage', () => {
     {
       status = 'submitted_to_admin',
       ...over
-    }: Record<string, unknown> & { status?: typeof timeEntries.$inferSelect.status } = {}
+    }: Record<string, unknown> & {
+      status?: typeof timeEntries.$inferSelect.status
+    } = {}
   ) {
     const entry = await timesheetService.createEntry({
       project,
@@ -353,7 +355,10 @@ describe('timesheetService.listTeamEntriesPage', () => {
     expect(page1.total).toBe(3)
     expect(page2.total).toBe(3)
     // Ordered by date desc, so the oldest entry lands on the last page.
-    expect(page1.entries.map((e) => e.date)).toEqual(['2026-01-03', '2026-01-02'])
+    expect(page1.entries.map((e) => e.date)).toEqual([
+      '2026-01-03',
+      '2026-01-02',
+    ])
     expect(page2.entries[0]!.date).toBe('2026-01-01')
   })
 
