@@ -9,6 +9,7 @@ import {
   addProjectClient,
   addProjectMember,
   createInvoice,
+  createRequirement,
   setupProject,
 } from '../../../../tests/helpers/factories'
 import { timesheetService } from './service'
@@ -236,6 +237,220 @@ describe('timesheetService.submit / approve / reject', () => {
     await expect(
       timesheetService.approve({ timeEntryIds: [entry.id], orgMember: owner })
     ).rejects.toThrow('Only submitted entries can be approved')
+  })
+})
+
+describe('timesheetService.listTeamEntriesPage', () => {
+  /**
+   * Create an entry (drafts via the member flow) and force its status, since
+   * the page query excludes drafts and filters on status.
+   */
+  async function makeEntry(
+    project: Awaited<ReturnType<typeof setupProject>>['project'],
+    member: ActiveMember,
+    {
+      status = 'submitted_to_admin',
+      ...over
+    }: Record<string, unknown> & { status?: typeof timeEntries.$inferSelect.status } = {}
+  ) {
+    const entry = await timesheetService.createEntry({
+      project,
+      orgMember: member,
+      ...entryInput(over),
+    })
+    if (status !== 'draft') {
+      await db
+        .update(timeEntries)
+        .set({ status })
+        .where(eq(timeEntries.id, entry!.id))
+    }
+    return entry!
+  }
+
+  it('excludes draft entries from the page', async () => {
+    const { org, project } = await setupProject()
+    const teammate = await activeMemberFor(
+      await addProjectMember(org.id, project.id)
+    )
+    await makeEntry(project, teammate, { status: 'draft' })
+    const submitted = await makeEntry(project, teammate, {
+      status: 'submitted_to_admin',
+    })
+
+    const result = await timesheetService.listTeamEntriesPage({
+      projectId: project.id,
+      page: 1,
+      pageSize: 50,
+    })
+
+    expect(result.entries).toHaveLength(1)
+    expect(result.entries[0]!.id).toBe(submitted.id)
+    expect(result.total).toBe(1)
+  })
+
+  it('scopes entries to the requested project', async () => {
+    const { org, project } = await setupProject()
+    const other = await setupProject()
+    const teammate = await activeMemberFor(
+      await addProjectMember(org.id, project.id)
+    )
+    const otherTeammate = await activeMemberFor(
+      await addProjectMember(other.org.id, other.project.id)
+    )
+    await makeEntry(project, teammate)
+    await makeEntry(other.project, otherTeammate)
+
+    const result = await timesheetService.listTeamEntriesPage({
+      projectId: project.id,
+      page: 1,
+      pageSize: 50,
+    })
+
+    expect(result.total).toBe(1)
+    expect(result.entries[0]!.projectId).toBe(project.id)
+  })
+
+  it('reports total and totalMinutes across the matching set', async () => {
+    const { org, project } = await setupProject()
+    const teammate = await activeMemberFor(
+      await addProjectMember(org.id, project.id)
+    )
+    await makeEntry(project, teammate, { durationMinutes: 60 })
+    await makeEntry(project, teammate, { durationMinutes: 90 })
+
+    const result = await timesheetService.listTeamEntriesPage({
+      projectId: project.id,
+      page: 1,
+      pageSize: 50,
+    })
+
+    expect(result.total).toBe(2)
+    expect(result.totalMinutes).toBe(150)
+  })
+
+  it('paginates with limit and offset while totals span the full set', async () => {
+    const { org, project } = await setupProject()
+    const teammate = await activeMemberFor(
+      await addProjectMember(org.id, project.id)
+    )
+    await makeEntry(project, teammate, { date: '2026-01-01' })
+    await makeEntry(project, teammate, { date: '2026-01-02' })
+    await makeEntry(project, teammate, { date: '2026-01-03' })
+
+    const page1 = await timesheetService.listTeamEntriesPage({
+      projectId: project.id,
+      page: 1,
+      pageSize: 2,
+    })
+    const page2 = await timesheetService.listTeamEntriesPage({
+      projectId: project.id,
+      page: 2,
+      pageSize: 2,
+    })
+
+    expect(page1.entries).toHaveLength(2)
+    expect(page2.entries).toHaveLength(1)
+    expect(page1.total).toBe(3)
+    expect(page2.total).toBe(3)
+    // Ordered by date desc, so the oldest entry lands on the last page.
+    expect(page1.entries.map((e) => e.date)).toEqual(['2026-01-03', '2026-01-02'])
+    expect(page2.entries[0]!.date).toBe('2026-01-01')
+  })
+
+  it('filters by memberId', async () => {
+    const { org, project } = await setupProject()
+    const a = await activeMemberFor(await addProjectMember(org.id, project.id))
+    const b = await activeMemberFor(await addProjectMember(org.id, project.id))
+    const entryA = await makeEntry(project, a)
+    await makeEntry(project, b)
+
+    const result = await timesheetService.listTeamEntriesPage({
+      projectId: project.id,
+      filters: { memberId: a.id },
+      page: 1,
+      pageSize: 50,
+    })
+
+    expect(result.total).toBe(1)
+    expect(result.entries[0]!.id).toBe(entryA.id)
+  })
+
+  it('filters by status', async () => {
+    const { org, project } = await setupProject()
+    const teammate = await activeMemberFor(
+      await addProjectMember(org.id, project.id)
+    )
+    const accepted = await makeEntry(project, teammate, {
+      status: 'admin_accepted',
+    })
+    await makeEntry(project, teammate, { status: 'submitted_to_admin' })
+
+    const result = await timesheetService.listTeamEntriesPage({
+      projectId: project.id,
+      filters: { status: 'admin_accepted' },
+      page: 1,
+      pageSize: 50,
+    })
+
+    expect(result.total).toBe(1)
+    expect(result.entries[0]!.id).toBe(accepted.id)
+  })
+
+  it('filters by requirementId "general" to entries with no requirement', async () => {
+    const { org, project } = await setupProject()
+    const teammate = await activeMemberFor(
+      await addProjectMember(org.id, project.id)
+    )
+    const requirement = await createRequirement({ projectId: project.id })
+    const general = await makeEntry(project, teammate, { requirementId: null })
+    await makeEntry(project, teammate, { requirementId: requirement.id })
+
+    const result = await timesheetService.listTeamEntriesPage({
+      projectId: project.id,
+      filters: { requirementId: 'general' },
+      page: 1,
+      pageSize: 50,
+    })
+
+    expect(result.total).toBe(1)
+    expect(result.entries[0]!.id).toBe(general.id)
+  })
+
+  it('filters by a specific requirementId', async () => {
+    const { org, project } = await setupProject()
+    const teammate = await activeMemberFor(
+      await addProjectMember(org.id, project.id)
+    )
+    const requirement = await createRequirement({ projectId: project.id })
+    const onRequirement = await makeEntry(project, teammate, {
+      requirementId: requirement.id,
+    })
+    await makeEntry(project, teammate, { requirementId: null })
+
+    const result = await timesheetService.listTeamEntriesPage({
+      projectId: project.id,
+      filters: { requirementId: requirement.id },
+      page: 1,
+      pageSize: 50,
+    })
+
+    expect(result.total).toBe(1)
+    expect(result.entries[0]!.id).toBe(onRequirement.id)
+    expect(result.entries[0]!.requirementTitle).toBe(requirement.title)
+  })
+
+  it('returns an empty page and zero totals when nothing matches', async () => {
+    const { project } = await setupProject()
+
+    const result = await timesheetService.listTeamEntriesPage({
+      projectId: project.id,
+      page: 1,
+      pageSize: 50,
+    })
+
+    expect(result.entries).toEqual([])
+    expect(result.total).toBe(0)
+    expect(result.totalMinutes).toBe(0)
   })
 })
 
