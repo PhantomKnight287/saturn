@@ -79,7 +79,3 @@ bun dev
 - **Pro ($3/mo)** — Unlimited organizations and projects, priority support.
 
 No credit card required. No feature gates on core functionality.
-
-## License
-
-This project is not open source. All rights reserved.
